@@ -1,0 +1,12 @@
+{
+  "name": "hkif-app-client",
+  "version": "1.0.0",
+  "description": "Client for hkif-app",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  }
+}
