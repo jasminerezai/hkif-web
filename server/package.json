@@ -1,0 +1,10 @@
+{
+  "name": "hkif-app-server",
+  "version": "1.0.0",
+  "description": "Server for hkif-app",
+  "private": true,
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  }
+}
