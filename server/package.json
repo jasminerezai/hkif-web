@@ -4,6 +4,9 @@
   "description": "Server for hkif-app",
   "private": true,
   "type": "module",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "scripts": {
     "start": "node dist/app.js",
     "dev": "ts-node src/express.ts",
