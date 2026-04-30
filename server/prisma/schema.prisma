@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────
+
+enum activity_status {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+  DELAYED
+}
+
+enum prof_role {
+  USER
+  LEADER
+  BOARD_MEMBER
+  ADMIN
+}
+
+// ──────────────────────────────────────────────
+// Models
+// ──────────────────────────────────────────────
+
+model profile {
+  profile_id        Int                 @id @default(autoincrement())
+  email             String              @unique @db.VarChar(255)
+  profile_name      String              @db.VarChar(255)
+  password          String
+  profile_role      prof_role           @default(USER)
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  favorites         favorites[]
+  template_activity template_activity[]
+  participation_log participation_log[]
+}
+
+/// Defines a reusable activity template (e.g. "Volleyball", "Football").
+/// Scheduled instances are created in the `schedule` table.
+model template_activity {
+  activity_id    Int             @id @default(autoincrement())
+  activity_name  String          @db.VarChar(255)
+  description    String?         @db.VarChar(500)
+  location       String          @db.VarChar(30)
+  max_capacity   Int?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+
+  /// JSON structure: { "monday": ["07:00", "09:00"], "wednesday": ["07:00", "09:00"] }
+  /// Each key is a weekday, value is [startTime, endTime].
+  time_slots     Json            @db.Json
+
+  fk_leader      Int
+  default_status activity_status
+  favorites      favorites[]
+  schedule       schedule[]
+  profile        profile         @relation(fields: [fk_leader], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_template_activity_leader")
+}
+
+/// A specific scheduled occurrence of an activity on a given date.
+model schedule {
+  week_nr           Int
+  fk_activity_id    Int
+  scheduled_date    DateTime            @db.Date
+  status            activity_status
+  scheduled_time    DateTime            @db.Time(6)
+  end_time          DateTime?           @db.Time(6)
+  last_change       DateTime            @updatedAt @db.Timestamptz(6)
+  participation_log participation_log[]
+  template_activity template_activity   @relation(fields: [fk_activity_id], references: [activity_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_schedule_activity_id")
+
+  @@id([fk_activity_id, scheduled_date])
+}
+
+/// Junction table — which activities a user has favorited.
+model favorites {
+  fk_profile_id     Int
+  fk_activity_id    Int
+  template_activity template_activity @relation(fields: [fk_activity_id], references: [activity_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_favorites_activity_id")
+  profile           profile           @relation(fields: [fk_profile_id], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_favorites_profile_id")
+
+  @@id([fk_profile_id, fk_activity_id])
+}
+
+/// Tracks user interest and attendance for a specific scheduled session.
+model participation_log {
+  fk_activity_id     Int
+  fk_scheduled_date  DateTime @db.Date
+  fk_profile_id      Int
+  expressed_interest Boolean  @default(false)
+  participated       Boolean  @default(false)
+  registered_at      DateTime @default(now())
+  schedule           schedule @relation(fields: [fk_activity_id, fk_scheduled_date], references: [fk_activity_id, scheduled_date], onDelete: NoAction, onUpdate: NoAction, map: "fk_participation_activity")
+  profile            profile  @relation(fields: [fk_profile_id], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_participation_profile")
+
+  @@id([fk_activity_id, fk_scheduled_date, fk_profile_id])
+}

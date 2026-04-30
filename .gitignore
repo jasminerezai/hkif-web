@@ -2,7 +2,7 @@
 node_modules/
 
 # Environment variables
-.env
+server/.env
 .env.local
 .env.*.local
 
@@ -10,3 +10,9 @@ node_modules/
 dist/
 build/
 
+# just a collection of notes/code that *might* be useful, but probably not tbh:
+ZZZ_ignore_garbage_code
+
+# IDE specific folders
+.idea
+# add any javascript files? --> will be compiled by TypeScript compiler
