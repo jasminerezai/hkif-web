@@ -73,7 +73,7 @@ model schedule {
   fk_activity_id    Int
   scheduled_date    DateTime            @db.Date
   status            activity_status
-  scheduled_time    DateTime            @db.Time(6)
+  start_time        DateTime            @db.Time(6)
   end_time          DateTime?           @db.Time(6)
   last_change       DateTime            @updatedAt @db.Timestamptz(6)
   participation_log participation_log[]
@@ -99,7 +99,7 @@ model participation_log {
   fk_profile_id      Int
   expressed_interest Boolean  @default(false)
   participated       Boolean  @default(false)
-  registered_at      DateTime @default(now())
+  signed_up_at       DateTime @default(now())
   schedule           schedule @relation(fields: [fk_activity_id, fk_scheduled_date], references: [fk_activity_id, scheduled_date], onDelete: NoAction, onUpdate: NoAction, map: "fk_participation_activity")
   profile            profile  @relation(fields: [fk_profile_id], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_participation_profile")
 
