@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { errorHandler } from './middleware/errorHandler.js';
 
 export const app = express();
 
@@ -18,7 +19,10 @@ app.get('/api/health', (_req, res) => {
 // app.use('/api/schedules', scheduleRoutes);
 // app.use('/api/users', userRoutes);
 
-// 404 catch-all (must be last)
+// 404 catch-all (must be last route)
 app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
+// Global error handler (must be last middleware)
+app.use(errorHandler);
