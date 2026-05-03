@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler.js';
+import authRoutes from './routes/auth.routes.js';
 
 export const app = express();
 
@@ -14,6 +15,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 // TODO: Wire in route modules once they exist (Steps 4-6)
 // app.use('/api/activities', activityRoutes);
 // app.use('/api/schedules', scheduleRoutes);
