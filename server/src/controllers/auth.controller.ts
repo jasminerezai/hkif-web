@@ -11,8 +11,8 @@ export const registerHandler = asyncHandler(async (req: Request, res: Response) 
   }
 
   // Basic validation
-  if (password.length < 6) {
-    throw new ApiError(400, 'Password must be at least 6 characters long');
+  if (password.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters long');
   }
 
   const result = await register(email, password, name);
