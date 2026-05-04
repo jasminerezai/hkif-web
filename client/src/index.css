@@ -1,1 +1,138 @@
-/* styles go here */
+/* ── Fonts ───────────────────────────────────────────────────
+   Source Serif 4 → headings (matches HKR style)
+   Source Sans 3  → body text
+──────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@700&display=swap');
+
+/* ── Design Tokens ───────────────────────────────────────────
+   Usage anywhere in JSX: style={{ color: 'var(--color-primary)' }}
+   Usage in CSS:          color: var(--color-primary);
+──────────────────────────────────────────────────────────── */
+:root {
+
+  /* ── Colour palette ── */
+  --color-primary:        #5a9e1f;   /* HKR green — main actions    */
+  --color-primary-dark:   #3d6e13;   /* hover, active states        */
+  --color-primary-light:  #eaf3de;   /* tinted backgrounds, badges  */
+  --color-primary-mid:    #7ab830;   /* subtle accents               */
+
+  --color-danger:         #c0392b;   /* errors, destructive actions */
+  --color-danger-light:   #fce8e8;   /* error backgrounds           */
+  --color-warning:        #e67e22;   /* warnings                    */
+  --color-warning-light:  #fff4e0;   /* warning backgrounds         */
+  --color-success:        #27ae60;   /* success states              */
+  --color-success-light:  #e9f7ef;   /* success backgrounds         */
+
+  /* ── Neutral palette ── */
+  --color-text:           #1a1a1a;   /* body text                   */
+  --color-text-muted:     #666666;   /* secondary text, labels      */
+  --color-text-disabled:  #aaaaaa;   /* disabled elements           */
+  --color-border:         #d8d8d8;   /* dividers, input borders     */
+  --color-border-focus:   #5a9e1f;   /* focused input border        */
+  --color-surface:        #f5f5f3;   /* page backgrounds            */
+  --color-surface-raised: #ffffff;   /* card backgrounds            */
+
+  /* ── Typography ── */
+  --font-body:    'Source Sans 3', system-ui, sans-serif;
+  --font-serif:   'Source Serif 4', Georgia, serif;
+  --font-mono:    'Courier New', Courier, monospace;
+
+  --text-xs:    0.72rem;   /* 11.5px — badges, captions  */
+  --text-sm:    0.85rem;   /* 13.5px — secondary text    */
+  --text-base:  1rem;      /* 16px   — body              */
+  --text-lg:    1.125rem;  /* 18px   — large body        */
+  --text-xl:    1.35rem;   /* 21.5px — small headings    */
+  --text-2xl:   1.65rem;   /* 26px   — section titles    */
+  --text-3xl:   2rem;      /* 32px   — page titles       */
+  --text-4xl:   2.5rem;    /* 40px   — hero titles       */
+
+  /* ── Spacing scale ──
+     Use these for margin, padding, gap.
+     Base unit: 4px. Scale: 4, 8, 12, 16, 24, 32, 48, 64, 80
+  ── */
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-6:   24px;
+  --space-8:   32px;
+  --space-12:  48px;
+  --space-16:  64px;
+  --space-20:  80px;
+
+  /* ── Border radius ── */
+  --radius-sm:  4px;    /* buttons, inputs, small tags  */
+  --radius-md:  8px;    /* cards, panels                */
+  --radius-lg:  12px;   /* modals, large cards          */
+  --radius-xl:  20px;   /* pills, badges                */
+  --radius-full: 9999px; /* circles                     */
+
+  /* ── Shadows ── */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+
+  /* ── Layout ── */
+  --nav-height: 64px;
+  --max-width:  1200px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────
+   Remove browser defaults so we start from a clean slate.
+──────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  /* smooth scrolling for anchor links */
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background: var(--color-surface);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Bare link reset — components style their own links */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Buttons always inherit font — browser default breaks this */
+button, input, select, textarea {
+  font-family: var(--font-body);
+}
+
+/* ── Layout utilities ─────────────────────────────────────── */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.page-wrapper {
+  min-height: calc(100vh - var(--nav-height));
+  padding: var(--space-12) 0 var(--space-20);
+}
+
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .container { padding: 0 var(--space-4); }
+  .page-wrapper { padding: var(--space-8) 0 var(--space-12); }
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: flex !important; }
+}
+
+@media (min-width: 769px) {
+  .show-mobile { display: none !important; }
+}
