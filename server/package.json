@@ -5,12 +5,12 @@
   "private": true,
   "type": "module",
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
-    "start": "node dist/app.js",
-    "dev": "ts-node src/express.ts",
-    "build": "tsc"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
