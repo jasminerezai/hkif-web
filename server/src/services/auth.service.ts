@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../db/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
 import { generateToken } from '../utils/jwt.js';
+import { prof_role } from '../generated/prisma';
 
 export const register = async (email: string, password: string, profile_name: string) => {
   // Check if user already exists
@@ -24,7 +25,7 @@ export const register = async (email: string, password: string, profile_name: st
       password: hashedPassword,
       profile_name,
       // Defaulting to USER role
-      profile_role: 'USER',
+      profile_role: prof_role.USER,
     },
   });
 
