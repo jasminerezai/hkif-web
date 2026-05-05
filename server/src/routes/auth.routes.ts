@@ -1,9 +1,20 @@
 import { Router } from 'express';
-import { registerHandler, loginHandler } from '../controllers/auth.controller.js';
+import { registerHandler, loginHandler, getMeHandler } from '../controllers/auth.controller.js';
+import { protect } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
 router.post('/register', registerHandler);
 router.post('/login', loginHandler);
+
+/**
+ * GET /api/auth/me — returns the authenticated user.
+ *
+ * NOTE (future optimisation): `protect` does a DB lookup on every request
+ * (prisma.profile.findUnique) to confirm the user still exists. For MVP this
+ * is acceptable. Future improvement: cache the profile in Redis or trust the
+ * JWT payload for non-sensitive reads.
+ */
+router.get('/me', protect, getMeHandler);
 
 export default router;
