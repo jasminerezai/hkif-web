@@ -10,7 +10,7 @@ export const register = async (email: string, password: string, profile_name: st
   });
 
   if (existingUser) {
-    throw new ApiError(400, 'User with this email already exists');
+    throw ApiError.conflict('User with this email already exists');
   }
 
   // Hash password
@@ -49,14 +49,14 @@ export const login = async (email: string, password: string) => {
   });
 
   if (!user) {
-    throw new ApiError(401, 'Invalid email or password');
+    throw ApiError.unauthorized('Invalid email or password');
   }
 
   // Check password
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw new ApiError(401, 'Invalid email or password');
+    throw ApiError.unauthorized('Invalid email or password');
   }
 
   // Generate token
