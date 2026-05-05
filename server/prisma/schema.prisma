@@ -65,7 +65,7 @@ model ActivityTemplate {
   location      String         @db.VarChar(255)
   maxCapacity   Int?
   defaultStatus ActivityStatus @default(ACTIVE)
-  notes         String         @db.VarChar(500)
+  notes         String?        @db.VarChar(500)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
