@@ -2,6 +2,7 @@
 import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import Navbar from './components/Navbar.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login.
@@ -79,27 +80,32 @@ function Placeholder({ title }) {
 // hooks only work inside the Provider tree.
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Public routes — anyone can access */}
-      <Route path="/"               element={<Placeholder title="Schedule" />} />
-      <Route path="/login"          element={<Placeholder title="Login" />} />
-      <Route path="/register"       element={<Placeholder title="Register" />} />
-      <Route path="/activities"     element={<Placeholder title="Activities" />} />
-      <Route path="/activities/:id" element={<Placeholder title="Activity Detail" />} />
+    <>
+      <Navbar />
+      <main>
+        <Routes>
+          {/* Public routes — anyone can access */}
+          <Route path="/"               element={<Placeholder title="Schedule" />} />
+          <Route path="/login"          element={<Placeholder title="Login" />} />
+          <Route path="/register"       element={<Placeholder title="Register" />} />
+          <Route path="/activities"     element={<Placeholder title="Activities" />} />
+          <Route path="/activities/:id" element={<Placeholder title="Activity Detail" />} />
 
-      {/* Protected route — must be logged in */}
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Placeholder title="Profile" />
-          </ProtectedRoute>
-        }
-      />
+          {/* Protected route — must be logged in */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Placeholder title="Profile" />
+              </ProtectedRoute>
+            }
+          />
 
-      {/* Catch-all: any unknown URL redirects to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          {/* Catch-all: any unknown URL redirects to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </>
   )
 }
 
