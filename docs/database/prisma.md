@@ -29,9 +29,6 @@
 1. using a `bootstrap.ts` file in the parent dir (in this case: `server/`) and imported that file first, this caused it to be executed before anything else.
 2. defined the run config to run in the `server/` dir and the execution file to be: `src/models/example.prisma.ts`
 
-
-
-
 # How to use Prisma not in code:
 *general structure:*
 ```
@@ -63,5 +60,43 @@ If the IDE complains that you are using the incorrect name of a column:
 if a, for example foreign key restraint is thrown due to mismatching ids, reset the id count by entering:<br>
 `npx prisma migrate reset`
 
+
+# How to set up development database
+**Checklist:**
+- PostgreSQL installed?
+- Prisma packages installed?
+  - prisma
+  - @types/pg
+  - pg
+  - @prisma/client
+  - @prisma/adapter-pg <br>
+    <br>
+    (the prisma stuff should already be in the `package.json` of the backend, the IDE should recognize any uninstalled packages and suggest installing them)
+
+## If not installed:
+**Prisma Packages:**
+```
+npm install prisma @types/pg --save-dev
+npm install pg @prisma/client @prisma/adapter-pg
+```
+pg --> postgres package <br>
+
+**PostgreSQL:**<br>
+[General Installation Instructions](https://www.postgresql.org/download/)<br>
+[Windows Instructions](https://www.postgresql.org/download/windows/)<br>
+
+Only really need the PostgreSQL Server to run DB. <br>
+## Commands to run & other stuff to do:
+**in the `server/.env` file**<br>
+configure DB-URL to something like this: `DATABASE_URL="postgresql://johndoe:randompassword@localhost:5432/hkif_dev?schema=public"` <br>
+the `schema=public` is not strictly necessary (as its the default schema)<br>
+the user `johndoe:randompassword` was configured during the installation process of PostgreSQL (server) <br>
+
+**prisma**
+**VERY IMPORTANT: CHANGE INTO SERVER DIRECTORY ON THE COMMAND LINE BEFORE RUNNING THESE COMMANDS**
+
+`npx prisma generate` --> generates boilerplate code (is added to `.gitignore` by default) <br>
+`npx prisma db seed` --> populates the database with mock data (code found in `server/prisma/seed.ts`) <br>
+## If something doesn't work, pls msg me
 
 

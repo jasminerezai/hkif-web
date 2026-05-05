@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// chatgpt refactored schema
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
 
@@ -14,94 +12,155 @@ datasource db {
 // Enums
 // ──────────────────────────────────────────────
 
-enum activity_status {
+enum ActivityStatus {
   ACTIVE
   INACTIVE
   CANCELLED
   DELAYED
 }
 
-enum prof_role {
+enum ProfileRole {
   USER
   LEADER
   BOARD_MEMBER
   ADMIN
 }
 
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
 // ──────────────────────────────────────────────
 // Models
 // ──────────────────────────────────────────────
 
-model profile {
-  profile_id        Int                 @id @default(autoincrement())
-  email             String              @unique @db.VarChar(255)
-  profile_name      String              @db.VarChar(255)
-  password          String
-  profile_role      prof_role           @default(USER)
-  created_at        DateTime            @default(now())
-  updated_at        DateTime            @updatedAt
-  favorites         favorites[]
-  template_activity template_activity[]
-  participation_log participation_log[]
+model Profile {
+  id          String      @id @default(uuid())
+  email       String      @unique @db.VarChar(255)
+  password    String      @db.Text
+  profileName String?     @db.VarChar(255)
+  role        ProfileRole @default(USER)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  leaderActivities LeaderActivity[]
+  favorites        Favorite[]
+  participations   ParticipationLog[]
+
+  @@index([email])
 }
 
-/// Defines a reusable activity template (e.g. "Volleyball", "Football").
-/// Scheduled instances are created in the `schedule` table.
-model template_activity {
-  activity_id    Int             @id @default(autoincrement())
-  activity_name  String          @db.VarChar(255)
-  description    String?         @db.VarChar(500)
-  location       String          @db.VarChar(30)
-  max_capacity   Int?
-  created_at     DateTime        @default(now())
-  updated_at     DateTime        @updatedAt
+// ──────────────────────────────────────────────
 
-  /// JSON structure: { "monday": ["07:00", "09:00"], "wednesday": ["07:00", "09:00"] }
-  /// Each key is a weekday, value is [startTime, endTime].
-  time_slots     Json            @db.Json
+model ActivityTemplate {
+  id            String         @id @default(uuid())
+  name          String         @db.VarChar(255)
+  description   String?        @db.VarChar(500)
+  location      String         @db.VarChar(255)
+  maxCapacity   Int?
+  defaultStatus ActivityStatus @default(ACTIVE)
+  notes         String?        @db.VarChar(500)
 
-  fk_leader      Int
-  default_status activity_status
-  favorites      favorites[]
-  schedule       schedule[]
-  profile        profile         @relation(fields: [fk_leader], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_template_activity_leader")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  leaders   LeaderActivity[]
+  favorites Favorite[]
+  schedules Schedule[]
+  timeSlots TimeSlot[]
+
+  @@index([name])
 }
 
-/// A specific scheduled occurrence of an activity on a given date.
-model schedule {
-  week_nr           Int
-  fk_activity_id    Int
-  scheduled_date    DateTime            @db.Date
-  status            activity_status
-  start_time        DateTime            @db.Time(6)
-  end_time          DateTime?           @db.Time(6)
-  last_change       DateTime            @updatedAt @db.Timestamptz(6)
-  participation_log participation_log[]
-  template_activity template_activity   @relation(fields: [fk_activity_id], references: [activity_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_schedule_activity_id")
+// ──────────────────────────────────────────────
 
-  @@id([fk_activity_id, scheduled_date])
+model Schedule {
+  id         String         @id @default(uuid())
+  activityId String
+  startAt    DateTime
+  endAt      DateTime?
+  status     ActivityStatus
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  activity ActivityTemplate @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  participations ParticipationLog[]
+
+  @@index([activityId])
+  @@index([startAt])
 }
 
-/// Junction table — which activities a user has favorited.
-model favorites {
-  fk_profile_id     Int
-  fk_activity_id    Int
-  template_activity template_activity @relation(fields: [fk_activity_id], references: [activity_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_favorites_activity_id")
-  profile           profile           @relation(fields: [fk_profile_id], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_favorites_profile_id")
+// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────
+//   HELPER TABLES (RELATIONSHIPS OR DATA)
+// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────
 
-  @@id([fk_profile_id, fk_activity_id])
+// ──────────────────────────────────────────────
+// Normalized time slots (replaces JSON)
+// ──────────────────────────────────────────────
+
+model TimeSlot {
+  id         String   @id @default(uuid())
+  activityId String
+  weekday    Weekday
+  startTime  DateTime @db.Time(6)
+  endTime    DateTime @db.Time(6)
+
+  activity ActivityTemplate @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, weekday, startTime]) // prevents double booking of time-slot
+  @@index([activityId, weekday])
 }
 
-/// Tracks user interest and attendance for a specific scheduled session.
-model participation_log {
-  fk_activity_id     Int
-  fk_scheduled_date  DateTime @db.Date
-  fk_profile_id      Int
-  expressed_interest Boolean  @default(false)
-  participated       Boolean  @default(false)
-  signed_up_at       DateTime @default(now())
-  schedule           schedule @relation(fields: [fk_activity_id, fk_scheduled_date], references: [fk_activity_id, scheduled_date], onDelete: NoAction, onUpdate: NoAction, map: "fk_participation_activity")
-  profile            profile  @relation(fields: [fk_profile_id], references: [profile_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_participation_profile")
+// ──────────────────────────────────────────────
+// Many-to-many relationships (profile ↔ ActivityTemplate)
+// ──────────────────────────────────────────────
 
-  @@id([fk_activity_id, fk_scheduled_date, fk_profile_id])
+model LeaderActivity {
+  profileId  String
+  activityId String
+
+  profile  Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  activity ActivityTemplate @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, activityId])
+}
+
+// ──────────────────────────────────────────────
+
+model Favorite {
+  profileId  String
+  activityId String
+
+  profile  Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  activity ActivityTemplate @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, activityId])
+}
+
+// ──────────────────────────────────────────────
+// Participation (profile ↔ schedule)
+// ──────────────────────────────────────────────
+
+model ParticipationLog {
+  id         String  @id @default(uuid())
+  profileId  String
+  scheduleId String
+  interested Boolean @default(false)
+
+  profile  Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, scheduleId])
+  @@index([scheduleId])
 }
