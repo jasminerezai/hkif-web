@@ -12,36 +12,37 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
   }
 
   if (!token) {
-    return next(ApiError.unauthorized('You are not logged in! Please log in to get access.'));
+    throw ApiError.unauthorized('You are not logged in! Please log in to get access.');
   }
 
-  try {
-    // 2. Verify token
-    const decoded = verifyToken(token);
+  // 2. Verify token — verifyToken throws on invalid/expired; asyncHandler forwards it
+  const decoded = verifyToken(token);
 
-    // 3. Check if user still exists
-    const currentUser = await prisma.profile.findUnique({
-      where: { profile_id: decoded.id },
-      select: { profile_id: true, profile_role: true }
-    });
+  // 3. Check if user still exists
+  const currentUser = await prisma.profile.findUnique({
+    where: { profile_id: decoded.id },
+    select: { profile_id: true, profile_name: true, email: true, profile_role: true },
+  });
 
-    if (!currentUser) {
-      return next(ApiError.unauthorized('The user belonging to this token does no longer exist.'));
-    }
-
-    // 4. Grant access to protected route
-    req.user = {
-      id: currentUser.profile_id,
-      role: currentUser.profile_role,
-    };
-    
-    next();
-  } catch (error) {
-    return next(ApiError.unauthorized('Invalid or expired token. Please log in again.'));
+  if (!currentUser) {
+    throw ApiError.unauthorized('The user belonging to this token no longer exists.');
   }
+
+  // 4. Grant access to protected route
+  req.user = {
+    id: currentUser.profile_id,
+    email: currentUser.email,
+    name: currentUser.profile_name,
+    role: currentUser.profile_role,
+  };
+
+  next();
 });
 
-// Optional: restrict to certain roles
+/**
+ * Restricts access to users with one of the specified roles.
+ * MUST be used after `protect` — relies on req.user being set.
+ */
 export const restrictTo = (...roles: string[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -50,3 +51,4 @@ export const restrictTo = (...roles: string[]) => {
     next();
   };
 };
+
