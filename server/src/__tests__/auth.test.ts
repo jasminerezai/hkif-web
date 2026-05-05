@@ -18,6 +18,8 @@ vi.mock('../db/prisma.js', () => ({
       create: vi.fn(),
     },
   },
+  // prof_role is re-exported from db/prisma.ts — pass the real enum through
+  prof_role: { USER: 'USER', LEADER: 'LEADER', BOARD_MEMBER: 'BOARD_MEMBER', ADMIN: 'ADMIN' },
 }));
 
 // ── Mock bcryptjs ─────────────────────────────────────────────────────────────
