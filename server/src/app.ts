@@ -23,7 +23,7 @@ app.use('/api/auth', authRoutes);
 
 // 404 catch-all (must be last route)
 app.use((_req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({ error: 'Route not found', statusCode: 404 });
 });
 
 // Global error handler (must be last middleware)
