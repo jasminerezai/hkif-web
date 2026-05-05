@@ -1,8 +1,7 @@
 import bcrypt from 'bcryptjs';
-import { prisma } from '../db/prisma.js';
+import { prisma, prof_role } from '../db/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
 import { generateToken } from '../utils/jwt.js';
-import { prof_role } from '../generated/prisma';
 
 export const register = async (email: string, password: string, profile_name: string) => {
   // Check if user already exists
