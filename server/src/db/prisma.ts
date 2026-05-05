@@ -9,3 +9,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 export { prisma };
+
+// Re-export Prisma enums so all code imports from this singleton
+// instead of directly from the generated client.
+export { prof_role } from '../generated/prisma';
