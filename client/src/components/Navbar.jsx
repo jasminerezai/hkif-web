@@ -120,19 +120,9 @@ export default function Navbar() {
           ) : (
             // ── Logged out state ──
             <>
-              <NavLink to="/login" style={navLinkStyle}>
-                Log in
-              </NavLink>
-
-              <Button
-                as={Link}
-                to="/register"
-                size="sm"
-              >
-                Join now
-              </Button>
-              {/* as={Link} renders a react-router Link with Button styling.
-                  The 'to' prop is forwarded via ...rest in Button.jsx */}
+                <Button as={Link} to="/login" size="sm">
+                    Log in
+                </Button>
             </>
           )}
         </div>
@@ -183,21 +173,9 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <NavLink to="/login" onClick={closeMenu} style={S.drawerLink}>
-                Log in
-              </NavLink>
-
-              <NavLink
-                to="/register"
-                onClick={closeMenu}
-                style={{
-                  ...S.drawerLink,
-                  color:      'var(--color-primary-dark)',
-                  fontWeight: 700,
-                }}
-              >
-                Join now
-              </NavLink>
+                <NavLink to="/login" onClick={closeMenu} style={S.drawerLink}>
+                    Log in
+                </NavLink>
             </>
           )}
 
