@@ -1,4 +1,4 @@
-import './bootstrap.js' // just for the development process
+// import './bootstrap.js' // just for the development process
 import {prisma} from "./prisma.js";
 
 
@@ -45,7 +45,9 @@ export default class READ{
      *   }
      */
     static async currentSchedule(){
-        const nowDate: Date = new Date();
+        const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
+
+        //put code below in own function
         const weekday: number = nowDate.getUTCDay(); // 0=> sunday; our week starts on Monday, which is 1
         const dayOfMonth: number = nowDate.getUTCDate();
         const monthInYear: number = nowDate.getUTCMonth();
@@ -118,7 +120,7 @@ export default class READ{
 
 
 
-        let schedule: object[] | undefined;
+        let schedule: object | undefined;
         if(startDay && endDay) {
             schedule = await prisma.schedule.findMany({
                 where: {
@@ -135,9 +137,10 @@ export default class READ{
                 }
             })
         }
-        console.log(`Start: ${startDay}`)
-        console.log(`Today: ${nowDate}`)
-        console.log(`End: ${endDay}`)
+        // console.log(`Start: ${startDay}`)
+        // console.log(`Today: ${nowDate}`)
+        // console.log(`End: ${endDay}`)
+        // console.log(typeof schedule)
         return schedule;
     }
 }
@@ -145,4 +148,4 @@ export default class READ{
 async function main(){
     console.log(await READ.currentSchedule());
 }
-main().catch(e => console.error(e)).finally(async () => await prisma.$disconnect())
+// main().catch(e => console.error(e)).finally(async () => await prisma.$disconnect())
