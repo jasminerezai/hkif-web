@@ -7,7 +7,13 @@ import authRoutes from './routes/auth.routes';
 import { errorHandler } from './middleware/errorHandler.js';
 >>>>>>> main
 
+// routers
+import {router as scheduleRoutes} from './routers/router.schedule.js'
+
+
 export const app = express();
+
+
 
 // Middleware
 app.use(cors({ origin: process.env['CLIENT_URL'] || 'http://localhost:5173' }));
@@ -22,7 +28,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 // TODO: Wire in route modules once they exist (Steps 4-6)
 // app.use('/api/activities', activityRoutes);
-// app.use('/api/schedules', scheduleRoutes);
+app.use('/api/schedules', scheduleRoutes);
 // app.use('/api/users', userRoutes);
 
 // 404 catch-all (must be last route)
