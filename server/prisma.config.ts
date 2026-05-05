@@ -9,6 +9,6 @@ export default ({
     seed: 'npx tsx ./prisma/seed.ts',
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL, //for some reason it doesn't recognize 'process' variable?
   },
 });

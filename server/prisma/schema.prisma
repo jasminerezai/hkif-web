@@ -41,9 +41,11 @@ enum Weekday {
 // ──────────────────────────────────────────────
 
 model Profile {
-  id        String      @id @default(uuid())
-  email     String      @unique @db.VarChar(255)
-  password  String      @db.Text
+  id          String @id @default(uuid())
+  email       String @unique @db.VarChar(255)
+  password    String @db.Text
+  profileName String @db.VarChar(255)
+
   role      ProfileRole @default(USER)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
