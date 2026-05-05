@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/ApiError.js';
+import { ApiError } from '../utils/ApiError';
 
 /**
  * Global error handler middleware.

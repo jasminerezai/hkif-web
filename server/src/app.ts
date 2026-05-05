@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { errorHandler } from './middleware/errorHandler.js';
-import authRoutes from './routes/auth.routes.js';
+import { errorHandler } from './middleware/errorHandler';
+import authRoutes from './routes/auth.routes';
 
 export const app = express();
 

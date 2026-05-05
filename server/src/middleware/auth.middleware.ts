@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwt.js';
-import { ApiError } from '../utils/ApiError.js';
-import { prisma } from '../db/prisma.js';
-import { asyncHandler } from './asyncHandler.js';
+import { verifyToken } from '../utils/jwt';
+import { ApiError } from '../utils/ApiError';
+import { prisma } from '../db/prisma';
+import { asyncHandler } from './asyncHandler';
 
 export const protect = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
   // 1. Get token and check if it exists
