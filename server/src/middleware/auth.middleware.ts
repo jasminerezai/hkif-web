@@ -12,7 +12,7 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
   }
 
   if (!token) {
-    return next(new ApiError(401, 'You are not logged in! Please log in to get access.'));
+    return next(ApiError.unauthorized('You are not logged in! Please log in to get access.'));
   }
 
   try {
@@ -26,7 +26,7 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
     });
 
     if (!currentUser) {
-      return next(new ApiError(401, 'The user belonging to this token does no longer exist.'));
+      return next(ApiError.unauthorized('The user belonging to this token does no longer exist.'));
     }
 
     // 4. Grant access to protected route
@@ -37,7 +37,7 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
     
     next();
   } catch (error) {
-    return next(new ApiError(401, 'Invalid or expired token. Please log in again.'));
+    return next(ApiError.unauthorized('Invalid or expired token. Please log in again.'));
   }
 });
 
@@ -45,7 +45,7 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
 export const restrictTo = (...roles: string[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return next(new ApiError(403, 'You do not have permission to perform this action'));
+      return next(ApiError.forbidden('You do not have permission to perform this action'));
     }
     next();
   };

@@ -2,6 +2,10 @@ import jwt from 'jsonwebtoken';
 import { prof_role } from '../../generated/prisma';
 
 export interface JwtPayload {
+  /**
+   * profile_id from the Prisma `profile` model — typed as `number` because
+   * the schema uses `Int @id @default(autoincrement())`.
+   */
   id: number;
   role: prof_role;
 }
