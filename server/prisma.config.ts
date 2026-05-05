@@ -9,6 +9,6 @@ export default ({
     seed: 'npx tsx ./prisma/seed.ts',
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL, //idl why it can't recognize the process variable, does it need to be included in compilation?
   },
 });

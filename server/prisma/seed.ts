@@ -239,7 +239,7 @@ async function main() {
         const participants = profiles.sort(() => 0.5 - Math.random()).slice(0, 5);
 
         for (const profile of participants) {
-            await prisma.participation
+            await prisma.participationLog
                 .create({
                     data: {
                         profileId: profile.id,

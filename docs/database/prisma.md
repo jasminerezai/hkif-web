@@ -29,9 +29,6 @@
 1. using a `bootstrap.ts` file in the parent dir (in this case: `server/`) and imported that file first, this caused it to be executed before anything else.
 2. defined the run config to run in the `server/` dir and the execution file to be: `src/models/example.prisma.ts`
 
-
-
-
 # How to use Prisma not in code:
 *general structure:*
 ```
@@ -62,6 +59,3 @@ If the IDE complains that you are using the incorrect name of a column:
 *also from chatgpt, see first link*
 if a, for example foreign key restraint is thrown due to mismatching ids, reset the id count by entering:<br>
 `npx prisma migrate reset`
-
-
-
