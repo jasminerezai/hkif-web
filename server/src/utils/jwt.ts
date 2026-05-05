@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { prof_role } from '../db/prisma.js';
+import { prof_role } from '../db/prisma';
 
 export interface JwtPayload {
   /**

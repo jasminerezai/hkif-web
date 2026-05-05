@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { register, login } from '../services/auth.service.js';
-import { asyncHandler } from '../middleware/asyncHandler.js';
-import { ApiError } from '../utils/ApiError.js';
+import { register, login } from '../services/auth.service';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { ApiError } from '../utils/ApiError';
 
 /**
  * Success response shape:
