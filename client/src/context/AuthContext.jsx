@@ -16,7 +16,7 @@ import React, {
   useEffect,      // runs side effects (e.g. reading localStorage on mount)
 } from 'react'
 
-import { loginRequest, registerRequest } from '../services/authService.js'
+import { loginRequest, registerRequest } from '../services/AuthService.js'
 
 // ── TOKEN KEY ─────────────────────────────────────────────────
 // Single constant for the localStorage key name.
