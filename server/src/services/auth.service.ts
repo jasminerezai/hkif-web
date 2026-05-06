@@ -13,9 +13,7 @@ export const register = async (email: string, password: string, profileName: str
     throw ApiError.conflict('User with this email already exists');
   }
 
-  // Hash password
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   // Create user
   const newUser = await prisma.profile.create({
