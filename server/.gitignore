@@ -5,4 +5,5 @@ node_modules
 
 /src/generated/prisma
 node_modules/
+tsconfig.tools.json
 
