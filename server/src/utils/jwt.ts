@@ -1,16 +1,16 @@
 import jwt from 'jsonwebtoken';
-import { prof_role } from '../db/prisma';
+import { ProfileRole } from '../db/prisma';
 
 export interface JwtPayload {
   /**
-   * profile_id from the Prisma `profile` model — typed as `number` because
-   * the schema uses `Int @id @default(autoincrement())`.
+   * id from the Prisma `Profile` model — typed as `string` because
+   * the schema uses `String @id @default(uuid())`.
    */
-  id: number;
-  role: prof_role;
+  id: string;
+  role: ProfileRole;
 }
 
-export const generateToken = (id: number, role: prof_role): string => {
+export const generateToken = (id: string, role: ProfileRole): string => {
   const secret = process.env['JWT_SECRET'];
   if (!secret) {
     throw new Error('JWT_SECRET is not defined in environment variables');
@@ -18,7 +18,7 @@ export const generateToken = (id: number, role: prof_role): string => {
 
   const expiresIn: string = process.env['JWT_EXPIRES_IN'] ?? '7d';
 
-  return jwt.sign({ id, role }, secret, { expiresIn });
+  return jwt.sign({ id, role }, secret, { expiresIn } as object);
 };
 
 export const verifyToken = (token: string): JwtPayload => {

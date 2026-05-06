@@ -1,9 +1,9 @@
 import bcrypt from 'bcryptjs';
-import { prisma, prof_role } from '../db/prisma';
+import { prisma, ProfileRole } from '../db/prisma';
 import { ApiError } from '../utils/ApiError';
 import { generateToken } from '../utils/jwt';
 
-export const register = async (email: string, password: string, profile_name: string) => {
+export const register = async (email: string, password: string, profileName: string) => {
   // Check if user already exists
   const existingUser = await prisma.profile.findUnique({
     where: { email },
@@ -22,21 +22,21 @@ export const register = async (email: string, password: string, profile_name: st
     data: {
       email,
       password: hashedPassword,
-      profile_name,
+      profileName,
       // Defaulting to USER role
-      profile_role: prof_role.USER,
+      role: ProfileRole.USER,
     },
   });
 
   // Generate token
-  const token = generateToken(newUser.profile_id, newUser.profile_role);
+  const token = generateToken(newUser.id, newUser.role);
 
   return {
     user: {
-      id: newUser.profile_id,
+      id: newUser.id,
       email: newUser.email,
-      name: newUser.profile_name,
-      role: newUser.profile_role,
+      name: newUser.profileName,
+      role: newUser.role,
     },
     token,
   };
@@ -60,14 +60,14 @@ export const login = async (email: string, password: string) => {
   }
 
   // Generate token
-  const token = generateToken(user.profile_id, user.profile_role);
+  const token = generateToken(user.id, user.role);
 
   return {
     user: {
-      id: user.profile_id,
+      id: user.id,
       email: user.email,
-      name: user.profile_name,
-      role: user.profile_role,
+      name: user.profileName,
+      role: user.role,
     },
     token,
   };

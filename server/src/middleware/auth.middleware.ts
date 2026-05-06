@@ -20,8 +20,8 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
 
   // 3. Check if user still exists
   const currentUser = await prisma.profile.findUnique({
-    where: { profile_id: decoded.id },
-    select: { profile_id: true, profile_name: true, email: true, profile_role: true },
+    where: { id: decoded.id },
+    select: { id: true, profileName: true, email: true, role: true },
   });
 
   if (!currentUser) {
@@ -30,10 +30,10 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
 
   // 4. Grant access to protected route
   req.user = {
-    id: currentUser.profile_id,
+    id: currentUser.id,
     email: currentUser.email,
-    name: currentUser.profile_name,
-    role: currentUser.profile_role,
+    name: currentUser.profileName,
+    role: currentUser.role,
   };
 
   next();
@@ -51,4 +51,3 @@ export const restrictTo = (...roles: string[]) => {
     next();
   };
 };
-

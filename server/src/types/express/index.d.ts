@@ -1,13 +1,13 @@
-import { prof_role } from '../../generated/prisma';
+import { ProfileRole } from '../../db/prisma';
 
 declare global {
   namespace Express {
     interface Request {
       user?: {
-        id: number;
+        id: string;
         email: string;
-        name: string;
-        role: prof_role;
+        name: string | null;
+        role: ProfileRole;
       };
     }
   }
