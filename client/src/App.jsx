@@ -2,6 +2,7 @@
 import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import ActivitiesPage from './pages/ActivitiesPage.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login.
@@ -84,7 +85,7 @@ function AppRoutes() {
       <Route path="/"               element={<Placeholder title="Schedule" />} />
       <Route path="/login"          element={<Placeholder title="Login" />} />
       <Route path="/register"       element={<Placeholder title="Register" />} />
-      <Route path="/activities"     element={<Placeholder title="Activities" />} />
+      <Route path="/activities" element={<ActivitiesPage />} />
       <Route path="/activities/:id" element={<Placeholder title="Activity Detail" />} />
 
       {/* Protected route — must be logged in */}
