@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { ApiError } from '../utils/ApiError';
-import { prisma } from '../db/prisma';
+import { prisma, ProfileRole } from '../db/prisma';
 import { asyncHandler } from './asyncHandler';
 
 export const protect = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
@@ -43,7 +43,7 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
  * Restricts access to users with one of the specified roles.
  * MUST be used after `protect` — relies on req.user being set.
  */
-export const restrictTo = (...roles: string[]) => {
+export const restrictTo = (...roles: ProfileRole[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return next(ApiError.forbidden('You do not have permission to perform this action'));
