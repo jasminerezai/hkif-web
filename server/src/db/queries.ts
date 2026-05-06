@@ -3,10 +3,10 @@
  */
 
 
-export * from './createQueries.js'
-export * from './readQueries.js'
-export * from './updateQueries.js'
-export * from './deleteQueries.js'
+export * from './createQueries'
+export * from './readQueries'
+export * from './updateQueries'
+export * from './deleteQueries'
 
 
 

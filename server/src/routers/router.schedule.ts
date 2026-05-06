@@ -9,8 +9,8 @@ to get any weeks schedule: send a date in the week you want in the url
  */
 
 import express, {Router} from 'express';
-import {asyncHandler} from "../middleware/asyncHandler.js";
-import {controller} from "../controller/controller.schedule.js";
+import {asyncHandler} from "../middleware/asyncHandler";
+import {controller} from "../controller/controller.schedule";
 
 export const router: Router = express.Router();
 

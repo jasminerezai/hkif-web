@@ -8,7 +8,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 >>>>>>> main
 
 // routers
-import {router as scheduleRoutes} from './routers/router.schedule.js'
+import {router as scheduleRoutes} from './routers/router.schedule'
 
 
 export const app = express();
