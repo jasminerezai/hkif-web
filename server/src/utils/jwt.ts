@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import { ProfileRole } from '../db/prisma';
 
 export interface JwtPayload {
@@ -16,9 +16,11 @@ export const generateToken = (id: string, role: ProfileRole): string => {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
 
-  const expiresIn: string = process.env['JWT_EXPIRES_IN'] ?? '7d';
+  const options: SignOptions = {
+    expiresIn: (process.env['JWT_EXPIRES_IN'] ?? '7d') as SignOptions['expiresIn'],
+  };
 
-  return jwt.sign({ id, role }, secret, { expiresIn } as object);
+  return jwt.sign({ id, role }, secret, options);
 };
 
 export const verifyToken = (token: string): JwtPayload => {
