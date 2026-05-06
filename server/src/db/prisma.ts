@@ -13,3 +13,5 @@ export { prisma };
 // Re-export Prisma enums so all code imports from this singleton
 // instead of directly from the generated client.
 export { ProfileRole } from '../generated/prisma/client';
+export { ActivityStatus } from '../generated/prisma/client';
+export { Weekday } from '../generated/prisma/client';
