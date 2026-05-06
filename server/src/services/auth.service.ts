@@ -3,6 +3,14 @@ import { prisma, ProfileRole } from '../db/prisma';
 import { ApiError } from '../utils/ApiError';
 import { generateToken } from '../utils/jwt';
 
+/** Maps a Prisma Profile row to the public user DTO returned by auth endpoints. */
+const toUserDto = (p: { id: string; email: string; profileName: string | null; role: ProfileRole }) => ({
+  id: p.id,
+  email: p.email,
+  name: p.profileName,
+  role: p.role,
+});
+
 export const register = async (email: string, password: string, profileName: string) => {
   // Check if user already exists
   const existingUser = await prisma.profile.findUnique({
@@ -29,15 +37,7 @@ export const register = async (email: string, password: string, profileName: str
   // Generate token
   const token = generateToken(newUser.id, newUser.role);
 
-  return {
-    user: {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.profileName,
-      role: newUser.role,
-    },
-    token,
-  };
+  return { user: toUserDto(newUser), token };
 };
 
 export const login = async (email: string, password: string) => {
@@ -60,13 +60,5 @@ export const login = async (email: string, password: string) => {
   // Generate token
   const token = generateToken(user.id, user.role);
 
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.profileName,
-      role: user.role,
-    },
-    token,
-  };
+  return { user: toUserDto(user), token };
 };
