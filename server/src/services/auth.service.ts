@@ -11,7 +11,7 @@ const toUserDto = (p: { id: string; email: string; profileName: string | null; r
   role: p.role,
 });
 
-export const register = async (email: string, password: string, profileName: string) => {
+export const register = async (email: string, password: string, name: string) => {
   // Check if user already exists
   const existingUser = await prisma.profile.findUnique({
     where: { email },
@@ -28,7 +28,7 @@ export const register = async (email: string, password: string, profileName: str
     data: {
       email,
       password: hashedPassword,
-      profileName,
+      profileName: name,
       // Defaulting to USER role
       role: ProfileRole.USER,
     },
