@@ -1,8 +1,7 @@
-import pg from 'pg';
+import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from "../generated/prisma/client.js";//shouldn't it be .ts? w/o it shows a TS error
+import { PrismaClient } from "../generated/prisma/client";
 
-const { Pool } = pg;
 const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({ connectionString });
@@ -10,3 +9,9 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 export { prisma };
+
+// Re-export Prisma enums so all code imports from this singleton
+// instead of directly from the generated client.
+export { ProfileRole } from '../generated/prisma/client';
+export { ActivityStatus } from '../generated/prisma/client';
+export { Weekday } from '../generated/prisma/client';

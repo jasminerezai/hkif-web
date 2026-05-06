@@ -9,6 +9,10 @@ export default ({
     seed: 'npx tsx ./prisma/seed.ts',
   },
   datasource: {
+<<<<<<< feature/authentication-system
+    url: process.env.DATABASE_URL,
+=======
     url: process.env.DATABASE_URL, //idl why it can't recognize the process variable, does it need to be included in compilation?
+>>>>>>> main
   },
 });
