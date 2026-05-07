@@ -1,14 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-<<<<<<< feature/authentication-system
 import { errorHandler } from './middleware/errorHandler';
-import authRoutes from './routes/auth.routes';
-=======
-import { errorHandler } from './middleware/errorHandler.js';
->>>>>>> main
 
 // routers
-import {router as scheduleRoutes} from './routers/router.schedule'
+import {router as scheduleRoutes} from './routes/schedule.routes';
+import authRoutes from './routes/auth.routes';
 
 
 export const app = express();

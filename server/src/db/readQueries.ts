@@ -1,64 +1,41 @@
-import './bootstrap' // just for the development process
 import {prisma} from "./prisma";
 import {startAndEndOfWeek} from "../utils/weekCalculator";
-// import {ActivityStatus} from '../generated/prisma/enums'
-import {ActivityTemplateModel} from '../generated/prisma/models'
+import {ActivityTemplateModel, ProfileModel, ScheduleModel} from '../generated/prisma/models'
 
-/*
-READ Queries
-    entire single user profile (on logIn)
-        include: favorites, leads, & participations
-    *currently by id, do name in FE and send only id?*
-    all users favoriting an activity (by name)X
-    all activities updated after a given timestamp
+/**
+ * Contains all READ-queries to the DB.
+ * Only has static functions.
+ * Send back timestamp when the last query to the schedule was?
  */
-
-// const months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 export default class READ{
 
 
     /**
-     *  - queries DB for the current schedule, includes activities
-     *
-     *  RETURN:
-     *  returns an array of
-     *      schedule objects,
-     *      including the ActivityTemplate,
-     *      ordered by ascending dates (activities on monday come first, those on sunday come last)
-     *
-     * below an example element of the array
-     * {
-     *     id: 'a2befa66-576e-46ba-b9af-8b997af84217',
-     *     activityId: '40a25eb7-694c-4560-b1c6-b23729b215ec',
-     *     startAt: 2026-05-10T15:00:00.711Z,
-     *     endAt: null,
-     *     status: 'CANCELLED',
-     *     createdAt: 2026-05-05T09:51:01.749Z,
-     *     updatedAt: 2026-05-05T09:51:01.749Z,
-     *     activity: {
-     *       id: '40a25eb7-694c-4560-b1c6-b23729b215ec',
-     *       name: 'Swimming',
-     *       description: 'Swimming session',
-     *       location: 'Location 4',
-     *       maxCapacity: 16,
-     *       defaultStatus: 'ACTIVE',
-     *       notes: null,
-     *       createdAt: 2026-05-05T09:51:01.596Z,
-     *       updatedAt: 2026-05-05T09:51:01.596Z
-     *     }
-     *   }
+     * Purpose: returns the current schedule of the week
+     * @return (Schedule&Activity)[] OR undefined ==> see anyWeekSchedule(date: Date) for more details
      */
-    static async currentSchedule() {
+    static async currentSchedule(): Promise<ScheduleModel[] | undefined>
+    {
         const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
         return await this.anyWeekSchedule(nowDate)
     }
 
-    static async anyWeekSchedule(date: Date){//startDay: Date, endDay: Date
+
+    /**
+     * Given any date, it returns the weeks schedule of the week the date is in.
+     * @param date any valid date
+     * @return (Schedule&Activity)[] OR undefined
+     *      **SUCCESS**
+     *      --> array of that weeks schedule w/ the activities nested inside,
+     *              ordered by ascending dates (mondays actvities first, sundays last)
+     *      **FAIL**
+     *      --> undefined if no activities have been scheduled for the week you are looking for
+     */
+    static async anyWeekSchedule(date: Date) : Promise<ScheduleModel[] | undefined>
+    {//startDay: Date, endDay: Date
             const {startDay, endDay} = startAndEndOfWeek(date)
-
-
             // PART B - QUERY
-            let schedule: object[] | undefined;
+            let schedule: ScheduleModel[] | undefined;
             if(startDay && endDay) {
                 schedule = await prisma.schedule.findMany({
                     where: {
@@ -99,8 +76,17 @@ export default class READ{
     }*/
 
 
-
-    static async partipantsOf(scheduleId: string){
+    /**
+     * If a user is found in the table, they participated in the activity.
+     * @param scheduleId --> change to activityName & date?
+     * @return (ParticipationLogModel & ProfileModel)[]
+     *      **SUCCESS**
+     *      --> Array of the participation log, including the profile
+     *      **FAIL**
+     *      --> empty array
+     */
+    static async partipantsOf(scheduleId: string)
+    {//Promise<({profile: ProfileModel & ParticipationLogModel})[]>
         const participants = await prisma.participationLog.findMany({
             where: { scheduleId },
             include: {
@@ -110,7 +96,17 @@ export default class READ{
         return participants;
     }
 
-    static async favoritedBy(profileId: string){
+
+    /**
+     * @param profileId --> requires to be logged-in, i.e. we need an account
+     * @return Promise<ActivityTemplateModel[]>
+     *     **FAIL**
+     *     --> is empty if the profile doesn't have favorite activities
+     *     **SUCCESS**
+     *     --> array of ActivityTemplateModel objects
+     */
+    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplateModel[]>
+    {
         let favorites = await prisma.favorite.findMany({
             where: { profileId },
             include: {
@@ -137,7 +133,13 @@ export default class READ{
         return fav;*/
     }
 
-    static async profilesFavorited(activityId: string){
+    /**
+     * returns array of profiles that favorited the activity by id
+     * --> change to activity name?
+     * @param activityId
+     */
+    static async profilesFavorited(activityId: string)
+    {
         let profilesFavorited = await prisma.favorite.findMany({
             where: { activityId },
             include: {
@@ -170,19 +172,45 @@ export default class READ{
         return profilesFavorited;
     }
 
-    // static async
+    // all activities updated after a given timestamp
+    // static async activitiesUpdatedAfter(lastRequest: Date){}
+
+
+    /**
+     * returns user based of their unique email
+     * QUESTION: include favorites & participationLog? --> active loading OR lazy loading
+     * @param email string
+     * @return Promise<ProfileModel | undefined>
+     *     ---> ProfileModel: successful query
+     *     ---> undefined: unsuccessful query
+     */
+    static async logIn(email: string): Promise<ProfileModel | undefined>
+    {
+        let loggedInUser = await prisma.profile.findUnique({
+            where: {
+                email
+            }
+            /*
+            include: {
+                favorites: true,
+
+            }
+             */
+        })
+        if(loggedInUser) {
+            return loggedInUser;
+        } else{
+            return undefined;
+        }
+    }
 
 }
 
-async function main(){
+// async function main(){
     // console.log(await READ.currentSchedule());
     // console.log(await READ.profilesFavorited("6233715d-5631-4e2b-8236-2d39ec323b47"))
-    // console.log(await READ.partipantsOf("ae787f1c-3221-47a0-8694-13fc56e47345"))
-    console.log(await READ.favoritedBy('e420ecca-8662-4929-9052-9835a016a53b'))
-    // console.log(await prisma.favorite.findMany({
-    //     select:{
-    //         profileId: true
-    //     }
-    // }))
-}
-main().catch(e => console.error(e)).finally(async () => await prisma.$disconnect())
+    // console.log(await READ.partipantsOf("ae787f1d-3221-47a0-8694-13fc56e47345"))
+    // console.log(await READ.favoritedBy('e420ecca-8662-4929-9052-9835a016a53b'))
+    // console.log(await READ.logIn('e420ecca-8662-4929-9052-9835a016a53b'))
+// }
+// main().catch(e => console.error(e)).finally(async () => await prisma.$disconnect())
