@@ -7,6 +7,7 @@ to get any weeks schedule: send a date in the week you want in the url
     - less data transfer by default
  --> returns, if available the schedule
  */
+// current route: '/api/schedules'
 
 import express, {Router} from 'express';
 // import {asyncHandler} from "../middleware/asyncHandler";
@@ -15,9 +16,10 @@ import {controller} from "../controllers/schedule.controller";
 export const router: Router = express.Router();
 
 // returns the currents week schedule
-router.get('/current', controller.currentWeek )
+router.get('/current', controller.currentWeek ) // re-route to getSchedule function?
 
-// router.get('/user', controller.userLogIn)
+// query: ?date=<some_date(default: today)&entireWeek=<boolean(default: true)>
+router.get('', controller.getSchedule )
 
 
 

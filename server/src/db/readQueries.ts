@@ -58,13 +58,22 @@ export default class READ{
             return schedule;
     }
 
-    /*static async anyDaySchedule(date: Date){
-        const onlyDay = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+    static async anyDaySchedule(date: Date) : Promise<ScheduleModel[] | undefined>
+    {
+        const startDay = new Date( Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) )
+        const endDay = new Date( Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1 ))
+        console.log(`startDay: ${startDay}`)
+        console.log(`endDay: ${endDay}`)
         const schedule = await prisma.schedule.findMany({
-            where: {
+            where: { // doesn't recognize startsWith contains:  new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()).toISOString()
                 startAt: {
-                    startsWith: onlyDay
-                }
+                    gte: startDay,
+                    lt: endDay
+                },//onlyDay
+                // AND: [
+                //     { startAt: { gte: startDay } },
+                //     { startAt: { lt: endDay} }
+                // ]
             },
             orderBy:{
                 startAt: "asc"
@@ -72,8 +81,13 @@ export default class READ{
             include: {
                 activity: true
             }
-        })
-    }*/
+        });
+        // console.log(schedule)
+        // if(schedule?.length === 0){
+        //     return undefined;
+        // }
+        return schedule;
+    }
 
 
     /**
@@ -132,6 +146,7 @@ export default class READ{
         })
         return fav;*/
     }
+
 
     /**
      * returns array of profiles that favorited the activity by id
