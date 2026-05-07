@@ -1,7 +1,5 @@
 import "dotenv/config";
-
-// @ts-ignore
-import {prisma} from "../src/db/prisma.ts"; // "@ts-ignore" for file ending '.ts'
+import {prisma} from "../src/db/prisma"; // "@ts-ignore" for file ending '.ts'
 import { ProfileRole, ActivityStatus, Weekday} from '../src/generated/prisma/enums'
 
 /*

@@ -6,7 +6,6 @@ import {asyncHandler} from "../middleware/asyncHandler";
 
 const currentWeek = asyncHandler(
     async (_req: Request, res: Response) => {
-        console.log("Entered currentWeek()")
         const schedule = await READ.currentSchedule();
         if(schedule){
             res.status(200).json(schedule)
@@ -60,8 +59,8 @@ const getSchedule = asyncHandler(
 
             if (entireWeek) {
                 schedule = await READ.anyWeekSchedule(date);
-                if (!schedule) {
-                    throw ApiError.notFound("The Week you are requesting hasn't been scheduled yet!")
+                if (!schedule || schedule.length === 0) {
+                    throw ApiError.notFound("The Week you are requesting hasn't been scheduled yet! Or has been deleted!")
                 } else {
                     res.status(200).json(schedule);
                     return;
@@ -69,8 +68,8 @@ const getSchedule = asyncHandler(
             }
             else {
                 schedule = await READ.anyDaySchedule(date);
-                if (!schedule) {
-                    throw ApiError.notFound("The Day you are requesting hasn't been scheduled yet!")
+                if (!schedule|| schedule.length === 0) {
+                    throw ApiError.notFound("The Day you are requesting hasn't been scheduled yet! Or has been deleted!")
                 } else {
                     res.status(200).json(schedule);
                     return;

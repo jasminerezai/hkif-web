@@ -10,16 +10,28 @@ to get any weeks schedule: send a date in the week you want in the url
 // current route: '/api/schedules'
 
 import express, {Router} from 'express';
-// import {asyncHandler} from "../middleware/asyncHandler";
 import {controller} from "../controllers/schedule.controller";
+
 
 export const router: Router = express.Router();
 
 // returns the currents week schedule
 router.get('/current', controller.currentWeek ) // re-route to getSchedule function?
 
+
+
 // query: ?date=<some_date(default: today)&entireWeek=<boolean(default: true)>
 router.get('', controller.getSchedule )
+
+/*
+CREATE:
+- new Week
+READ: see aboveX
+UPDATE:
+- activity status
+DELETE:
+- weeks older than three?
+ */
 
 
 

@@ -62,18 +62,12 @@ export default class READ{
     {
         const startDay = new Date( Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) )
         const endDay = new Date( Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1 ))
-        console.log(`startDay: ${startDay}`)
-        console.log(`endDay: ${endDay}`)
         const schedule = await prisma.schedule.findMany({
-            where: { // doesn't recognize startsWith contains:  new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()).toISOString()
+            where: {
                 startAt: {
                     gte: startDay,
                     lt: endDay
-                },//onlyDay
-                // AND: [
-                //     { startAt: { gte: startDay } },
-                //     { startAt: { lt: endDay} }
-                // ]
+                },
             },
             orderBy:{
                 startAt: "asc"
@@ -82,10 +76,6 @@ export default class READ{
                 activity: true
             }
         });
-        // console.log(schedule)
-        // if(schedule?.length === 0){
-        //     return undefined;
-        // }
         return schedule;
     }
 
@@ -100,14 +90,26 @@ export default class READ{
      *      --> empty array
      */
     static async partipantsOf(scheduleId: string)
-    {//Promise<({profile: ProfileModel & ParticipationLogModel})[]>
-        const participants = await prisma.participationLog.findMany({
-            where: { scheduleId },
-            include: {
-                profile: true,
-            },
-        });
-        return participants;
+    {
+        //Promise<({profile: ProfileModel & ParticipationLogModel})[]>
+        // const participants = await prisma.participationLog.findMany({
+        //     where: { scheduleId },
+        //     include: {
+        //         profile: true,
+        //     },
+        // });
+        // return participants;
+        const participants = await prisma.schedule.findUnique({
+            where:{id: scheduleId},
+            select:{
+                participations: {
+                    select: {
+                        profile: true
+                    }
+                }
+            }
+        })
+        return participants?.participations.map(el => el.profile);
     }
 
 
@@ -119,32 +121,34 @@ export default class READ{
      *     **SUCCESS**
      *     --> array of ActivityTemplateModel objects
      */
-    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplateModel[]>
+    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplateModel[]  | undefined>
     {
-        let favorites = await prisma.favorite.findMany({
-            where: { profileId },
-            include: {
-                activity: true
-            },
-            omit: {
-                profileId: true,
-                activityId: true
-            }
-        })
-        let favs: ActivityTemplateModel[] = [];
-        favorites.map(f => favs.push(f.activity))
-        return favs;
-        /*let fav = await prisma.profile.findMany({
-            where: { id: profileId},
-            include: {
+        // let favorites = await prisma.favorite.findMany({
+        //     where: { profileId },
+        //     include: {
+        //         activity: true
+        //     },
+        //     omit: {
+        //         profileId: true,
+        //         activityId: true
+        //     }
+        // })
+        // let favs: ActivityTemplateModel[] = [];
+        // favorites.map(f => favs.push(f.activity))
+        // return favs;
+        const activities = await prisma.profile.findUnique({
+            where: {id: profileId},
+            select: {
                 favorites: {
-                    include: {
+                    select: {
                         activity: true
                     }
                 }
-            },
-        })
-        return fav;*/
+            }
+        });
+
+        return activities?.favorites.map(el => el.activity);
+
     }
 
 
@@ -153,17 +157,17 @@ export default class READ{
      * --> change to activity name?
      * @param activityId
      */
-    static async profilesFavorited(activityId: string)
+    static async profilesFavorited(activityId: string): Promise<ProfileModel[]>
     {
-        let profilesFavorited = await prisma.favorite.findMany({
-            where: { activityId },
-            include: {
-                profile: true
-            },
-            // select: {
-            //     profile: true
-            // }
-        });
+        // let profilesFavorited = await prisma.favorite.findMany({
+        //     where: { activityId },
+        //     include: {
+        //         profile: true
+        //     },
+        //     // select: {
+        //     //     profile: true
+        //     // }
+        // });
         // profilesFavorites.map(element => {return element.profile})
         // return profilesFavorites;
         // let profilesFavorited = await prisma.activityTemplate.findFirst({
@@ -183,8 +187,17 @@ export default class READ{
         //     }
         // })
 
-        // profilesFavorited.map(el => { return {profile} = el })
-        return profilesFavorited;
+        const profilesFavorited = await prisma.activityTemplate.findUnique({
+            where: {id: activityId},
+            select: {
+                favorites: {
+                    select: {
+                        profile: true
+                    }
+                }
+            }
+        })
+        return profilesFavorited?.favorites.map(el => el.profile) ?? [];
     }
 
     // all activities updated after a given timestamp
@@ -199,7 +212,7 @@ export default class READ{
      *     ---> ProfileModel: successful query
      *     ---> undefined: unsuccessful query
      */
-    static async logIn(email: string): Promise<ProfileModel | undefined>
+    static async logIn(email: string): Promise<ProfileModel | null>
     {
         let loggedInUser = await prisma.profile.findUnique({
             where: {
@@ -208,15 +221,10 @@ export default class READ{
             /*
             include: {
                 favorites: true,
-
             }
              */
         })
-        if(loggedInUser) {
-            return loggedInUser;
-        } else{
-            return undefined;
-        }
+        return loggedInUser
     }
 
 }
