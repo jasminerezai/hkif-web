@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { registerHandler, loginHandler, getMeHandler } from '../controllers/auth.controller';
-import { protect } from '../middleware/auth.middleware';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
@@ -15,6 +15,6 @@ router.post('/login', loginHandler);
  * is acceptable. Future improvement: cache the profile in Redis or trust the
  * JWT payload for non-sensitive reads.
  */
-router.get('/me', protect, getMeHandler);
+router.get('/me', authMiddleware, getMeHandler);
 
 export default router;
