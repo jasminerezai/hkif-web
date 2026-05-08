@@ -1,5 +1,6 @@
 import {prisma} from "./prisma";
-import {ActivityTemplateModel, ProfileModel, ScheduleModel} from '../generated/prisma/models'
+import {ActivityTemplateModel} from '../generated/prisma/models'// ProfileModel, ScheduleModel
+import {postActivity} from "../types/activity.types";
 /*
 CREATE Queries
     create new profile
@@ -41,4 +42,44 @@ export default class CREATE{
     //
     //     })
     // }
+
+
+    static async newActivity(newAct: postActivity){
+        const resAct = await prisma.activityTemplate.create({
+            data: {
+                name: newAct.name,
+                location: newAct.location,
+                description: newAct.description,
+                notes: newAct.notes,
+            }
+        })
+
+        const updAct = await prisma.activityTemplate.update({
+            where: {id: resAct.id},
+            data: {
+                leaders: {
+                    createMany: {
+                        data: newAct.leaders.map( (profileId) => ({
+                                profileId
+                            }))
+                    }
+                },
+                timeSlots: {
+                    createMany: {
+                        data: newAct.timeSlots.map( el => ({
+                            weekday: el.weekday,
+                            startTime: el.startAt,
+                            endTime: el.endAt
+                        }))
+                    }
+                }
+            },
+            include: {
+                leaders: true,
+                timeSlots: true
+            }
+        })
+
+        return updAct;
+    }
 }

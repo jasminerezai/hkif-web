@@ -227,6 +227,14 @@ export default class READ{
         return loggedInUser
     }
 
+
+    /**
+     * just returns all activityTemplates
+     */
+    static async allActivities(){
+        let activities = await prisma.activityTemplate.findMany();
+        return activities;
+    }
 }
 
 // async function main(){

@@ -46,4 +46,12 @@ export default class DELETE{
         });
         return deleteCount; // deleteCount.count === activityIds
     }
+
+    static async deleteActivity(activityId: string)
+    {
+        const res = await prisma.activityTemplate.delete({
+            where: {id: activityId}
+        })
+        return res;
+    }
 }
