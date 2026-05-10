@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { register, login } from '../services/auth.service';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { ApiError } from '../utils/ApiError';
+import { ApiResponse, AuthResponseDto, MeResponseDto } from '../types';
 
 /**
  * Success response shape:
@@ -11,7 +12,10 @@ import { ApiError } from '../utils/ApiError';
  *   { error: <message>, statusCode: <number> }
  */
 
-export const registerHandler = asyncHandler(async (req: Request, res: Response) => {
+export const registerHandler = asyncHandler(async (
+  req: Request,
+  res: Response<ApiResponse<AuthResponseDto>>,
+) => {
   const { email, password, name } = req.body;
 
   if (!email || !password || !name) {
@@ -31,7 +35,10 @@ export const registerHandler = asyncHandler(async (req: Request, res: Response) 
   });
 });
 
-export const loginHandler = asyncHandler(async (req: Request, res: Response) => {
+export const loginHandler = asyncHandler(async (
+  req: Request,
+  res: Response<ApiResponse<AuthResponseDto>>,
+) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -46,7 +53,10 @@ export const loginHandler = asyncHandler(async (req: Request, res: Response) => 
   });
 });
 
-export const getMeHandler = asyncHandler(async (req: Request, res: Response) => {
+export const getMeHandler = asyncHandler(async (
+  req: Request,
+  res: Response<ApiResponse<MeResponseDto>>,
+) => {
   // req.user is populated by the protect middleware after token verification
   res.status(200).json({
     status: 'success',
