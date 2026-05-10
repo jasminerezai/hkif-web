@@ -2,20 +2,20 @@ import { Router } from 'express';
 import {controller} from "../controllers/activity.controller";
 
 import READ from "../db/readQueries";
-import {protect, restrictTo} from "../middleware/auth.middleware";
+import {authMiddleware, restrictToMinRole} from "../middleware/auth";
 import {ProfileRole} from "../db/prisma";
 
 export const router: Router = Router(); // express.
 
 
 //get all profiles that have favorited this activity:
-router.get('/favorites', protect, restrictTo( ProfileRole.LEADER, ProfileRole.BOARD_MEMBER, ProfileRole.ADMIN ), async (_req, res) => {
+router.get('/favorites', authMiddleware, restrictToMinRole(ProfileRole.LEADER), async (_req, res) => {
     res.json( await READ.profilesFavorited('6233715d-5631-4e2b-8236-2d39ec323b47') )
 })
 
 
 // get all participants of an activity, add date parameter
-router.get('/participants', protect, restrictTo( ProfileRole.LEADER, ProfileRole.BOARD_MEMBER, ProfileRole.ADMIN ), async (_req, res) => {
+router.get('/participants', authMiddleware, restrictToMinRole( ProfileRole.LEADER), async (_req, res) => {
     res.json( await READ.partipantsOf('5d0f491d-752f-433d-a58f-0b5d0ff3d3fe') )
 })
 
@@ -32,15 +32,15 @@ router.get('/participants', protect, restrictTo( ProfileRole.LEADER, ProfileRole
 
 
 // PUT /activities/:id --- leader only --> update activity
-router.put('/:id', protect, restrictTo( ProfileRole.LEADER, ProfileRole.BOARD_MEMBER, ProfileRole.ADMIN ), controller.updateActivity)
+router.put('/:id', authMiddleware, restrictToMinRole( ProfileRole.LEADER), controller.updateActivity)
 
 
 // DELETE /activities/:id --- leader only --> delete activity
-router.delete('/:id', protect, restrictTo( ProfileRole.LEADER, ProfileRole.BOARD_MEMBER, ProfileRole.ADMIN ), controller.deleteActivity)
+router.delete('/:id', authMiddleware, restrictToMinRole( ProfileRole.LEADER), controller.deleteActivity)
 
 
 // POST /activities --- leader only --> create new activity
-router.post('', protect, restrictTo( ProfileRole.LEADER, ProfileRole.BOARD_MEMBER, ProfileRole.ADMIN ), controller.newActivity)
+router.post('', authMiddleware, restrictToMinRole( ProfileRole.LEADER), controller.newActivity)
 
 
 //GET /activities

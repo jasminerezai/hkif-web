@@ -15,7 +15,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 //              (used after logout to send user to home)
 
 import { useAuth } from '../context/AuthContext.jsx'
-import Button from './ui/Button.jsx'
+import { Button } from './ui'
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()

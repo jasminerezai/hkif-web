@@ -1,8 +1,15 @@
+-- Baseline migration: full schema for the refactored HKIF backend.
+-- This replaces the previous ad-hoc migration chain (old snake_case schema).
+-- ProfileRole enum uses MEMBER (not USER) as the base role.
+
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "ActivityStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'CANCELLED', 'DELAYED');
 
 -- CreateEnum
-CREATE TYPE "ProfileRole" AS ENUM ('USER', 'LEADER', 'BOARD_MEMBER', 'ADMIN');
+CREATE TYPE "ProfileRole" AS ENUM ('MEMBER', 'LEADER', 'BOARD_MEMBER', 'ADMIN');
 
 -- CreateEnum
 CREATE TYPE "Weekday" AS ENUM ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY');
@@ -12,7 +19,8 @@ CREATE TABLE "Profile" (
     "id" TEXT NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "password" TEXT NOT NULL,
-    "role" "ProfileRole" NOT NULL DEFAULT 'USER',
+    "profileName" VARCHAR(255),
+    "role" "ProfileRole" NOT NULL DEFAULT 'MEMBER',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -27,6 +35,7 @@ CREATE TABLE "ActivityTemplate" (
     "location" VARCHAR(255) NOT NULL,
     "maxCapacity" INTEGER,
     "defaultStatus" "ActivityStatus" NOT NULL DEFAULT 'ACTIVE',
+    "notes" VARCHAR(500),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

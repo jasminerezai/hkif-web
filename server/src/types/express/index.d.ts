@@ -3,11 +3,12 @@ import { ProfileRole } from '../../db/prisma';
 declare global {
   namespace Express {
     interface Request {
-      user?: {
+      user: {
         id: string;
-        email: string;
-        name: string | null;
         role: ProfileRole;
+        // name and email are NOT in the JWT payload ({ id, role } only).
+        // Fetch them from DB in specific handlers when needed:
+        //   prisma.profile.findUnique({ where: { id: req.user.id } })
       };
     }
   }
