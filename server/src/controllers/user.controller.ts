@@ -55,15 +55,6 @@ const deleteFavorites = asyncHandler( async (req: Request, res: Response) => {
     }
 });
 
-// const checkProfileId = (profileId: string |undefined) => {
-//     const profileId: string | undefined = req.user?.id;
-//
-//     if(!profileId){
-//         throw ApiError.unauthorized("Please Log In! (For debug: Somehow passed protect & restrictedTo)")
-//         //or redirect to login page?
-//     }
-// }
-
 export const controller = {
     getFavorites,
     newFavorites,

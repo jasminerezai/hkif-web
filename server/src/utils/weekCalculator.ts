@@ -1,3 +1,4 @@
+// Need to handle Feb w/ 29 days
 const months = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 const JANUARY: number = 0
 const DECEMBER: number = 11
@@ -10,7 +11,8 @@ const DECEMBER: number = 11
  * @param nowDate
  *      any date, variable names stems from READ.currentSchedule()
  */
-export function startAndEndOfWeek(nowDate: Date){
+export function startAndEndOfWeek(nowDate: Date)
+{
     const weekday: number = nowDate.getUTCDay(); // 0=> sunday; our week starts on Monday, which is 1
     const dayOfMonth: number = nowDate.getUTCDate();
     const monthInYear: number = nowDate.getUTCMonth(); // 0-> Jan & 11 -> Dec
@@ -37,9 +39,6 @@ export function startAndEndOfWeek(nowDate: Date){
 
         beginningOfWeek = Math.abs(beginningOfWeek)
         const daysMonth = Number(months[beginMonth]);
-        // if (!daysMonth){
-        //     throw new Error("Something went wrong when calculating the Month, where to check: READ.currentSchedule()");
-        // }
         beginningOfWeek = daysMonth - beginningOfWeek;
     }
     else{

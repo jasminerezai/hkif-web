@@ -32,9 +32,8 @@ export default class READ{
      *      --> undefined if no activities have been scheduled for the week you are looking for
      */
     static async anyWeekSchedule(date: Date) : Promise<ScheduleModel[] | undefined> //will return empty list if nothing
-    {//startDay: Date, endDay: Date
+    {
             const {startDay, endDay} = startAndEndOfWeek(date)
-            // PART B - QUERY
             let schedule: ScheduleModel[] | undefined;
             if(startDay && endDay) {
                 schedule = await prisma.schedule.findMany({
@@ -125,11 +124,6 @@ export default class READ{
             where: {
                 email
             }
-            /*
-            include: {
-                favorites: true,
-            }
-             */
         })
         return loggedInUser
     }
@@ -175,14 +169,6 @@ export default class READ{
      */
     static async partipantsOf(scheduleId: string)
     {
-        //Promise<({profile: ProfileModel & ParticipationLogModel})[]>
-        // const participants = await prisma.participationLog.findMany({
-        //     where: { scheduleId },
-        //     include: {
-        //         profile: true,
-        //     },
-        // });
-        // return participants;
         const participants = await prisma.schedule.findUnique({
             where:{id: scheduleId},
             select:{
@@ -196,12 +182,3 @@ export default class READ{
         return participants?.participations.map(el => el.profile);
     }
 }
-
-// async function main(){
-    // console.log(await READ.currentSchedule());
-    // console.log(await READ.profilesFavorited("6233715d-5631-4e2b-8236-2d39ec323b47"))
-    // console.log(await READ.partipantsOf("ae787f1d-3221-47a0-8694-13fc56e47345"))
-    // console.log(await READ.favoritedBy('e420ecca-8662-4929-9052-9835a016a53b'))
-    // console.log(await READ.logIn('e420ecca-8662-4929-9052-9835a016a53b'))
-// }
-// main().catch(e => console.error(e)).finally(async () => await prisma.$disconnect())

@@ -6,7 +6,6 @@ DELETE Queries
     delete participation logs older than 6 months
  */
 import {prisma} from "./prisma";
-// import {BatchPayload} from '../generated/prisma/internal/prismaNamespace'
 import {ActivityTemplateModel} from '../generated/prisma/models'
 
 export default class DELETE{

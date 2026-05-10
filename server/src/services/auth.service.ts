@@ -43,17 +43,13 @@ export const register = async (email: string, password: string, name: string) =>
 
 export const login = async (email: string, password: string) => {
   // Find user
-  // const user = await prisma.profile.findUnique({ --> moved this query to the READ class
-  //   where: { email },
-  // });
-  const user = await READ.logIn(email);
+  const user = await READ.logIn(email);  // replace with raw-query?
 
   if (!user) {
     throw ApiError.unauthorized('Invalid email or password');
   }
 
   // Check password
-  //we need to decrypt the pw, we don't want to send the plain text pw
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
