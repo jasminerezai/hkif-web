@@ -6,7 +6,7 @@ import {authMiddleware, restrictToMinRole} from "../middleware/auth";
 
 export const router = Router();
 
-//For every route: check if the user is logged In
+//For every route: check if the user is logged In and a member
 router.use(authMiddleware)
 router.use(restrictToMinRole(ProfileRole.MEMBER))
 
