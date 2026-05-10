@@ -1,13 +1,14 @@
-import { protect, restrictTo } from '../middleware/auth.middleware';
+// import { protect, restrictToMinRole } from '../middleware/auth.middleware';
 import { Router } from 'express';
 import { ProfileRole } from '../db/prisma';
 import {controller as userController} from '../controllers/user.controller';
+import {authMiddleware, restrictToMinRole} from "../middleware/auth";
 
 export const router = Router();
 
 //For every route: check if the user is logged In
-router.use(protect)
-router.use(restrictTo(ProfileRole.USER, ProfileRole.LEADER, ProfileRole.BOARD_MEMBER, ProfileRole.ADMIN))
+router.use(authMiddleware)
+router.use(restrictToMinRole(ProfileRole.MEMBER))
 
 /*
 FAVORITES REQUESTS:
