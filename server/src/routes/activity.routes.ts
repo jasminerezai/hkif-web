@@ -24,7 +24,7 @@ router.get('/participants', protect, restrictTo( ProfileRole.LEADER, ProfileRole
     GET /activities --- public, no auth required --> get activity information
         --> all, by weekday, by time
     POST /activities --- leader only --> create new activity
-    PUT /activities/:id --- leader only --> update activity
+    PUT /activities/:id --- leader only --> update activity; what about PATCH --> dont think its supported by all browsers
     DELETE /activities/:id --- leader only --> delete activity
 
     Each activity should include: title, sport, date/time, location, leaderId.

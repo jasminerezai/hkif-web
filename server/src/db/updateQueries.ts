@@ -8,8 +8,8 @@ UPDATE Queries
     change time slot of an activity
  */
 import {prisma} from "./prisma";
-import {timeSloot} from "../types/activity.types";
-// import {Weekday} from '../generated/prisma/enums';
+import {timeSlot} from "../types/activity.types";
+import {Weekday} from '../generated/prisma/enums';
 
 
 export default class UPDATE{
@@ -21,7 +21,7 @@ export default class UPDATE{
         })
     }
 
-    static async addTimeSlots(activityId: string, newData: timeSloot[]){
+    static async addTimeSlots(activityId: string, newData: timeSlot[]){
         return prisma.activityTemplate.update({
             where: {id: activityId},
             data: {
@@ -41,7 +41,7 @@ export default class UPDATE{
         })
     }
 
-    static async deleteTimeSlots(activityId: string, newData: timeSloot[]){
+    static async deleteTimeSlots(activityId: string, newData: timeSlot[]){
         return prisma.activityTemplate.update({
             where: {id: activityId},
             data: {
@@ -61,16 +61,42 @@ export default class UPDATE{
         })
     }
 
-    /*static async updateTimeSlot(activityId: string, weekday: Weekday, newData: object){
-        return prisma.timeSlot.update({
-            where: {
-                AND: [
-                    {activityId},
-                    {weekday}
-                ]
-            },
-            data: newData
-        })
-    }*/
+    static async updateTimeSlot(activityId: string, timeSlot: timeSlot, newData: object){//timeSlot: timeSloot,
+        if(timeSlot.startAt !== undefined) {
+            return prisma.timeSlot.update({
+                where: {
+                    activityId_weekday_startTime: {
+                        activityId,
+                        weekday: timeSlot.weekday,
+                        startTime: timeSlot.startAt
+                        // {startTime: timeSlot.startAt}
+                    }
+                },
+                data: newData
+            })
+        }
+        else{
+            throw new Error(`timeslot starting time is undefined. timeSlot: ${timeSlot}`)
+        }
+    }
+
+
 
 }
+
+// ACTIVITY UPDATES
+const activityGeneralUpdateQuery = (activityId: string, data: object) => {
+    return {
+        where: {
+            id: activityId
+        },
+        data
+    }
+}
+
+const activityTimeAddQuery = () => {}
+const activityTimeDeleteQuery = () => {}
+const activityTimeUpdateQuery = () => {}
+
+const activityLeaderAddQuery = () => {}
+const activityLeaderDeleteQuery = () => {}

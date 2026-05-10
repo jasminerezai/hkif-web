@@ -1,5 +1,5 @@
 import {Weekday, ActivityStatus} from '../db/prisma';
-import {regTime} from "../services/reggex.service";
+import {regTime} from "../utils/reggex";
 // import { Weekday } from "@prisma/client"
 /*{
     "name": "Volleyball",
@@ -9,8 +9,6 @@ import {regTime} from "../services/reggex.service";
     "startAt": "18:00",
     "endAt": "20:00"
 }*/
-
-
 // export type postActivity  = {
 //     name: string,
 //     location: string,
@@ -22,8 +20,7 @@ import {regTime} from "../services/reggex.service";
 //     notes?: string,
 //     defaultStatus?: ActivityStatus
 // }
-
-export type postActivity = {
+/*export type postActivity = {
     name: string,
     location: string,
     leaders: string[],
@@ -31,9 +28,57 @@ export type postActivity = {
     notes?: string,
     defaultStatus?: ActivityStatus,
     timeSlots: timeSloot[]
+}*/
+export type postActivity = {
+    name?: string,
+    location?: string,
+    leaders?: string[],
+    description?: string,
+    notes?: string,
+    defaultStatus?: ActivityStatus,
+    timeSlots?: timeSlot[]
 }
-export type timeSloot = {
-    weekday: Weekday, startAt: string, endAt: string
+export type timeSlot = {
+    weekday: Weekday, startAt?: string | Date, endAt?: string | Date
+}
+function assertTimeSloot(obj: unknown): asserts obj is timeSlot
+{
+    if (typeof obj !== "object" || obj === null) {
+        throw new Error("Not an object");
+    }
+
+    const data = obj as any
+
+    if (data.startAt === undefined && data.endAt === undefined && data.weekday === undefined) {
+        // throw new Error(`Must have at least one timestamp of the pattern: 1970-01-01THH:MM:00+01:00\nObject: ${Object.entries(obj)}`)
+        throw new Error(`Data must have some data!`)
+    }
+    if(!data.startAt && !data.endAt && !data.weekday){
+        throw new Error(`Data must have some data!`)
+    }
+    if (data.startAt !== undefined) {
+        if ( !(typeof data.startAt === "string") ) {
+            throw new Error(`Starting Timestamp not a string: ${data.startAt}\nObject: ${Object.entries(obj)}`)
+        }
+        if( !regTime(data.startAt) ){
+            throw new Error(`Invalid Starting Timestamp: ${data.startAt}\nMust follow this pattern: 1970-01-01THH:MM:00+01:00\nObject: ${Object.entries(obj)}`)
+        } else{
+            data.startAt = new Date(data.startAt);
+        }
+    }
+    if (data.endAt !== undefined) { // data.endAt !== undefined
+        if ( !(typeof data.endAt === "string") ) {
+            throw new Error(`Ending Timestamp is not a string: ${data.endAt}\nMust follow this pattern: 1970-01-01THH:MM:00+01:00\nObject: ${Object.entries(obj)}`)
+        }
+        if( !regTime(data.endAt)){
+            throw new Error(`Invalid Ending Timestamp: ${data.endAt}\nMust follow this pattern: 1970-01-01THH:MM:00+01:00\nObject: ${Object.entries(obj)}`)
+        } else{
+            data.endAt = new Date(data.endAt);
+        }
+    }
+    if( !(typeof data.weekday === "string" && Object.values(Weekday).includes(data.weekday)) ){
+        throw new Error(`Invalid Weekday: ${data.weekday}\nObject: ${Object.entries(obj)}`)
+    }
 }
 
 
@@ -147,11 +192,23 @@ export function assertPostActivity(obj: unknown): asserts obj is postActivity
         throw new Error(`Invalid leaders: ${data.leaders}`)
     }
 
-    if (!Array.isArray(data.timeSlots)) {
-        throw new Error(`Invalid timeSlots: ${data.timeSlots}`)
+    if (!(Array.isArray(data.timeSlots)) ) {
+        throw new Error(`Invalid timeSlots: ${data.timeSlots}`);
     }
+    console.log(data.timeSlots)
+    data.timeSlots.forEach( (time: any) => {
+        try {
+            assertTimeSloot(time)
+        } catch (e){
+            // throw new Error(`Invalid TimeSlot: ${time}\n ${e}`)
+            console.error(e)
+        } finally{
+            // console.log(time)
+            console.log("Finally")
+        }
+    } )
 
-    for (let i = 0; i < data.timeSlots.length; i++) {
+    /*for (let i = 0; i < data.timeSlots.length; i++) {
         const slot = data.timeSlots[i]
         if (typeof slot !== "object" || slot === null) {
             throw new Error(`Invalid timeSlot at index ${i}: ${slot}`)
@@ -169,9 +226,9 @@ export function assertPostActivity(obj: unknown): asserts obj is postActivity
             throw new Error(`Invalid timeSlot[${i}].endAt: ${slot.endAt}`)
         }
         if (!regTime(slot.startAt) || !regTime(slot.endAt)) {
-            throw new Error(`Invalid timeSlot[${i}] time properties: startAt=${slot.startAt}, endAt=${slot.endAt}`)
+            throw new Error(`Invalid timeSlot[${i}] time properties: startAt=${slot.startAt}, endAt=${slot.endAt}\nObj: ${slot}`)
         }
-    }
+    }*/
 
     //optional property type checks:
     if(data.description !== undefined){
@@ -231,3 +288,32 @@ export function parseActivity(obj: any): postActivity {
 //     startAt: obj.startAt,
 //     endAt: obj.endAt,
 // };
+
+
+const testAct = {
+    name: "Volleyball",
+    location: "Sportshall",
+    leaders: ["Kavish", "Juri"],
+    description: "Often 3-4 teams of 6 players.",
+    notes: "Almost always goes longer than scheduled",
+    defaultStatus : ActivityStatus.ACTIVE,
+    timeSlots: [
+        {weekday: Weekday.SUNDAY, startAt: "1970-01-01T16:00:00+01:00", endAt: "1970-01-01T20:00:00+01:00"},
+        {weekday: Weekday.TUESDAY, startAt: "1970-01-01T18:00:00+01:00", endAt: "1970-01-01T20:00:00+01:00"},
+        // {} //, startAt: "1970-01-01T18:00:00+01:00" //weekday: Weekday.THURSDAY, startAt: undefined, endAt: undefined
+        // "Not an OBJECT"
+    ]
+}
+
+try{
+    assertPostActivity(testAct);
+    // testAct.timeSlots.every( (timeSlot) => {
+    //     assertTimeSloot(timeSlot);
+    // });
+}
+catch (e){
+    console.error(e)
+}
+finally{
+    // console.log(testAct)
+}
