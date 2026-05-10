@@ -30,8 +30,8 @@ export const register = async (email: string, password: string, name: string) =>
       email,
       password: hashedPassword,
       profileName: name,
-      // Defaulting to USER role
-      role: ProfileRole.USER,
+      // New registrations default to the lowest privilege level
+      role: ProfileRole.MEMBER,
     },
   });
 
