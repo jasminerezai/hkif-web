@@ -1,3 +1,4 @@
+// chatgpt refactored schema
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -5,7 +6,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // url      = env("DATABASE_URL")
 }
 
 // ──────────────────────────────────────────────
@@ -20,7 +20,7 @@ enum ActivityStatus {
 }
 
 enum ProfileRole {
-  USER
+  MEMBER
   LEADER
   BOARD_MEMBER
   ADMIN
@@ -45,7 +45,7 @@ model Profile {
   email       String      @unique @db.VarChar(255)
   password    String      @db.Text
   profileName String?     @db.VarChar(255)
-  role        ProfileRole @default(USER)
+  role        ProfileRole @default(MEMBER)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
