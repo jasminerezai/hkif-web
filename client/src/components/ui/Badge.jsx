@@ -67,7 +67,7 @@ export const STATUS_VARIANT = {
 //   import Badge, { ROLE_VARIANT } from '../components/ui/Badge.jsx'
 //   <Badge variant={ROLE_VARIANT[user.role]}>{user.role}</Badge>
 export const ROLE_VARIANT = {
-  USER:         'neutral',
+  MEMBER:         'neutral',
   LEADER:       'success',
   BOARD_MEMBER: 'info',
   ADMIN:        'warning',

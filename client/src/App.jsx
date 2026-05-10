@@ -1,9 +1,11 @@
-// src/App.jsx
+//
 import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import Navbar from './components/Navbar.jsx'
 import ActivitiesPage from './pages/ActivitiesPage.jsx'
+import LoginPage    from './pages/LoginPage.jsx'
+import RegisterPage from './pages/RegisterPage.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login.
@@ -87,8 +89,8 @@ function AppRoutes() {
         <Routes>
           {/* Public routes — anyone can access */}
           <Route path="/"               element={<Placeholder title="Schedule" />} />
-          <Route path="/login"          element={<Placeholder title="Login" />} />
-          <Route path="/register"       element={<Placeholder title="Register" />} />
+          <Route path="/login"          element={<LoginPage />} />
+          <Route path="/register"       element={<RegisterPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
           <Route path="/activities/:id" element={<Placeholder title="Activity Detail" />} />
 
