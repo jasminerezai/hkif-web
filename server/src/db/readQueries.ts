@@ -1,23 +1,17 @@
-import {prisma} from "./prisma";
-import {startAndEndOfWeek} from "../utils/weekCalculator";
-import {ActivityTemplateModel, ProfileModel, ScheduleModel} from '../generated/prisma/models'
+import { prisma } from "./prisma";
+import { startAndEndOfWeek } from "../utils/weekCalculator";
+import { ActivityTemplateModel, ProfileModel, ScheduleModel } from '../generated/prisma/models';
 
-/**
- * Contains all READ-queries to the DB.
- * Only has static functions.
- * Send back timestamp when the last query to the schedule was?
- */
-export default class READ{
+export default class READ {
 
 
     /**
      * Purpose: returns the current schedule of the week
      * @return (Schedule&Activity)[] OR undefined ==> see anyWeekSchedule(date: Date) for more details
      */
-    static async currentSchedule(): Promise<ScheduleModel[] | undefined>
-    {
+    static async currentSchedule(): Promise<ScheduleModel[] | undefined> {
         const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
-        return await this.anyWeekSchedule(nowDate)
+        return await this.anyWeekSchedule(nowDate);
     }
 
 
@@ -31,37 +25,35 @@ export default class READ{
      *      **FAIL**
      *      --> undefined if no activities have been scheduled for the week you are looking for
      */
-    static async anyWeekSchedule(date: Date) : Promise<ScheduleModel[] | undefined>
-    {//startDay: Date, endDay: Date
-            const {startDay, endDay} = startAndEndOfWeek(date)
-            // PART B - QUERY
-            let schedule: ScheduleModel[] | undefined;
-            if(startDay && endDay) {
-                schedule = await prisma.schedule.findMany({
-                    where: {
-                        AND: [
-                            { startAt: { gte: startDay } },
-                            { startAt: { lte: endDay} }
-                        ]
-                    },
-                    orderBy:{
-                        startAt: "asc"
-                    },
-                    include: {
-                        activity: true
-                    }
-                })
-            }
-            if(schedule?.length === 0){
-                return undefined;
-            }
-            return schedule;
+    static async anyWeekSchedule(date: Date): Promise<ScheduleModel[] | undefined> {//startDay: Date, endDay: Date
+        const { startDay, endDay } = startAndEndOfWeek(date);
+        // PART B - QUERY
+        let schedule: ScheduleModel[] | undefined;
+        if (startDay && endDay) {
+            schedule = await prisma.schedule.findMany({
+                where: {
+                    AND: [
+                        { startAt: { gte: startDay } },
+                        { startAt: { lte: endDay } }
+                    ]
+                },
+                orderBy: {
+                    startAt: "asc"
+                },
+                include: {
+                    activity: true
+                }
+            });
+        }
+        if (schedule?.length === 0) {
+            return undefined;
+        }
+        return schedule;
     }
 
-    static async anyDaySchedule(date: Date) : Promise<ScheduleModel[] | undefined>
-    {
-        const startDay = new Date( Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) )
-        const endDay = new Date( Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1 ))
+    static async anyDaySchedule(date: Date): Promise<ScheduleModel[] | undefined> {
+        const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+        const endDay = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1));
         const schedule = await prisma.schedule.findMany({
             where: {
                 startAt: {
@@ -69,7 +61,7 @@ export default class READ{
                     lt: endDay
                 },
             },
-            orderBy:{
+            orderBy: {
                 startAt: "asc"
             },
             include: {
@@ -89,26 +81,17 @@ export default class READ{
      *      **FAIL**
      *      --> empty array
      */
-    static async partipantsOf(scheduleId: string)
-    {
-        //Promise<({profile: ProfileModel & ParticipationLogModel})[]>
-        // const participants = await prisma.participationLog.findMany({
-        //     where: { scheduleId },
-        //     include: {
-        //         profile: true,
-        //     },
-        // });
-        // return participants;
+    static async partipantsOf(scheduleId: string) {
         const participants = await prisma.schedule.findUnique({
-            where:{id: scheduleId},
-            select:{
+            where: { id: scheduleId },
+            select: {
                 participations: {
                     select: {
                         profile: true
                     }
                 }
             }
-        })
+        });
         return participants?.participations.map(el => el.profile);
     }
 
@@ -121,23 +104,9 @@ export default class READ{
      *     **SUCCESS**
      *     --> array of ActivityTemplateModel objects
      */
-    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplateModel[]  | undefined>
-    {
-        // let favorites = await prisma.favorite.findMany({
-        //     where: { profileId },
-        //     include: {
-        //         activity: true
-        //     },
-        //     omit: {
-        //         profileId: true,
-        //         activityId: true
-        //     }
-        // })
-        // let favs: ActivityTemplateModel[] = [];
-        // favorites.map(f => favs.push(f.activity))
-        // return favs;
+    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplateModel[] | undefined> {
         const activities = await prisma.profile.findUnique({
-            where: {id: profileId},
+            where: { id: profileId },
             select: {
                 favorites: {
                     select: {
@@ -151,44 +120,14 @@ export default class READ{
 
     }
 
-
     /**
      * returns array of profiles that favorited the activity by id
      * --> change to activity name?
      * @param activityId
      */
-    static async profilesFavorited(activityId: string): Promise<ProfileModel[]>
-    {
-        // let profilesFavorited = await prisma.favorite.findMany({
-        //     where: { activityId },
-        //     include: {
-        //         profile: true
-        //     },
-        //     // select: {
-        //     //     profile: true
-        //     // }
-        // });
-        // profilesFavorites.map(element => {return element.profile})
-        // return profilesFavorites;
-        // let profilesFavorited = await prisma.activityTemplate.findFirst({
-        //     where: {
-        //         id: activityId
-        //     },
-        //     select: {
-        //         favorites: {
-        //             select: {
-        //                 profileId: {
-        //                     include: {
-        //                         profile: true
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // })
-
+    static async profilesFavorited(activityId: string): Promise<ProfileModel[]> {
         const profilesFavorited = await prisma.activityTemplate.findUnique({
-            where: {id: activityId},
+            where: { id: activityId },
             select: {
                 favorites: {
                     select: {
@@ -196,13 +135,9 @@ export default class READ{
                     }
                 }
             }
-        })
+        });
         return profilesFavorited?.favorites.map(el => el.profile) ?? [];
     }
-
-    // all activities updated after a given timestamp
-    // static async activitiesUpdatedAfter(lastRequest: Date){}
-
 
     /**
      * returns user based of their unique email
@@ -212,36 +147,29 @@ export default class READ{
      *     ---> ProfileModel: successful query
      *     ---> undefined: unsuccessful query
      */
-    static async logIn(email: string): Promise<ProfileModel | null>
-    {
+    static async logIn(email: string): Promise<ProfileModel | null> {
         let loggedInUser = await prisma.profile.findUnique({
             where: {
                 email
             }
-            /*
-            include: {
-                favorites: true,
-            }
-             */
-        })
-        return loggedInUser
+        });
+        return loggedInUser;
     }
 
+    static async activityById(activityId: string): Promise<ActivityTemplateModel | null> {
+        const activity = await prisma.activityTemplate.findUnique({
+            where: { id: activityId }
+        });
+        return activity;
+    }
 
-    /**
-     * just returns all activityTemplates
-     */
-    static async allActivities(){
-        let activities = await prisma.activityTemplate.findMany();
+    static async allActivities() {
+        let activities = await prisma.activityTemplate.findMany({
+            include: {
+                timeSlots: true,
+                leaders: true
+            },
+        });
         return activities;
     }
 }
-
-// async function main(){
-    // console.log(await READ.currentSchedule());
-    // console.log(await READ.profilesFavorited("6233715d-5631-4e2b-8236-2d39ec323b47"))
-    // console.log(await READ.partipantsOf("ae787f1d-3221-47a0-8694-13fc56e47345"))
-    // console.log(await READ.favoritedBy('e420ecca-8662-4929-9052-9835a016a53b'))
-    // console.log(await READ.logIn('e420ecca-8662-4929-9052-9835a016a53b'))
-// }
-// main().catch(e => console.error(e)).finally(async () => await prisma.$disconnect())

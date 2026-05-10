@@ -1,135 +1,134 @@
-import {ApiError} from "../utils/ApiError";
-import {Request, Response} from "express";
-import {asyncHandler} from "../middleware/asyncHandler";
+import { ApiError } from "../utils/ApiError";
+import { Request, Response } from "express";
+import { asyncHandler } from "../middleware/asyncHandler";
 
 import CREATE from "../db/createQueries";
 import DELETE from "../db/deleteQueries";
 import UPDATE from "../db/updateQueries";
 
-import {parseActivity, postActivity} from '../types/activity.types';
 import READ from "../db/readQueries";
+import { CreateActivitySchema, DeleteActivitySchema, UpdateActivityGeneralSchema, UpdateActivityURLSchema } from "../validators/activity.validator";
+import { Activity } from "../types/activity.types";
 
-
-/*
-    GET /activities --- public, no auth required
-
-    PUT /activities/:id --- leader only
-    DELETE /activities/:id --- leader only
-
-    Each activity should include: title, sport, date/time, location, leaderId.
-*/
-
-/*
-POST /activities --- leader only(auth already happened)
-req.body:
-{
-    "sport": "Volleyball",
-    "location": "House 7b - Sportshall",
-    "leaderId": "9099c3e4-f386-4a62-bc48-f48c80b31cd0",
-    "Weekday": "TUESDAY",
-    "startAt": "18:00",
-    "endAt": "20:00"
-}
- */
 
 const newActivity = asyncHandler(
     async (req: Request, res: Response) => {
-        let newActivity: postActivity;
-        try{
-            newActivity = parseActivity(req.body);
-        }
-        catch (error){
-            throw ApiError.badRequest(`${error}`)
-        }
-        const result = await CREATE.newActivity(newActivity)
-        if(result){
-            res.status(201).json(result);
-            return;
-        }
-        else {
-            throw ApiError.internal(`Something went wrong:\nYour Request: ${newActivity}\nResult from DB: ${result}`);
+        let newActivity: Activity;
+
+        try {
+            newActivity = CreateActivitySchema.parse(req.body);
+        } catch (error) {
+            console.error(error);
+            throw ApiError.badRequest(`Invalid request body: ${error}`);
         }
 
+        // If no leaders provided, assign the creator as the leader
+        if (!newActivity.leaders || newActivity.leaders.length === 0) {
+            if (req.user?.id) {
+                newActivity.leaders = [req.user.id];
+            }
+        }
+
+        try {
+            const data = await CREATE.newActivity(newActivity);
+            res.status(201).json({
+                status: "success",
+                data,
+            });
+        } catch (error) {
+            throw ApiError.internal(`Something went wrong: ${error}`);
+        }
     }
-)
+);
 
-/**
- * ?property=<someProperty> do I need this?
- *  -> general (non-nested attributes)
- *  -> timeslots
- *  -> leaders
- */
 const updateActivity = asyncHandler(
     async (req: Request, res: Response) => {
-        const activityId = req.params.id as string;
-        const toUpdateProperty: string | undefined = req.query.property as string;
-        let updatedActivity;
-        if(!toUpdateProperty || !req.query){
-            throw ApiError.badRequest("No update Property defined in the URL")
+        let updateParams: { id: string; };
+        let updateBody: Partial<Activity>;
+
+        try {
+            updateParams = UpdateActivityURLSchema.parse(req.params);
+            updateBody = UpdateActivityGeneralSchema.parse(req.body);
+        } catch (error) {
+            console.error(error);
+            throw ApiError.badRequest(`Invalid request body or params: ${error}`);
         }
-        else{
-            try {
-                // updatedActivity = await UPDATE.updateActivity(activityId, req.body);
-                if(toUpdateProperty==="general"){
-                    updatedActivity = await UPDATE.updateActivity(activityId, req.body);
-                }
-                else if (toUpdateProperty === "timeSlotsAdd"){
-                    updatedActivity = await UPDATE.addTimeSlots(activityId, req.body);
-                }
-                else if (toUpdateProperty === "timeSlotsDel"){
-                    updatedActivity = await UPDATE.deleteTimeSlots(activityId, req.body);
-                }
-                else{
-                    updatedActivity = "nothing";
-                }
-            }
-            catch (error) {
-                console.error(error)
-                throw ApiError.internal(`${error}`)
+
+        // Check if activity exists before attempting update
+        const existingActivity = await READ.activityById(updateParams.id);
+        if (!existingActivity) {
+            throw ApiError.notFound(`Activity with id ${updateParams.id} not found`);
+        }
+
+        let updatePayload: Partial<Activity> = {};
+
+        // Only include fields that are present in the request body
+        for (const field of Object.keys(updateBody)) {
+            const key = field as keyof Activity;
+            if (updateBody[key] !== undefined) {
+                (updatePayload as Record<string, unknown>)[field] = updateBody[key];
             }
         }
-        res.status(201).json(updatedActivity);
+
+        try {
+            const updatedActivity = await UPDATE.updateActivity(updateParams.id, updatePayload);
+            res.status(200).json({
+                status: "success",
+                data: updatedActivity,
+            });
+        } catch (error) {
+            console.error(error);
+            throw ApiError.internal(`Something went wrong: ${error}`);
+        }
     }
-)
+);
 
 const deleteActivity = asyncHandler(
     async (req: Request, res: Response) => {
-        const activityId = req.params.id
-        if(!activityId || Array.isArray(activityId)){
-            throw ApiError.badRequest(`No activity id: ${activityId}`)
+        let deleteParams: { id: string; };
+        try {
+            deleteParams = DeleteActivitySchema.parse(req.params);
+        } catch (error) {
+            console.error(error);
+            throw ApiError.badRequest(`Invalid request params: ${error}`);
         }
-        else {
-            const deletedActivity = await DELETE.deleteActivity(activityId)
-            if(deletedActivity) {
-                res.status(200).json(deletedActivity)
-            }
-            else {
-                throw ApiError.internal(`Something went wrong while deleting`)
-            }
+
+        // Check if activity exists before attempting deletion
+        const existingActivity = await READ.activityById(deleteParams.id);
+        if (!existingActivity) {
+            throw ApiError.notFound(`Activity with id ${deleteParams.id} not found`);
+        }
+
+        try {
+            await DELETE.deleteActivity(deleteParams.id);
+            res.status(200).json({
+                status: "success",
+            });
+        } catch (error) {
+            console.error(error);
+            throw ApiError.internal(`Something went wrong: ${error}`);
         }
     }
-)
+);
 
-const getActivity = asyncHandler(
+const getActivities = asyncHandler(
     async (_req: Request, res: Response) => {
-        const act = await READ.allActivities();
-        if(act.length === 0){
-            throw ApiError.notFound("No Activities have been registered yet")
-        }
-        else if (act.length > 0) {
-            res.status(200).json(act)
-        }
-        else{
-            throw ApiError.internal(`Something went Wrong in Your Request`)
+        try {
+            const data = await READ.allActivities();
+            res.status(200).json({
+                status: "success",
+                data,
+            });
+        } catch (error) {
+            console.error(error);
+            throw ApiError.internal(`Something went wrong: ${error}`);
         }
     }
-)
-
+);
 
 export const controller = {
     newActivity,
     updateActivity,
     deleteActivity,
-    getActivity
-}
-
+    getActivities,
+};
