@@ -31,7 +31,7 @@ export default class READ{
      *      **FAIL**
      *      --> undefined if no activities have been scheduled for the week you are looking for
      */
-    static async anyWeekSchedule(date: Date) : Promise<ScheduleModel[] | undefined>
+    static async anyWeekSchedule(date: Date) : Promise<ScheduleModel[] | undefined> //will return empty list if nothing
     {//startDay: Date, endDay: Date
             const {startDay, endDay} = startAndEndOfWeek(date)
             // PART B - QUERY
@@ -58,7 +58,7 @@ export default class READ{
             return schedule;
     }
 
-    static async anyDaySchedule(date: Date) : Promise<ScheduleModel[] | undefined>
+    static async anyDaySchedule(date: Date) : Promise<ScheduleModel[] | undefined> //will return empty list if nothing
     {
         const startDay = new Date( Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) )
         const endDay = new Date( Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1 ))
@@ -81,39 +81,6 @@ export default class READ{
 
 
     /**
-     * If a user is found in the table, they participated in the activity.
-     * @param scheduleId --> change to activityName & date?
-     * @return (ParticipationLogModel & ProfileModel)[]
-     *      **SUCCESS**
-     *      --> Array of the participation log, including the profile
-     *      **FAIL**
-     *      --> empty array
-     */
-    static async partipantsOf(scheduleId: string)
-    {
-        //Promise<({profile: ProfileModel & ParticipationLogModel})[]>
-        // const participants = await prisma.participationLog.findMany({
-        //     where: { scheduleId },
-        //     include: {
-        //         profile: true,
-        //     },
-        // });
-        // return participants;
-        const participants = await prisma.schedule.findUnique({
-            where:{id: scheduleId},
-            select:{
-                participations: {
-                    select: {
-                        profile: true
-                    }
-                }
-            }
-        })
-        return participants?.participations.map(el => el.profile);
-    }
-
-
-    /**
      * @param profileId --> requires to be logged-in, i.e. we need an account
      * @return Promise<ActivityTemplateModel[]>
      *     **FAIL**
@@ -123,82 +90,22 @@ export default class READ{
      */
     static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplateModel[]  | undefined>
     {
-        // let favorites = await prisma.favorite.findMany({
-        //     where: { profileId },
-        //     include: {
-        //         activity: true
-        //     },
-        //     omit: {
-        //         profileId: true,
-        //         activityId: true
-        //     }
-        // })
-        // let favs: ActivityTemplateModel[] = [];
-        // favorites.map(f => favs.push(f.activity))
-        // return favs;
-        const activities = await prisma.profile.findUnique({
-            where: {id: profileId},
-            select: {
-                favorites: {
-                    select: {
-                        activity: true
-                    }
-                }
-            }
-        });
 
-        return activities?.favorites.map(el => el.activity);
-
-    }
-
-
-    /**
-     * returns array of profiles that favorited the activity by id
-     * --> change to activity name?
-     * @param activityId
-     */
-    static async profilesFavorited(activityId: string): Promise<ProfileModel[]>
-    {
-        // let profilesFavorited = await prisma.favorite.findMany({
-        //     where: { activityId },
-        //     include: {
-        //         profile: true
-        //     },
-        //     // select: {
-        //     //     profile: true
-        //     // }
-        // });
-        // profilesFavorites.map(element => {return element.profile})
-        // return profilesFavorites;
-        // let profilesFavorited = await prisma.activityTemplate.findFirst({
-        //     where: {
-        //         id: activityId
-        //     },
-        //     select: {
-        //         favorites: {
-        //             select: {
-        //                 profileId: {
-        //                     include: {
-        //                         profile: true
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // })
-
-        const profilesFavorited = await prisma.activityTemplate.findUnique({
-            where: {id: activityId},
-            select: {
-                favorites: {
-                    select: {
-                        profile: true
-                    }
-                }
+        let favorites = await prisma.favorite.findMany({
+            where: { profileId },
+            include: {
+                activity: true
+            },
+            omit: {
+                profileId: true,
+                activityId: true,
             }
         })
-        return profilesFavorited?.favorites.map(el => el.profile) ?? [];
+        let favs: ActivityTemplateModel[] = [];
+        favorites.map(f => favs.push(f.activity))
+        return favs;
     }
+
 
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
@@ -234,6 +141,59 @@ export default class READ{
     static async allActivities(){
         let activities = await prisma.activityTemplate.findMany();
         return activities;
+    }
+
+
+    /**
+     * returns array of profiles that favorited the activity by id
+     * --> change to activity name?
+     * @param activityId
+     */
+    static async profilesFavorited(activityId: string): Promise<ProfileModel[]>
+    {
+        const profilesFavorited = await prisma.activityTemplate.findUnique({
+            where: {id: activityId},
+            select: {
+                favorites: {
+                    select: {
+                        profile: true
+                    }
+                }
+            }
+        })
+        return profilesFavorited?.favorites.map(el => el.profile) ?? [];
+    }
+
+    /**
+     * If a user is found in the table, they participated in the activity.
+     * @param scheduleId --> change to activityName & date?
+     * @return (ParticipationLogModel & ProfileModel)[]
+     *      **SUCCESS**
+     *      --> Array of the participation log, including the profile
+     *      **FAIL**
+     *      --> empty array
+     */
+    static async partipantsOf(scheduleId: string)
+    {
+        //Promise<({profile: ProfileModel & ParticipationLogModel})[]>
+        // const participants = await prisma.participationLog.findMany({
+        //     where: { scheduleId },
+        //     include: {
+        //         profile: true,
+        //     },
+        // });
+        // return participants;
+        const participants = await prisma.schedule.findUnique({
+            where:{id: scheduleId},
+            select:{
+                participations: {
+                    select: {
+                        profile: true
+                    }
+                }
+            }
+        })
+        return participants?.participations.map(el => el.profile);
     }
 }
 

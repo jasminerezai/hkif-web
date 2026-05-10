@@ -6,45 +6,27 @@ DELETE Queries
     delete participation logs older than 6 months
  */
 import {prisma} from "./prisma";
-import {BatchPayload} from '../generated/prisma/internal/prismaNamespace'
+// import {BatchPayload} from '../generated/prisma/internal/prismaNamespace'
+import {ActivityTemplateModel} from '../generated/prisma/models'
 
 export default class DELETE{
 
-    // static async deleteFavorites(profileId: string, ...activityIds: string[]){
-    //     const deletedCount = await prisma.favorite.deleteMany({
-    //         where: {
-    //             AND: [
-    //                 { profileId },
-    //                 { activityId: ...activityIds}
-    //             ]
-    //         }
-    //     })
-    // }
-    // static async deleteFavorites(profileId: string, ...activityIds: string[]){
-    //     await prisma.profile.update({
-    //         where: {id: profileId},
-    //         data: {
-    //             favorites: {
-    //                 deleteMany: {
-    //                     activityId: {
-    //                         in: activityIds
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     })
-    // }
-    static async deleteFavorites(profileId: string, ...activityIds: string[]): Promise< BatchPayload>
+
+    static async deleteFavorite(profileId: string, activityId: string): Promise<ActivityTemplateModel>
     {
-        const deleteCount = await prisma.favorite.deleteMany({
-            where:{
-                profileId,
-                activityId: {
-                    in: activityIds
+        const {activity} = await prisma.favorite.delete({
+            where: {
+                profileId_activityId: {
+                    profileId,
+                    activityId
                 }
+            },
+            select: {
+                activity: true
             }
-        });
-        return deleteCount; // deleteCount.count === activityIds
+        })
+
+        return activity;
     }
 
     static async deleteActivity(activityId: string)
