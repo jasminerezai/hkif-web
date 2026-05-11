@@ -1,11 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-<<<<<<< feature/authentication-system
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
-=======
-import { errorHandler } from './middleware/errorHandler.js';
->>>>>>> main
+import activityRoutes from './routes/activities.routes';
 
 export const app = express();
 
@@ -20,10 +17,9 @@ app.get('/api/health', (_req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-// TODO: Wire in route modules once they exist (Steps 4-6)
-// app.use('/api/activities', activityRoutes);
-// app.use('/api/schedules', scheduleRoutes);
-// app.use('/api/users', userRoutes);
+app.use('/api/activities', activityRoutes);
+// TODO: app.use('/api/schedules', scheduleRoutes);
+// TODO: app.use('/api/users', userRoutes);
 
 // 404 catch-all (must be last route)
 app.use((_req, res) => {
