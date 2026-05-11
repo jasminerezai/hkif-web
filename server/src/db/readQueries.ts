@@ -148,6 +148,12 @@ export class READ{
         return user;
     }
 
+    static async activityById(activityId: string): Promise<ActivityTemplateModel | null> {
+        const activity = await prisma.activityTemplate.findUnique({
+            where: { id: activityId }
+        });
+        return activity;
+    }
     /**
      * just returns all activityTemplates
      */

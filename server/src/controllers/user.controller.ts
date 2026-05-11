@@ -1,9 +1,7 @@
-import READ  from '../db/readQueries'
 import {ApiError} from "../utils/ApiError";
 import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler";
-import CREATE from "../db/createQueries";
-import DELETE from "../db/deleteQueries";
+import {READ, CREATE, DELETE} from '../db/queries';
 
 const getFavorites = asyncHandler( async (req: Request, res: Response) => {
     const profileId: string = req.user.id;

@@ -27,7 +27,7 @@ router.get('', controller.getSchedule )
 CREATE:
 - new Week
 READ: see aboveX
-UPDATE:
+UPDATE: --> activities.routes.ts
 - activity status
 DELETE:
 - weeks older than three?
