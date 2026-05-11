@@ -1,4 +1,4 @@
-import READ  from '../db/readQueries'
+import {READ}  from '../db/readQueries'
 import {ApiError} from "../utils/ApiError";
 import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler";
