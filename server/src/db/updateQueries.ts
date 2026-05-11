@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { Activity, TimeSlot } from "../types/activity.types";
 
-export default class UPDATE {
+export class UPDATE {
     static async updateActivity(activityId: string, newData: Partial<Activity>) {
         // These fields require special handling, so we extract them from the update payload first  
         const timeSlots = newData.timeSlots;

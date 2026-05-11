@@ -2,7 +2,7 @@ import { prisma } from "./prisma";
 import { startAndEndOfWeek } from "../utils/weekCalculator";
 import { ActivityTemplateModel, ScheduleModel } from "../generated/prisma/models";
 
-export default class READ {
+export class READ {
     /**
      * Purpose: returns the current schedule of the week
      * @return (Schedule&Activity)[] OR undefined ==> see anyWeekSchedule(date: Date) for more details
@@ -111,5 +111,12 @@ export default class READ {
             },
         });
         return activities;
+    }
+
+    static async findUserByEmail(email: string) {
+        const user = await prisma.profile.findUnique({
+            where: { email },
+        });
+        return user;
     }
 }

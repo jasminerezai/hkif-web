@@ -1,6 +1,6 @@
 import "dotenv/config";
-import {prisma} from "../src/db/prisma"; // "@ts-ignore" for file ending '.ts'
-import { ProfileRole, ActivityStatus, Weekday} from '../src/generated/prisma/enums'
+import { prisma } from "../src/db/prisma"; // "@ts-ignore" for file ending '.ts'
+import { ProfileRole, ActivityStatus, Weekday } from '../src/generated/prisma/enums';
 
 /*
 ChatGPT chat: https://chatgpt.com/share/69f8d77a-aa14-83eb-90b7-e90269da81bf
@@ -71,7 +71,7 @@ async function main() {
                 ? ProfileRole.ADMIN
                 : i <= 5
                     ? ProfileRole.LEADER
-                    : ProfileRole.USER;
+                    : ProfileRole.MEMBER;
 
         const profile = await prisma.profile.create({
             data: {
@@ -175,7 +175,7 @@ async function main() {
                         activityId: activity.id,
                     },
                 })
-                .catch(() => {}); // ignore duplicates
+                .catch(() => { }); // ignore duplicates
         }
     }
 
@@ -245,7 +245,7 @@ async function main() {
                         interested: Math.random() > 0.5,
                     },
                 })
-                .catch(() => {});
+                .catch(() => { });
         }
     }
 

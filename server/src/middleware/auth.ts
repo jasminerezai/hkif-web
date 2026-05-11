@@ -5,11 +5,11 @@ import { prisma, ProfileRole } from '../db/prisma';
 
 // ──────────────────────────────────────────────
 // Privilege hierarchy (ascending)
-// USER < LEADER < BOARD_MEMBER < ADMIN
+// MEMBER < LEADER < BOARD_MEMBER < ADMIN
 // ──────────────────────────────────────────────
 
 const ROLE_RANK: Record<ProfileRole, number> = {
-  USER: 0,
+  MEMBER: 0,
   LEADER: 1,
   BOARD_MEMBER: 2,
   ADMIN: 3,

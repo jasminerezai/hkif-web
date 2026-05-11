@@ -1,7 +1,7 @@
 import { Activity } from "../types/activity.types";
 import { prisma } from "./prisma";
 
-export default class CREATE {
+export class CREATE {
     static async newActivity(newAct: Activity) {
         const activity = await prisma.activityTemplate.create({
             data: {

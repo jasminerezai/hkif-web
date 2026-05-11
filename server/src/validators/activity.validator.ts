@@ -31,14 +31,14 @@ export const CreateActivitySchema = z.object({
 });
 
 export const DeleteActivitySchema = z.object({
-    id: z.uuid(),
+    activityId: z.uuid(),
 });
 
 export const UpdateActivityURLSchema = z.object({
-    id: z.uuid(),
+    activityId: z.uuid(),
 });
 
-const TimeSlotSchema = z.object({
+export const TimeSlotSchema = z.object({
     weekday: z.enum(["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]),
     startAt: z.string().refine((time) => checkTimeFormat(time), {
         message: "Invalid time format, expected HH:mm:ss",
