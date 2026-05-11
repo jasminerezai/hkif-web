@@ -1,5 +1,5 @@
 import {prisma} from "./prisma";
-import {startAndEndOfWeek} from "../utils/weekCalculator";
+import { startAndEndOfWeek } from "../utils/weekCalculator";
 import {ActivityTemplateModel, ProfileModel, ScheduleModel} from '../generated/prisma/models'
 
 /**
@@ -7,7 +7,7 @@ import {ActivityTemplateModel, ProfileModel, ScheduleModel} from '../generated/p
  * Only has static functions.
  * Send back timestamp when the last query to the schedule was?
  */
-export default class READ{
+export class READ{
 
 
     /**
@@ -31,9 +31,10 @@ export default class READ{
      *      **FAIL**
      *      --> undefined if no activities have been scheduled for the week you are looking for
      */
-    static async anyWeekSchedule(date: Date) : Promise<ScheduleModel[] | undefined> //will return empty list if nothing
-    {
-            const {startDay, endDay} = startAndEndOfWeek(date)
+    //will return empty list if nothing
+    static async anyWeekSchedule(date: Date): Promise<ScheduleModel[] | undefined> {//startDay: Date, endDay: Date
+        const { startDay, endDay } = startAndEndOfWeek(date);
+        // PART B - QUERY
             let schedule: ScheduleModel[] | undefined;
             if(startDay && endDay) {
                 schedule = await prisma.schedule.findMany({
@@ -49,18 +50,18 @@ export default class READ{
                     include: {
                         activity: true
                     }
-                })
-            }
-            if(schedule?.length === 0){
-                return undefined;
-            }
-            return schedule;
+            });
+        }
+        if (schedule?.length === 0) {
+            return undefined;
+        }
+        return schedule;
     }
 
-    static async anyDaySchedule(date: Date) : Promise<ScheduleModel[] | undefined> //will return empty list if nothing
-    {
-        const startDay = new Date( Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) )
-        const endDay = new Date( Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1 ))
+    //will return empty list if nothing
+    static async anyDaySchedule(date: Date): Promise<ScheduleModel[] | undefined> {
+        const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+        const endDay = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1));
         const schedule = await prisma.schedule.findMany({
             where: {
                 startAt: {
@@ -68,7 +69,7 @@ export default class READ{
                     lt: endDay
                 },
             },
-            orderBy:{
+            orderBy: {
                 startAt: "asc"
             },
             include: {
@@ -105,6 +106,28 @@ export default class READ{
         return favs;
     }
 
+    /**
+     * If a user is found in the table, they participated in the activity.
+     * @param scheduleId
+     * @return (ParticipationLogModel & ProfileModel)[]
+     *      **SUCCESS**
+     *      --> Array of the participation log, including the profile
+     *      **FAIL**
+     *      --> empty array
+     */
+    static async participantsOf(scheduleId: string) {
+        const participants = await prisma.schedule.findUnique({
+            where: { id: scheduleId },
+            select: {
+                participations: {
+                    select: {
+                        profile: true
+                    }
+                }
+            }
+        });
+        return participants?.participations.map(el => el.profile);
+    }
 
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
@@ -118,22 +141,23 @@ export default class READ{
      *     ---> ProfileModel: successful query
      *     ---> undefined: unsuccessful query
      */
-    static async logIn(email: string): Promise<ProfileModel | null>
-    {
-        let loggedInUser = await prisma.profile.findUnique({
-            where: {
-                email
-            }
-        })
-        return loggedInUser
+    static async findUserByEmail(email: string) {
+        const user = await prisma.profile.findUnique({
+            where: { email },
+        });
+        return user;
     }
-
 
     /**
      * just returns all activityTemplates
      */
-    static async allActivities(){
-        let activities = await prisma.activityTemplate.findMany();
+    static async allActivities() {
+        let activities = await prisma.activityTemplate.findMany({
+            include: {
+                timeSlots: true,
+                leaders: true
+            },
+        });
         return activities;
     }
 
@@ -156,29 +180,5 @@ export default class READ{
             }
         })
         return profilesFavorited?.favorites.map(el => el.profile) ?? [];
-    }
-
-    /**
-     * If a user is found in the table, they participated in the activity.
-     * @param scheduleId --> change to activityName & date?
-     * @return (ParticipationLogModel & ProfileModel)[]
-     *      **SUCCESS**
-     *      --> Array of the participation log, including the profile
-     *      **FAIL**
-     *      --> empty array
-     */
-    static async partipantsOf(scheduleId: string)
-    {
-        const participants = await prisma.schedule.findUnique({
-            where:{id: scheduleId},
-            select:{
-                participations: {
-                    select: {
-                        profile: true
-                    }
-                }
-            }
-        })
-        return participants?.participations.map(el => el.profile);
     }
 }

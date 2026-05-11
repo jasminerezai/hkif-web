@@ -1,4 +1,4 @@
-export * from './createQueries'
-export * from './readQueries'
-export * from './updateQueries'
-export * from './deleteQueries'
+export { CREATE } from './createQueries';
+export { READ } from './readQueries';
+export { UPDATE } from './updateQueries';
+export { DELETE } from './deleteQueries';
