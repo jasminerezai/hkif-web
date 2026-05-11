@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { updateScheduleStatusHandler } from '../controllers/activities.controller';
+import { updateScheduleStatusHandler, getActivities, newActivity, updateActivity, deleteActivity } from '../controllers/activities.controller';
 import { authMiddleware, restrictToMinRole } from '../middleware/auth';
+import { ProfileRole } from "../db/prisma";
 
 const router = Router();
 
@@ -18,8 +19,35 @@ const router = Router();
 router.patch(
   '/:activityId/schedules/:scheduleId/status',
   authMiddleware,
-  restrictToMinRole('LEADER'),
+  restrictToMinRole(ProfileRole.LEADER),
   updateScheduleStatusHandler,
+);
+
+// GET /activities
+router.get('', getActivities);
+
+// POST /activities --- leader only --> create new activity
+router.post(
+  '',
+  authMiddleware,
+  restrictToMinRole(ProfileRole.LEADER),
+  newActivity,
+);
+
+// PUT /activities/:activityId --- leader only --> update activity
+router.put(
+  '/:activityId',
+  authMiddleware,
+  restrictToMinRole(ProfileRole.LEADER),
+  updateActivity
+);
+
+// DELETE /activities/:activityId --- leader only --> delete activity
+router.delete(
+  '/:activityId',
+  authMiddleware,
+  restrictToMinRole(ProfileRole.LEADER),
+  deleteActivity
 );
 
 export default router;

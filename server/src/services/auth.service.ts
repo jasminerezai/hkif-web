@@ -2,9 +2,10 @@ import bcrypt from 'bcryptjs';
 import { prisma, ProfileRole } from '../db/prisma';
 import { ApiError } from '../utils/ApiError';
 import { generateToken } from '../utils/jwt';
+import { READ } from "../db/readQueries";
 
 /** Maps a Prisma Profile row to the public user DTO returned by auth endpoints. */
-const toUserDto = (p: { id: string; email: string; profileName: string | null; role: ProfileRole }) => ({
+const toUserDto = (p: { id: string; email: string; profileName: string | null; role: ProfileRole; }) => ({// does this need a return keyword
   id: p.id,
   email: p.email,
   name: p.profileName,
@@ -41,16 +42,14 @@ export const register = async (email: string, password: string, name: string) =>
 };
 
 export const login = async (email: string, password: string) => {
-  // Find user
-  const user = await prisma.profile.findUnique({
-    where: { email },
-  });
+  const user = await READ.findUserByEmail(email);
 
   if (!user) {
     throw ApiError.unauthorized('Invalid email or password');
   }
 
   // Check password
+  //we need to decrypt the pw, we don't want to send the plain text pw
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {

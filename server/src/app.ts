@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler';
+
+// routers
 import authRoutes from './routes/auth.routes';
 import activityRoutes from './routes/activities.routes';
 
