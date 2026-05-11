@@ -1,6 +1,6 @@
 import {prisma} from "./prisma";
 import { startAndEndOfWeek } from "../utils/weekCalculator";
-import {ActivityTemplateModel, ProfileModel, ScheduleModel} from '../generated/prisma/models'
+import {ActivityTemplate, Profile, Schedule} from '../generated/prisma'
 
 /**
  * Contains all READ-queries to the DB.
@@ -14,7 +14,7 @@ export class READ{
      * Purpose: returns the current schedule of the week
      * @return (Schedule&Activity)[] OR undefined ==> see anyWeekSchedule(date: Date) for more details
      */
-    static async currentSchedule(): Promise<ScheduleModel[] | undefined>
+    static async currentSchedule(): Promise<Schedule[] | undefined>
     {
         const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
         return await this.anyWeekSchedule(nowDate)
@@ -32,10 +32,10 @@ export class READ{
      *      --> undefined if no activities have been scheduled for the week you are looking for
      */
     //will return empty list if nothing
-    static async anyWeekSchedule(date: Date): Promise<ScheduleModel[] | undefined> {//startDay: Date, endDay: Date
+    static async anyWeekSchedule(date: Date): Promise<Schedule[] | undefined> {//startDay: Date, endDay: Date
         const { startDay, endDay } = startAndEndOfWeek(date);
         // PART B - QUERY
-            let schedule: ScheduleModel[] | undefined;
+            let schedule: Schedule[] | undefined;
             if(startDay && endDay) {
                 schedule = await prisma.schedule.findMany({
                     where: {
@@ -59,7 +59,7 @@ export class READ{
     }
 
     //will return empty list if nothing
-    static async anyDaySchedule(date: Date): Promise<ScheduleModel[] | undefined> {
+    static async anyDaySchedule(date: Date): Promise<Schedule[] | undefined> {
         const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
         const endDay = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1));
         const schedule = await prisma.schedule.findMany({
@@ -82,13 +82,13 @@ export class READ{
 
     /**
      * @param profileId --> requires to be logged-in, i.e. we need an account
-     * @return Promise<ActivityTemplateModel[]>
+     * @return Promise<ActivityTemplate[]>
      *     **FAIL**
      *     --> is empty if the profile doesn't have favorite activities
      *     **SUCCESS**
      *     --> array of ActivityTemplateModel objects
      */
-    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplateModel[]  | undefined>
+    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplate[]  | undefined>
     {
 
         let favorites = await prisma.favorite.findMany({
@@ -101,7 +101,7 @@ export class READ{
                 activityId: true,
             }
         })
-        let favs: ActivityTemplateModel[] = [];
+        let favs: ActivityTemplate[] = [];
         favorites.map(f => favs.push(f.activity))
         return favs;
     }
@@ -148,7 +148,7 @@ export class READ{
         return user;
     }
 
-    static async activityById(activityId: string): Promise<ActivityTemplateModel | null> {
+    static async activityById(activityId: string): Promise<ActivityTemplate | null> {
         const activity = await prisma.activityTemplate.findUnique({
             where: { id: activityId }
         });
@@ -173,7 +173,7 @@ export class READ{
      * --> change to activity name?
      * @param activityId
      */
-    static async profilesFavorited(activityId: string): Promise<ProfileModel[]>
+    static async profilesFavorited(activityId: string): Promise<Profile[]>
     {
         const profilesFavorited = await prisma.activityTemplate.findUnique({
             where: {id: activityId},

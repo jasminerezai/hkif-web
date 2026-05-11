@@ -1,5 +1,5 @@
 import {prisma} from "./prisma";
-import {ActivityTemplateModel} from '../generated/prisma/models'
+import {ActivityTemplate} from '../generated/prisma'
 
 export class DELETE {
     // static async deleteActivity(activityId: string) {
@@ -8,7 +8,7 @@ export class DELETE {
      * @param activityId activityId to be removed from the user list of favorites
      * @return activity deleted from list of favorites
      */
-    static async deleteFavorite(profileId: string, activityId: string): Promise<ActivityTemplateModel>
+    static async deleteFavorite(profileId: string, activityId: string): Promise<ActivityTemplate>
     {
         const {activity} = await prisma.favorite.delete({
             where: {

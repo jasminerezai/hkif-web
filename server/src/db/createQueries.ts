@@ -1,6 +1,6 @@
 import { Activity } from "../types";
 import { prisma } from "./prisma";
-import {ActivityTemplateModel} from '../generated/prisma/models'
+import {ActivityTemplate} from '../generated/prisma'
 /*
 CREATE Queries
     create new profile
@@ -15,7 +15,7 @@ CREATE Queries
 export class CREATE{
 
     // adding favorites
-    static async newFavorite(profileId: string, activityId: string): Promise<ActivityTemplateModel> {
+    static async newFavorite(profileId: string, activityId: string): Promise<ActivityTemplate> {
         const {activity} = await prisma.favorite.create({
             data: {
                 profileId,
