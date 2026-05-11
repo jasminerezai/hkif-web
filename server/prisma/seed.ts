@@ -122,24 +122,28 @@ async function main() {
 
     for (const activity of activities) {
         const slotsPerActivity = Math.random() > 0.5 ? 2 : 1;
+        // Shuffle weekdays so we never pick the same one twice for one activity
+        const shuffledWeekdays = Object.values(Weekday).sort(() => Math.random() - 0.5);
 
         for (let i = 0; i < slotsPerActivity; i++) {
-            const weekday = randomItem(Object.values(Weekday));
+            const weekday = shuffledWeekdays[i]!;
 
             const startHour = 8 + Math.floor(Math.random() * 10);
             const start = new Date(`1970-01-01T${String(startHour).padStart(2, "0")}:00:00Z`);
             const end = new Date(`1970-01-01T${String(startHour + 1).padStart(2, "0")}:00:00Z`);
 
-            const slot = await prisma.timeSlot.create({
-                data: {
-                    activityId: activity.id,
-                    weekday,
-                    startTime: start,
-                    endTime: end,
-                },
-            });
+            const slot = await prisma.timeSlot
+                .create({
+                    data: {
+                        activityId: activity.id,
+                        weekday,
+                        startTime: start,
+                        endTime: end,
+                    },
+                })
+                .catch(() => null); // ignore any unexpected duplicates
 
-            timeSlots.push(slot);
+            if (slot) timeSlots.push(slot);
         }
     }
 
