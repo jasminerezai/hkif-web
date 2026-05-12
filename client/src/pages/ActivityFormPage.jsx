@@ -12,18 +12,6 @@ export default function ActivityFormPage() {
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
 
-  // Role check
-  const canManageActivities = ['LEADER', 'BOARD_MEMBER', 'ADMIN'].includes(user?.role)
-  if (!canManageActivities) {
-    return (
-      <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-        <p style={{ color: 'var(--color-danger)' }}>
-          You don't have permission to access this page.
-        </p>
-      </div>
-    )
-  }
-
   // Form state
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
@@ -35,7 +23,7 @@ export default function ActivityFormPage() {
     { weekday: 'MONDAY', startAt: '18:00:00', endAt: '19:30:00' }
   ])
 
-  // UI state
+  // UI state 
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
@@ -43,7 +31,9 @@ export default function ActivityFormPage() {
   // Load existing activity in edit mode
   useEffect(() => {
     if (!isEditMode) return
-    fetch(`/api/activities/${activityId}`)
+    fetch(`/api/activities/${activityId}`, {
+      headers: { ...getAuthHeader() }
+    })
       .then(res => res.json())
       .then(json => {
         if (json.status === 'success') {
@@ -65,6 +55,18 @@ export default function ActivityFormPage() {
       })
       .catch(() => setServerError('Failed to load activity.'))
   }, [activityId, isEditMode])
+
+  // Role check
+  const canManageActivities = ['LEADER', 'BOARD_MEMBER', 'ADMIN'].includes(user?.role)
+  if (!canManageActivities) {
+    return (
+      <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--color-danger)' }}>
+          You don't have permission to access this page.
+        </p>
+      </div>
+    )
+  }
 
   // TimeSlot helpers
   function addTimeSlot() {
@@ -138,7 +140,8 @@ export default function ActivityFormPage() {
       }
 
       // Redirect to activity detail page on success
-      navigate(`/activities/${json.data.id}`)
+      const redirectId = isEditMode ? activityId : json.data.id
+      navigate(`/activities/${redirectId}`)
 
     } catch {
       setServerError('Network error. Please try again.')
@@ -236,7 +239,7 @@ export default function ActivityFormPage() {
                   borderRadius: 'var(--radius-sm)',
                   fontSize: 'var(--text-base)',
                   fontFamily: 'var(--font-body)',
-                  background: '#ffffff',
+                  background: 'var(--color-surface-raised)',
                   color: 'var(--color-text)',
                   cursor: loading ? 'not-allowed' : 'pointer',
                 }}
@@ -285,7 +288,7 @@ export default function ActivityFormPage() {
                           borderRadius: 'var(--radius-sm)',
                           fontSize: 'var(--text-base)',
                           fontFamily: 'var(--font-body)',
-                          background: '#ffffff',
+                          background: 'var(--color-surface-raised)',
                           color: 'var(--color-text)',
                         }}
                       >
