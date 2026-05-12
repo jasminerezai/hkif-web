@@ -15,7 +15,7 @@ export class READ{
      * Purpose: returns the current schedule of the week
      * @return (Schedule&Activity)[] OR undefined ==> see anyWeekSchedule(date: Date) for more details
      */
-    {
+    static async currentSchedule(): Promise<ScheduleModel[] | undefined> {
         const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
         return await this.anyWeekSchedule(nowDate)
     }
