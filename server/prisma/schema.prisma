@@ -1,4 +1,3 @@
-// chatgpt refactored schema
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
