@@ -1,6 +1,7 @@
 import {prisma} from "./prisma";
 import { startAndEndOfWeek } from "../utils/weekCalculator";
 import {ActivityTemplate, Profile, Schedule} from '../generated/prisma'
+import { ActivityDto } from "../types";
 
 /**
  * Contains all READ-queries to the DB.
@@ -88,22 +89,21 @@ export class READ{
      *     **SUCCESS**
      *     --> array of ActivityTemplateModel objects
      */
-    static async activitiesFavoritedBy(profileId: string): Promise<ActivityTemplate[]  | undefined>
+    static async activitiesFavoritedBy(profileId: string): Promise<ActivityDto[]>
     {
-
-        let favorites = await prisma.favorite.findMany({
+        let favorite = await prisma.favorite.findMany({
             where: { profileId },
-            include: {
-                activity: true
-            },
-            omit: {
-                profileId: true,
-                activityId: true,
+            select: {
+                activity: {
+                    include: {
+                        leaders: true,
+                        timeSlots: true
+                    }
+                }
             }
         })
-        let favs: ActivityTemplate[] = [];
-        favorites.map(f => favs.push(f.activity))
-        return favs;
+        //unsure about the satisfies keyword here: satisfies ActivityDto[]
+        return favorite?.map( a => a.activity);
     }
 
     /**
@@ -185,6 +185,10 @@ export class READ{
                 }
             }
         })
-        return profilesFavorited?.favorites.map(el => el.profile) ?? [];
+        if(profilesFavorited) {
+            return profilesFavorited.favorites.map(el => el.profile);
+        } else{
+            return [];
+        }
     }
 }

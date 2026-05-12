@@ -1,24 +1,27 @@
 import {prisma} from "./prisma";
-import {ActivityTemplate} from '../generated/prisma'
+import {ActivityDto, FavoriteCreateDelete} from "../types";
 
 export class DELETE {
-    // static async deleteActivity(activityId: string) {
     /**
-     * @param profileId current user
-     * @param activityId activityId to be removed from the user list of favorites
+     * @param ids see favorite.types.ts
      * @return activity deleted from list of favorites
      */
-    static async deleteFavorite(profileId: string, activityId: string): Promise<ActivityTemplate>
+    static async deleteFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto>
     {
         const {activity} = await prisma.favorite.delete({
             where: {
                 profileId_activityId: {
-                    profileId,
-                    activityId
+                    profileId: ids.profileId,
+                    activityId: ids.activityId,
                 }
             },
             select: {
-                activity: true
+                activity: {
+                    include: {
+                        leaders: true,
+                        timeSlots: true
+                    }
+                }
             }
         })
 
