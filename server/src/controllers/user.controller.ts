@@ -37,7 +37,12 @@ const newFavorites = asyncHandler(
         throw ApiError.internal(`Error was not caught by try-catch`)
     }
     else{
-        const newFavorite: ActivityDto = await CREATE.newFavorite(ids)
+        let newFavorite: ActivityDto
+        try {
+            newFavorite = await CREATE.newFavorite(ids)
+        } catch(error){
+            throw ApiError.notFound(`Not found. Invalid id: ${ids.activityId}`)
+        }
         if(!newFavorite){
             throw ApiError.internal(`Something went wrong in the DB: ${newFavorite}`);
         } else{
@@ -60,7 +65,12 @@ const deleteFavorites = asyncHandler(
         throw ApiError.internal(`Error was not caught by try-catch`)
     }
     else{
-        const deletedFavorite: ActivityDto = await DELETE.deleteFavorite(ids)
+        let deletedFavorite: ActivityDto | undefined
+        try {
+            deletedFavorite = await DELETE.deleteFavorite(ids)
+        } catch (error) {
+            throw ApiError.notFound(`Not found. Invalid id: ${ids.activityId}`)
+        }
         if(!deletedFavorite){
             throw ApiError.internal(`Something went wrong in the DB: ${deletedFavorite}`);
         } else{
