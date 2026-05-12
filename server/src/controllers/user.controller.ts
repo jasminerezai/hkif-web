@@ -18,7 +18,7 @@ const getFavorites = asyncHandler(
             throw ApiError.internal(`Something went Wrong: favorites.length=${favorites.length}\nfavorites-obj:${favorites}`);
         }
     } else{
-        throw ApiError.internal(`The provided User has an invalid id: ${profileId}`);
+        throw ApiError.badRequest(`The provided User has an invalid id: ${profileId}`);
     }
 
 });
