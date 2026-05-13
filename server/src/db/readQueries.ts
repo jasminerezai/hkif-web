@@ -1,13 +1,14 @@
 import { prisma } from "./prisma";
 import { startAndEndOfWeek } from "../utils/weekCalculator";
-import { ActivityTemplateModel, ScheduleModel } from "../generated/prisma/models";
+import { ActivityTemplate } from "../generated/prisma";
+import {ScheduleDto} from "../types/schedule.types";
 
 export class READ {
     /**
      * Purpose: returns the current schedule of the week
-     * @return (Schedule&Activity)[] OR undefined ==> see anyWeekSchedule(date: Date) for more details
+     * @return ScheduleDto[] --> {Schedule, activity: ActivityTemplate}[] ==> see anyWeekSchedule(date: Date) for more details
      */
-    static async currentSchedule(): Promise<ScheduleModel[] | undefined> {
+    static async currentSchedule(): Promise<ScheduleDto[]> {
         const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
         return await this.anyWeekSchedule(nowDate);
     }
@@ -16,41 +17,34 @@ export class READ {
     /**
      * Given any date, it returns the weeks schedule of the week the date is in.
      * @param date any valid date
-     * @return (Schedule&Activity)[] OR undefined
-     *      **SUCCESS**
-     *      --> array of that weeks schedule w/ the activities nested inside,
-     *              ordered by ascending dates (mondays actvities first, sundays last)
-     *      **FAIL**
-     *      --> undefined if no activities have been scheduled for the week you are looking for
+     * @return ScheduleDto[] --> {Schedule, activity: ActivityTemplate}[]
+     *      **SUCCESS** --> array filled with ScheduleDto objects
+     *      **FAIL** --> empty array
      */
-    static async anyWeekSchedule(date: Date): Promise<ScheduleModel[] | undefined> {//startDay: Date, endDay: Date
+    static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {//
         const { startDay, endDay } = startAndEndOfWeek(date);
         // PART B - QUERY
-        let schedule: ScheduleModel[] | undefined;
-        if (startDay && endDay) {
-            schedule = await prisma.schedule.findMany({
-                where: {
-                    AND: [
-                        { startAt: { gte: startDay } },
-                        { startAt: { lte: endDay } }
-                    ]
-                },
-                orderBy: {
-                    startAt: "asc"
-                },
-                include: {
-                    activity: true
-                }
-            });
-        }
-        if (schedule?.length === 0) {
-            return undefined;
-        }
+        // let schedule: Schedule;
+        const schedule: ScheduleDto[] = await prisma.schedule.findMany({
+            where: {
+                AND: [
+                    { startAt: { gte: startDay } },
+                    { startAt: { lte: endDay } }
+                ]
+            },
+            orderBy: {
+                startAt: "asc"
+            },
+            include: {
+                activity: true
+            }
+        });
+
         return schedule;
     }
 
-
-    static async anyDaySchedule(date: Date): Promise<ScheduleModel[] | undefined> {
+    
+    static async anyDaySchedule(date: Date): Promise<ScheduleDto[]> {
         const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
         const endDay = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1));
         const schedule = await prisma.schedule.findMany({
@@ -95,7 +89,7 @@ export class READ {
     }
 
 
-    static async activityById(activityId: string): Promise<ActivityTemplateModel | null> {
+    static async activityById(activityId: string): Promise<ActivityTemplate | null> {
         const activity = await prisma.activityTemplate.findUnique({
             where: { id: activityId }
         });
