@@ -9,7 +9,6 @@ const getFavorites = asyncHandler(
     async (req: Request, res: Response<ApiResponse<ActivityDto[]>>) => {
     const profileId: string = req.user.id;
     const favorites: ActivityDto[] = await READ.activitiesFavoritedBy(profileId);
-    if (!favorites.length) throw ApiError.notFound("You don't have any favorite Activities! :(");
     res.status(200).json({status: "success", data: favorites});
 });
 
