@@ -1,13 +1,11 @@
 import { Router } from 'express';
-import { ProfileRole } from '../db/prisma';
 import { controller as userController} from '../controllers/user.controller';
-import { authMiddleware, restrictToMinRole } from "../middleware/auth";
+import { authMiddleware } from "../middleware/auth";
 
 const userRoutes = Router();
 
 //For every route: check if the user is logged In and a member
 userRoutes.use(authMiddleware)
-userRoutes.use(restrictToMinRole(ProfileRole.MEMBER))
 
 /*
 FAVORITES:

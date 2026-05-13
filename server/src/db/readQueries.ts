@@ -15,7 +15,7 @@ export class READ{
      * Purpose: returns the current schedule of the week
      * @return (Schedule&Activity)[] OR undefined ==> see anyWeekSchedule(date: Date) for more details
      */
-    static async currentSchedule(): Promise<ScheduleModel[] | undefined> {
+    static async currentSchedule(): Promise<Schedule[] | undefined> {
         const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
         return await this.anyWeekSchedule(nowDate)
     }
@@ -90,7 +90,7 @@ export class READ{
      */
     static async activitiesFavoritedBy(profileId: string): Promise<ActivityDto[]>
     {
-        let favorite = await prisma.favorite.findMany({
+        let favorites = await prisma.favorite.findMany({
             where: { profileId },
             select: {
                 activity: {
@@ -102,7 +102,7 @@ export class READ{
             }
         })
         //unsure about the satisfies keyword here: satisfies ActivityDto[]
-        return favorite?.map( a => a.activity);
+        return favorites.map( a => a.activity);
     }
 
     /**
@@ -139,6 +139,8 @@ export class READ{
      * @return Promise<ProfileModel | undefined>
      *     ---> ProfileModel: successful query
      *     ---> undefined: unsuccessful query
+     *  // NOTE: returns password hash — only use in auth context, never send response directly
+     *  OMIT password before sending anything to the Client
      */
     static async findUserByEmail(email: string) {
         const user = await prisma.profile.findUnique({
