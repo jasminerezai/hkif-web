@@ -26,7 +26,9 @@ HKIF solves this by providing a single organized platform for sports activities 
 
 ### Frontend
 - React
+- React Router (routing)
 - Vite
+- bcryptjs
 
 ### Backend
 - Express.js
@@ -48,14 +50,6 @@ git clone https://github.com/jasminerezai/hkif-web.git
 cd hkif-web
 ````
 
-## Backend Setup
-
-```bash
-cd server
-npm install
-npm run dev
-```
-
 ### Create `server/.env`
 
 ```env
@@ -63,6 +57,14 @@ DATABASE_URL="postgresql://<user>:<password>@localhost:5432/hkif"
 JWT_SECRET="your_long_random_secret"
 PORT=3001
 CLIENT_URL="http://localhost:5173"
+```
+
+### Backend Setup
+
+```bash
+cd server
+npm install
+npm run dev
 ```
 
 ### First-Time Prisma Setup
