@@ -6,6 +6,7 @@ import Navbar from './components/Navbar.jsx'
 import ActivitiesPage from './pages/ActivitiesPage.jsx'
 import LoginPage    from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
+import ActivityFormPage from './pages/ActivityFormPage.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login.
@@ -92,7 +93,9 @@ function AppRoutes() {
           <Route path="/login"          element={<LoginPage />} />
           <Route path="/register"       element={<RegisterPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
+          <Route path="/activities/new" element={<ProtectedRoute><ActivityFormPage /></ProtectedRoute>} />
           <Route path="/activities/:id" element={<Placeholder title="Activity Detail" />} />
+          <Route path="/activities/:id/edit" element={<ProtectedRoute><ActivityFormPage /></ProtectedRoute>} />
 
           {/* Protected route — must be logged in */}
           <Route

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { prisma } from "../src/db/prisma"; // "@ts-ignore" for file ending '.ts'
-import { ProfileRole, ActivityStatus, Weekday } from '../src/generated/prisma/enums';
+import { ProfileRole, ActivityStatus, Weekday } from '../src/generated/prisma';
 
 /*
 ChatGPT chat: https://chatgpt.com/share/69f8d77a-aa14-83eb-90b7-e90269da81bf
