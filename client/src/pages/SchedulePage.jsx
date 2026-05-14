@@ -1,7 +1,8 @@
-// src/pages/SchedulePage.jsx
-
 import React, { useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
+
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
 
 // ─────────────────────────────────────────────────────────────
 // SchedulePage
@@ -20,7 +21,11 @@ import Button from '../components/ui/Button.jsx'
 export default function SchedulePage() {
 
   // ── View State ────────────────────────────────────────────
-  const [view, setView] = useState('weekly')
+    const [view, setView] = useState('weekly')
+    
+    const navigate = useNavigate()
+
+    const { isAuthenticated } = useAuth()
 
   // ── Mock Activity Data ────────────────────────────────────
 const activities = [
@@ -374,6 +379,18 @@ const activities = [
                         variant="primary"
                         style={{
                         marginTop: '8px',
+                        }}
+                        onClick={() => {
+
+                        // Redirect logged-out users to login page
+                        if (!isAuthenticated) {
+                            navigate('/login')
+                            return
+                        }
+
+                        // TEMP placeholder action
+                        alert(`Joined ${activity.title}`)
+
                         }}
                     >
                         Attend
