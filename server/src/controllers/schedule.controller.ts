@@ -20,7 +20,7 @@ const currentWeek = asyncHandler(
  */
 const getSchedule = asyncHandler(
     async (req: Request, res: Response< ApiResponse< ScheduleDto[] > >) => {
-        let schedule: ScheduleDto[];
+        let schedule: ScheduleDto[];// ScheduleDto[]
         let date: output<ZodOptional<ZodNullable<ZodUnion<readonly [ZodISODate, ZodLiteral<"today">]>>>> | Date;
         let entireWeek: boolean | null;
         const resultDate = ScheduleDateSchema.safeParse(req.query.date);

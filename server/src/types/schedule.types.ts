@@ -1,6 +1,7 @@
-import { Schedule, ActivityTemplate } from '../generated/prisma';
+import { Schedule, ActivityTemplate, Profile } from '../generated/prisma';
 // import {Weekday, ActivityStatus} from '../db/prisma'
 
 export type ScheduleDto = Schedule &{
-    activity: ActivityTemplate
+    activity: ActivityTemplate,
+    leaders: Pick<Profile, 'id' | 'profileName'>[]
 };

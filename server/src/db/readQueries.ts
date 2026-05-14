@@ -21,11 +21,11 @@ export class READ {
      *      **SUCCESS** --> array filled with ScheduleDto objects
      *      **FAIL** --> empty array
      */
-    static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {//
+    static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {//: Promise<ScheduleDto[]>
         const { startDay, endDay } = startAndEndOfWeek(date);
         // PART B - QUERY
         // let schedule: Schedule;
-        const schedule: ScheduleDto[] = await prisma.schedule.findMany({
+        const schedule = await prisma.schedule.findMany({
             where: {
                 AND: [
                     { startAt: { gte: startDay } },
@@ -36,11 +36,43 @@ export class READ {
                 startAt: "asc"
             },
             include: {
-                activity: true
+                activity: {
+                    include: {
+                        leaders: {
+                            select: {
+                                profile: {
+                                    select: {
+                                       id: true,
+                                       profileName: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         });
 
-        return schedule;
+        const formatSched: ScheduleDto[] = [];
+        schedule.forEach( el => {
+            let leader: any = el.activity.leaders;
+            leader = leader.map((el: { profile: any; }) => el.profile)
+            delete el.activity.leaders;
+            formatSched.push({
+                id: el.id,
+                activityId: el.activityId,
+                startAt: el.startAt,
+                endAt: el.endAt,
+                status: el.status,
+                createdAt: el.createdAt,
+                updatedAt: el.updatedAt,
+                activity: el.activity,
+                leaders: leader
+            } satisfies ScheduleDto)
+        })
+
+
+        return formatSched;
     }
 
     
