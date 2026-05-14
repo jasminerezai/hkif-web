@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 
 import { useNavigate } from 'react-router-dom'
@@ -27,8 +27,16 @@ export default function SchedulePage() {
 
     const { isAuthenticated } = useAuth()
 
+    const [loading, setLoading] = useState(true)
+
+    //This stores which activity IDs the user joined
+    const [attendingActivities, setAttendingActivities] = useState([])
+
   // ── Mock Activity Data ────────────────────────────────────
-const activities = [
+const [activities, setActivities] = useState([])
+
+// TEMP fallback mock data 
+const mockActivities = [
   {
     id: 1,
     title: 'Football Match',
@@ -42,11 +50,47 @@ const activities = [
   },
 
   {
-    id: 2,
+    id: 3,
+    title: 'Football Match',
+    sport: 'Football',
+    leader: 'Emma Svensson',
+    date: '2026-05-01',
+    time: '18:00',
+    location: 'Main Field',
+    availableSpots: 8,
+    cancelled: false,
+  },
+
+  {
+    id: 4,
     title: 'Basketball Training',
     sport: 'Basketball',
     leader: 'John Eriksson',
-    date: '2026-05-16',
+    date: '2026-05-14',
+    time: '16:30',
+    location: 'Gym Hall',
+    availableSpots: 2,
+    cancelled: true,
+  },
+
+  {
+    id: 5,
+    title: 'Football Match',
+    sport: 'Football',
+    leader: 'Emma Svensson',
+    date: '2026-05-14',
+    time: '18:00',
+    location: 'Main Field',
+    availableSpots: 8,
+    cancelled: false,
+  },
+
+  {
+    id: 6,
+    title: 'Basketball Training',
+    sport: 'Basketball',
+    leader: 'John Eriksson',
+    date: '2026-05-30',
     time: '16:30',
     location: 'Gym Hall',
     availableSpots: 2,
@@ -60,6 +104,75 @@ const activities = [
     // Test for JUNE
     //const today = new Date('2026-06-15')
     
+// ── Fetch Current Schedule ───────────────────────────────
+useEffect(() => {
+
+  async function fetchSchedule() {
+
+    try {
+
+      const response = await fetch(
+        'http://localhost:3001/api/schedules/current'
+      )
+
+      const data = await response.json()
+
+      console.log('Schedule API:', data)
+
+      // If backend returns schedule data
+      if (Array.isArray(data) && data.length > 0) {
+
+        // Transform backend format → frontend format
+        const formattedActivities = data.map(item => ({
+
+          id: item.id,
+
+          title: item.activity?.name || 'Activity',
+
+          sport: item.activity?.name || 'Sport',
+
+          leader: 'HKIF Leader',
+
+          date: (() => {
+
+            //This uses local date & local timezone instead of UTC conversion
+            const startDate = new Date(item.startAt)
+
+            return `${startDate.getFullYear()}-${
+                String(startDate.getMonth() + 1).padStart(2, '0')
+            }-${
+                String(startDate.getDate()).padStart(2, '0')
+            }`
+
+            })(),
+
+          time: new Date(item.startAt)
+            .toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+
+          location: item.activity?.location || 'Unknown',
+
+          availableSpots: 10,
+
+          cancelled: false,
+        }))
+
+        setActivities(formattedActivities)
+      }
+
+    } catch (error) {
+
+      console.error('Failed to fetch schedule:', error)
+    } finally {
+        setLoading(false)
+    }
+  }
+
+  fetchSchedule()
+
+}, [])
 
   // ── Generate Calendar Days ────────────────────────────────
   const days = useMemo(() => {
@@ -69,7 +182,7 @@ const activities = [
     if (view === 'weekly') {
 
       // Get Monday of current week
-        const current = new Date()
+        const current = new Date(today)
 
         // Test for other months:
         // new Date('2026-01-15') // January
@@ -113,10 +226,33 @@ const activities = [
   // ── Helper: Activities For A Specific Day ────────────────
   function getActivitiesForDay(date) {
 
-    const dateString = date.toISOString().split('T')[0]
+      
+    //This uses local date & local timezone instead of UTC conversion
+    const dateString =
+  `${date.getFullYear()}-${
+    String(date.getMonth() + 1).padStart(2, '0')
+  }-${
+    String(date.getDate()).padStart(2, '0')
+  }`
 
-    return activities.filter(activity => activity.date === dateString)
+      const displayedActivities =
+  activities.length > 0
+    ? activities
+    : mockActivities
+
+return displayedActivities.filter(
+  activity => activity.date === dateString
+)
+    //return activities.filter(activity => activity.date === dateString)
   }
+
+    if (loading) {
+        return (
+            <div style={{ padding: '48px' }}>
+            <p>Loading schedule...</p>
+            </div>
+        )
+        }
 
   return (
     <div
@@ -208,6 +344,7 @@ const activities = [
 
           const dayActivities = getActivitiesForDay(date)
 
+            
           return (
             <div
               key={index}
@@ -266,7 +403,7 @@ const activities = [
                   display: 'flex',
                   flexDirection: 'column',
                           gap: '10px',
-                  flex:1,
+                  
                 }}
               >
 
@@ -299,7 +436,6 @@ const activities = [
                       display: 'flex',
                       flexDirection: 'column',
                         gap: '6px',
-                      flex: 1,
                     }}
                   >
 
@@ -374,26 +510,49 @@ const activities = [
 
                     {/* Attend Button */}
                     {!activity.cancelled && (
+
                     <Button
                         size="sm"
-                        variant="primary"
+
+                        variant={
+                        attendingActivities.includes(activity.id)
+                            ? 'ghost'
+                            : 'primary'
+                        }
+
                         style={{
                         marginTop: '8px',
                         }}
+
                         onClick={() => {
 
-                        // Redirect logged-out users to login page
+                        // Redirect logged-out users
                         if (!isAuthenticated) {
                             navigate('/login')
                             return
                         }
 
-                        // TEMP placeholder action
-                        alert(`Joined ${activity.title}`)
+                        // Toggle attendance
+                        if (attendingActivities.includes(activity.id)) {
 
+                            setAttendingActivities(
+                            attendingActivities.filter(id => id !== activity.id)
+                            )
+
+                        } else {
+
+                            setAttendingActivities([
+                            ...attendingActivities,
+                            activity.id,
+                            ])
+                        }
                         }}
                     >
-                        Attend
+
+                        {attendingActivities.includes(activity.id)
+                        ? 'Leave'
+                        : 'Attend'}
+
                     </Button>
                     )}
 
