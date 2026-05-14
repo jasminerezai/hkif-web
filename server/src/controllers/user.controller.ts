@@ -26,7 +26,7 @@ const newFavorites = asyncHandler(
 })
 
 const deleteFavorites = asyncHandler(
-    async (req: Request<{ activityId: string; }>, res: Response<ApiResponse<null>>) => {
+    async (req: Request<{ activityId: string; }>, res: Response<ApiResponse<ActivityDto>>) => {
     let ids: FavoriteCreateDelete | null;
     try{
         ids = DeleteFavoriteSchema.parse({profileId: req.user.id, activityId: req.params.activityId})
@@ -35,7 +35,7 @@ const deleteFavorites = asyncHandler(
     }
     const deletedFavorite: ActivityDto = await DELETE.deleteFavorite(ids);
     if(!deletedFavorite) throw ApiError.internal(`Something went wrong in the DB: ${deletedFavorite}`);
-    res.status(200).json({status: "success", data: null});
+    res.status(200).json({status: "success", data: deletedFavorite});
 });
 
 export const controller = {
