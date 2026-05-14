@@ -4,6 +4,8 @@ import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler";
 import {ApiResponse} from "../types";
 import { ScheduleDto } from '../types/schedule.types';
+import {ScheduleDateSchema, ScheduleBoolWeekSchema} from "../validators/schedule.validator";
+import {output, ZodISODate, ZodLiteral, ZodNullable, ZodOptional, ZodUnion} from "zod";
 
 const currentWeek = asyncHandler(
     async (_req: Request, res: Response< ApiResponse< ScheduleDto[] > >) => {
@@ -18,43 +20,35 @@ const currentWeek = asyncHandler(
  */
 const getSchedule = asyncHandler(
     async (req: Request, res: Response< ApiResponse< ScheduleDto[] > >) => {
-        if(!req.query){
-            const thisWeek: ScheduleDto[] = await READ.currentSchedule();
-            res.status(200).json({status: "success", data: thisWeek});
+        let schedule: ScheduleDto[];
+        let date: output<ZodOptional<ZodNullable<ZodUnion<readonly [ZodISODate, ZodLiteral<"today">]>>>> | Date;
+        let entireWeek: boolean | null;
+        const resultDate = ScheduleDateSchema.safeParse(req.query.date);
+        const resultBool = ScheduleBoolWeekSchema.safeParse(req.query.entireWeek);
+        if(!resultDate.success) throw ApiError.badRequest(`Invalid Query Values: Bad date ${req.query.date}`);
+        else { date = resultDate.data}
+
+        if(!resultBool.success) throw ApiError.badRequest(`Invalid Query Values: Bad Boolean ${req.query.entireWeek}`);
+        else{ entireWeek = resultBool.data}
+
+
+        if (!date || date === "today") {
+            date = new Date();
+            date = date as Date;
+        } else{
+            date = new Date(date);
+        }
+        date.setUTCHours(0, 0, 0, 0);
+        if( typeof entireWeek === "undefined"){ entireWeek = true}
+        if (entireWeek) {
+            schedule = await READ.anyWeekSchedule(date);
+            res.status(200).json({status: "success", data: schedule});
             return;
         }
         else {
-            let schedule: ScheduleDto[];
-            let date: string | Date | null = req.query.date as (Date | string | null);
-            let entireWeek: string | boolean = req.query.entireWeek as string;
-
-            if (!date || date === "today") {
-                date = new Date();
-            }
-            else {
-                if (typeof date === "string"){ // or better check for "YYYY-MM-dd" format?
-                    date = new Date(date)
-                }
-            }
-            date.setUTCHours(0, 0, 0);
-
-            if (typeof entireWeek === "undefined") {
-                entireWeek = true;
-            }
-            if ( typeof entireWeek === "string"){
-                entireWeek = entireWeek === "true";
-            }
-
-            if (entireWeek) {
-                schedule = await READ.anyWeekSchedule(date);
-                res.status(200).json({status: "success", data: schedule});
-                return;
-            }
-            else {
-                schedule = await READ.anyDaySchedule(date) ?? [];
-                res.status(200).json({status: "success", data: schedule});
-                return;
-            }
+            schedule = await READ.anyDaySchedule(date) ?? [];
+            res.status(200).json({status: "success", data: schedule});
+            return;
         }
     }
 )
