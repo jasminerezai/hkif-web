@@ -115,7 +115,7 @@ useEffect(() => {
         'http://localhost:3001/api/schedules/current'
       )
 
-      const data = await response.json()
+      const {data} = await response.json()
 
       console.log('Schedule API:', data)
 
