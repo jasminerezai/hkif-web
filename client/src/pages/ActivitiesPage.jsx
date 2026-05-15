@@ -7,26 +7,11 @@ export default function ActivitiesPage() {
   const [activities, setActivities] = useState([])
   const [favoriteActivities, setFavoriteActivities] = useState([])
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, token } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   // ── Fetch Activities ──────────────────────────────────────
-  // Load saved favorite activities from localStorage
-  useEffect(() => {
-
-  const savedFavorites = localStorage.getItem(
-    'favoriteActivities'
-  )
-
-  if (savedFavorites) {
-
-    setFavoriteActivities(
-      JSON.parse(savedFavorites)
-    )
-  }
-
-  }, [])
   
   useEffect(() => {
     async function fetchActivities() {
@@ -51,6 +36,48 @@ export default function ActivitiesPage() {
 
     fetchActivities()
   }, [])
+
+  // ── Fetch favorites from backend ──────────────────────────────────────
+  useEffect(() => {
+
+    async function fetchFavorites() {
+
+      // Only fetch favorites if logged in
+      if (!isAuthenticated) return
+
+      try {
+
+        const response = await fetch(
+          '/api/users/me/favorites',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch favorites')
+        }
+
+        const result = await response.json()
+
+        // Store only activity IDs
+        const favoriteIds = result.data.map(
+          activity => activity.id
+        )
+
+        setFavoriteActivities(favoriteIds)
+
+      } catch (error) {
+
+        console.error('Failed to fetch favorites:', error)
+      }
+    }
+
+    fetchFavorites()
+
+}, [isAuthenticated])
 
   // ── Loading / Error States ───────────────────────────────
   if (loading) {
@@ -108,39 +135,62 @@ export default function ActivitiesPage() {
               {/* Activity title */}
               {/* Heart-button */}
               <button
-                onClick={() => {
+                onClick={async () => {
 
                   if (!isAuthenticated) {
                     navigate('/login')
                     return
                   }
 
-                  //Persist favorites locally so they remain after refresh/navigation
-                  if (favoriteActivities.includes(activity.id)) {
+                  try {
 
-                    const updatedFavorites =
-                      favoriteActivities.filter(id => id !== activity.id)
+                    // Remove favorite
+                    if (favoriteActivities.includes(activity.id)) {
 
-                    setFavoriteActivities(updatedFavorites)
+                      const response = await fetch(
+                        `/api/users/me/favorites/${activity.id}`,
+                        {
+                          method: 'DELETE',
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                          },
+                        }
+                      )
 
-                    localStorage.setItem(
-                      'favoriteActivities',
-                      JSON.stringify(updatedFavorites)
-                    )
+                      if (!response.ok) {
+                        throw new Error('Failed to remove favorite')
+                      }
 
-                  } else {
+                      setFavoriteActivities(
+                        favoriteActivities.filter(id => id !== activity.id)
+                      )
 
-                    const updatedFavorites = [
-                      ...favoriteActivities,
-                      activity.id,
-                    ]
+                    } else {
 
-                    setFavoriteActivities(updatedFavorites)
+                      // Add favorite
+                      const response = await fetch(
+                        `/api/users/me/favorites/${activity.id}`,
+                        {
+                          method: 'POST',
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                          },
+                        }
+                      )
 
-                    localStorage.setItem(
-                      'favoriteActivities',
-                      JSON.stringify(updatedFavorites)
-                    )
+                      if (!response.ok) {
+                        throw new Error('Failed to add favorite')
+                      }
+
+                      setFavoriteActivities([
+                        ...favoriteActivities,
+                        activity.id,
+                      ])
+                    }
+
+                  } catch (error) {
+
+                    console.error(error)
                   }
                 }}
 
