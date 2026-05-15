@@ -1,8 +1,23 @@
-import {prisma} from "./prisma";
+import { prisma } from "./prisma";
 import { startAndEndOfWeek } from "../utils/weekCalculator";
 import { ActivityTemplate, Profile } from "../generated/prisma";
 import { ScheduleDto, ActivityDto } from '../types'
 export class READ {
+    /**
+ * returns user based of their unique email
+ * QUESTION: include favorites & participationLog? --> active loading OR lazy loading
+ * @param email string
+ * @return Promise<ProfileModel | undefined>
+ *     ---> ProfileModel: successful query
+ *     ---> undefined: unsuccessful query
+ */
+    static async findUserByEmail(email: string) {
+        const user = await prisma.profile.findUnique({
+            where: { email },
+        });
+        return user;
+    }
+
     /**
      * Purpose: returns the current schedule of the week
      * @return ScheduleDto[] --> {Schedule, activity: ActivityTemplate}[] ==> see anyWeekSchedule(date: Date) for more details
@@ -41,8 +56,8 @@ export class READ {
                             select: {
                                 profile: {
                                     select: {
-                                       id: true,
-                                       profileName: true
+                                        id: true,
+                                        profileName: true
                                     }
                                 }
                             }
@@ -53,7 +68,7 @@ export class READ {
         });
 
         const formatSched: ScheduleDto[] = [];
-        schedule.forEach( el => {
+        schedule.forEach(el => {
             let leader: any = el.activity.leaders ?? [];
             leader = Array.isArray(leader) ? leader.map((el: { profile: any; }) => el.profile) : [];
             (el.activity as any).leaders = undefined;
@@ -74,7 +89,7 @@ export class READ {
         return formatSched;
     }
 
-    
+
     static async anyDaySchedule(date: Date): Promise<any[]> {
         const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
         const endDay = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1));
@@ -104,8 +119,7 @@ export class READ {
      *     **SUCCESS**
      *     --> array of ActivityTemplateModel objects
      */
-    static async activitiesFavoritedBy(profileId: string): Promise<ActivityDto[]>
-    {
+    static async activitiesFavoritedBy(profileId: string): Promise<ActivityDto[]> {
         let favorites = await prisma.favorite.findMany({
             where: { profileId },
             select: {
@@ -118,7 +132,7 @@ export class READ {
             }
         })
         //unsure about the satisfies keyword here: satisfies ActivityDto[]
-        return favorites.map( a => a.activity);
+        return favorites.map(a => a.activity);
     }
 
     /**
@@ -172,10 +186,9 @@ export class READ {
      * --> change to activity name?
      * @param activityId
      */
-    static async profilesFavorited(activityId: string): Promise<Profile[]>
-    {
+    static async profilesFavorited(activityId: string): Promise<Profile[]> {
         const profilesFavorited = await prisma.activityTemplate.findUnique({
-            where: {id: activityId},
+            where: { id: activityId },
             select: {
                 favorites: {
                     select: {
@@ -184,9 +197,9 @@ export class READ {
                 }
             }
         })
-        if(profilesFavorited) {
+        if (profilesFavorited) {
             return profilesFavorited.favorites.map(el => el.profile);
-        } else{
+        } else {
             return [];
         }
     }
