@@ -1,17 +1,38 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function ActivitiesPage() {
   // ── API State ─────────────────────────────────────────────
   const [activities, setActivities] = useState([])
+  const [favoriteActivities, setFavoriteActivities] = useState([])
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   // ── Fetch Activities ──────────────────────────────────────
+  // Load saved favorite activities from localStorage
+  useEffect(() => {
+
+  const savedFavorites = localStorage.getItem(
+    'favoriteActivities'
+  )
+
+  if (savedFavorites) {
+
+    setFavoriteActivities(
+      JSON.parse(savedFavorites)
+    )
+  }
+
+  }, [])
+  
   useEffect(() => {
     async function fetchActivities() {
       try {
         const response = await fetch(
-          'http://localhost:3001/api/activities'
+          '/api/activities'
         )
 
         if (!response.ok) {
@@ -76,6 +97,7 @@ export default function ActivitiesPage() {
             <div
               key={activity.id}
               style={{
+                position: 'relative',
                 border: '1px solid var(--color-border)',
                 borderRadius: '12px',
                 padding: '20px',
@@ -84,6 +106,61 @@ export default function ActivitiesPage() {
               }}
             >
               {/* Activity title */}
+              {/* Heart-button */}
+              <button
+                onClick={() => {
+
+                  if (!isAuthenticated) {
+                    navigate('/login')
+                    return
+                  }
+
+                  //Persist favorites locally so they remain after refresh/navigation
+                  if (favoriteActivities.includes(activity.id)) {
+
+                    const updatedFavorites =
+                      favoriteActivities.filter(id => id !== activity.id)
+
+                    setFavoriteActivities(updatedFavorites)
+
+                    localStorage.setItem(
+                      'favoriteActivities',
+                      JSON.stringify(updatedFavorites)
+                    )
+
+                  } else {
+
+                    const updatedFavorites = [
+                      ...favoriteActivities,
+                      activity.id,
+                    ]
+
+                    setFavoriteActivities(updatedFavorites)
+
+                    localStorage.setItem(
+                      'favoriteActivities',
+                      JSON.stringify(updatedFavorites)
+                    )
+                  }
+                }}
+
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '1.5rem',
+                  color: favoriteActivities.includes(activity.id)
+                    ? '#c0392b'
+                    : '#999',
+                }}
+              >
+                {favoriteActivities.includes(activity.id)
+                  ? '♥'
+                  : '♡'}
+              </button>
               <h2 style={{ marginBottom: '8px' }}>
                 {activity.name}
               </h2>
