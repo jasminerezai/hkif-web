@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { Activity, TimeSlot } from "../types/activity.types";
+import { Activity, TimeSlot } from "../types";
 
 export class UPDATE {
     static async updateActivity(activityId: string, newData: Partial<Activity>) {

@@ -1,7 +1,36 @@
-import { prisma } from "./prisma";
+import {prisma} from "./prisma";
+import {ActivityDto, FavoriteCreateDelete} from "../types";
 
 export class DELETE {
-    static async deleteActivity(activityId: string) {
+    /**
+     * @param ids see favorite.types.ts
+     * @return activity deleted from list of favorites
+     */
+    static async deleteFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto>
+    {
+        const {activity} = await prisma.favorite.delete({
+            where: {
+                profileId_activityId: {
+                    profileId: ids.profileId,
+                    activityId: ids.activityId,
+                }
+            },
+            select: {
+                activity: {
+                    include: {
+                        leaders: true,
+                        timeSlots: true
+                    }
+                }
+            }
+        })
+
+        return activity;
+    }
+
+
+    static async deleteActivity(activityId: string)
+    {
         const res = await prisma.activityTemplate.delete({
             where: { id: activityId }
         });
