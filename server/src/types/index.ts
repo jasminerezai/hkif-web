@@ -36,6 +36,10 @@ export type {
   UpdateScheduleStatusDto,
   Activity,
   TimeSlot,
+  ActivityDto,
 } from './activity.types';
 
 export type { ScheduleDto } from './schedule.types'
+export type {
+  FavoriteCreateDelete
+} from './favorites.types'

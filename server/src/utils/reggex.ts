@@ -11,6 +11,5 @@
 const timeReg: RegExp = /^1970-01-01T([01][0-9]|2[0-3]):([0-5][0-9]):00\+01:00$/
 
 export function regTime(timestamp: string): boolean {
-    // return timestamp.match(timeReg);
     return timeReg.test(timestamp);
 }

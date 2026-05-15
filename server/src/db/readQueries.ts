@@ -1,7 +1,7 @@
-import { prisma } from "./prisma";
+import {prisma} from "./prisma";
 import { startAndEndOfWeek } from "../utils/weekCalculator";
-import { ActivityTemplate } from "../generated/prisma";
-import { ScheduleDto } from '../types'
+import { ActivityTemplate, Profile } from "../generated/prisma";
+import { ScheduleDto, ActivityDto } from '../types'
 export class READ {
     /**
      * Purpose: returns the current schedule of the week
@@ -9,7 +9,7 @@ export class READ {
      */
     static async currentSchedule(): Promise<ScheduleDto[]> {
         const nowDate: Date = new Date(); // for next weeks query we could just add 7? for the week after +14? usw.
-        return await this.anyWeekSchedule(nowDate);
+        return await this.anyWeekSchedule(nowDate)
     }
 
 
@@ -56,7 +56,7 @@ export class READ {
         schedule.forEach( el => {
             let leader: any = el.activity.leaders;
             leader = leader.map((el: { profile: any; }) => el.profile)
-            delete el.activity.leaders;
+            (el.activity as any).leaders = undefined;
             formatSched.push({
                 id: el.id,
                 activityId: el.activityId,
@@ -75,7 +75,7 @@ export class READ {
     }
 
     
-    static async anyDaySchedule(date: Date): Promise<ScheduleDto[]> {
+    static async anyDaySchedule(date: Date): Promise<any[]> {
         const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
         const endDay = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1));
         const schedule = await prisma.schedule.findMany({
@@ -97,8 +97,33 @@ export class READ {
 
 
     /**
+     * @param profileId --> requires to be logged-in, i.e. we need an account
+     * @return Promise<ActivityTemplate[]>
+     *     **FAIL**
+     *     --> is empty if the profile doesn't have favorite activities
+     *     **SUCCESS**
+     *     --> array of ActivityTemplateModel objects
+     */
+    static async activitiesFavoritedBy(profileId: string): Promise<ActivityDto[]>
+    {
+        let favorites = await prisma.favorite.findMany({
+            where: { profileId },
+            select: {
+                activity: {
+                    include: {
+                        leaders: true,
+                        timeSlots: true
+                    }
+                }
+            }
+        })
+        //unsure about the satisfies keyword here: satisfies ActivityDto[]
+        return favorites.map( a => a.activity);
+    }
+
+    /**
      * If a user is found in the table, they participated in the activity.
-     * @param scheduleId 
+     * @param scheduleId
      * @return (ParticipationLogModel & ProfileModel)[]
      *      **SUCCESS**
      *      --> Array of the participation log, including the profile
@@ -119,6 +144,8 @@ export class READ {
         return participants?.participations.map(el => el.profile);
     }
 
+    // all activities updated after a given timestamp
+    // static async activitiesUpdatedAfter(lastRequest: Date){}
 
     static async activityById(activityId: string): Promise<ActivityTemplate | null> {
         const activity = await prisma.activityTemplate.findUnique({
@@ -126,8 +153,9 @@ export class READ {
         });
         return activity;
     }
-
-
+    /**
+     * just returns all activityTemplates
+     */
     static async allActivities() {
         let activities = await prisma.activityTemplate.findMany({
             include: {
@@ -138,10 +166,28 @@ export class READ {
         return activities;
     }
 
-    static async findUserByEmail(email: string) {
-        const user = await prisma.profile.findUnique({
-            where: { email },
-        });
-        return user;
+
+    /**
+     * returns array of profiles that favorited the activity by id
+     * --> change to activity name?
+     * @param activityId
+     */
+    static async profilesFavorited(activityId: string): Promise<Profile[]>
+    {
+        const profilesFavorited = await prisma.activityTemplate.findUnique({
+            where: {id: activityId},
+            select: {
+                favorites: {
+                    select: {
+                        profile: true
+                    }
+                }
+            }
+        })
+        if(profilesFavorited) {
+            return profilesFavorited.favorites.map(el => el.profile);
+        } else{
+            return [];
+        }
     }
 }

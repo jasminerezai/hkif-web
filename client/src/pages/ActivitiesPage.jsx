@@ -1,79 +1,47 @@
-import React, { useState } from 'react'
-import Button from '../components/ui/Button.jsx'
-
-// ─────────────────────────────────────────────────────────────
-// ActivitiesPage
-//
-// Public page displaying upcoming sports activities.
-// Supports:
-// - Daily view
-// - Weekly view
-//
-// Currently uses temporary mock data until the backend
-// schedule/activity API is finalized.
-// ─────────────────────────────────────────────────────────────
+import React, { useState, useEffect } from 'react'
 
 export default function ActivitiesPage() {
+  // ── API State ─────────────────────────────────────────────
+  const [activities, setActivities] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // ── View State ────────────────────────────────────────────
-  // Controls whether the user sees:
-  // - today's activities
-  // - activities for the upcoming week
-  const [view, setView] = useState('daily')
+  // ── Fetch Activities ──────────────────────────────────────
+  useEffect(() => {
+    async function fetchActivities() {
+      try {
+        const response = await fetch(
+          'http://localhost:3001/api/activities'
+        )
 
-  // ── Temporary Mock Data ──────────────────────────────────
-  // Replace with API fetch once backend endpoint is ready.
-  const activities = [
-    {
-      id: 1,
-      title: 'Football Match',
-      sport: 'Football',
-      time: '2026-05-05T14:00:00',
-      location: 'Main Field',
-      availableSpots: 10,
-    },
+        if (!response.ok) {
+          throw new Error('Failed to fetch activities')
+        }
 
-    {
-      id: 2,
-      title: 'Basketball Training',
-      sport: 'Basketball',
-      time: '2026-05-06T18:00:00',
-      location: 'Gym Hall',
-      availableSpots: 5,
-    },
+        const result = await response.json()
 
-    {
-      id: 3,
-      title: 'Yoga Session',
-      sport: 'Yoga',
-      time: '2026-05-05T09:00:00',
-      location: 'Studio A',
-      availableSpots: 8,
-    },
-  ]
-
-  // ── Filter Activities ────────────────────────────────────
-  // Daily  → today's activities only
-  // Weekly → activities within the next 7 days
-  const today = new Date()
-
-  const filteredActivities = activities.filter(activity => {
-    const activityDate = new Date(activity.time)
-
-    if (view === 'daily') {
-      return activityDate.toDateString() === today.toDateString()
+        setActivities(result.data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
 
-    if (view === 'weekly') {
-      const oneWeekLater = new Date()
+    fetchActivities()
+  }, [])
 
-      oneWeekLater.setDate(today.getDate() + 7)
+  // ── Loading / Error States ───────────────────────────────
+  if (loading) {
+    return <p>Loading activities...</p>
+  }
 
-      return activityDate >= today && activityDate <= oneWeekLater
-    }
+  if (error) {
+    return <p>Error: {error}</p>
+  }
 
-    return true
-  })
+  // ── Display all activities ───────────────────────────────
+  const filteredActivities = activities
 
   return (
     <div
@@ -94,31 +62,6 @@ export default function ActivitiesPage() {
         Activities
       </h1>
 
-      {/* Daily / Weekly toggle */}
-      <div
-        style={{
-          marginBottom: 'var(--space-6)',
-          display: 'flex',
-          gap: 'var(--space-4)',
-        }}
-      >
-        <Button
-          variant={view === 'daily' ? 'primary' : 'ghost'}
-          size="sm"
-          onClick={() => setView('daily')}
-        >
-          Daily
-        </Button>
-
-        <Button
-          variant={view === 'weekly' ? 'primary' : 'ghost'}
-          size="sm"
-          onClick={() => setView('weekly')}
-        >
-          Weekly
-        </Button>
-      </div>
-
       {/* Activity cards */}
       <div
         style={{
@@ -126,42 +69,65 @@ export default function ActivitiesPage() {
           gap: 'var(--space-4)',
         }}
       >
-        {filteredActivities.map(activity => (
-          <div
-            key={activity.id}
-            style={{
-              border: '1px solid var(--color-border)',
-              borderRadius: '12px',
-              padding: '20px',
-              background: 'var(--color-surface-raised)',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-            }}
-          >
-            {/* Activity title */}
-            <h2 style={{ marginBottom: '8px' }}>
-              {activity.title}
-            </h2>
+        {filteredActivities.length === 0 ? (
+          <p>No activities found.</p>
+        ) : (
+          filteredActivities.map(activity => (
+            <div
+              key={activity.id}
+              style={{
+                border: '1px solid var(--color-border)',
+                borderRadius: '12px',
+                padding: '20px',
+                background: 'var(--color-surface-raised)',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+              }}
+            >
+              {/* Activity title */}
+              <h2 style={{ marginBottom: '8px' }}>
+                {activity.name}
+              </h2>
 
-            {/* Activity details */}
-            <p>
-              <strong>Sport:</strong> {activity.sport}
-            </p>
+              {/* Activity details */}
+              <p>
+                <strong>Location:</strong>{' '}
+                {activity.location}
+              </p>
 
-            <p>
-              <strong>Time:</strong>{' '}
-              {new Date(activity.time).toLocaleString()}
-            </p>
+              <p>
+                <strong>Capacity:</strong>{' '}
+                {activity.maxCapacity ?? 'Unlimited'}
+              </p>
 
-            <p>
-              <strong>Location:</strong> {activity.location}
-            </p>
+              {activity.description && (
+                <p>
+                  <strong>Description:</strong>{' '}
+                  {activity.description}
+                </p>
+              )}
 
-            <p>
-              <strong>Available spots:</strong>{' '}
-              {activity.availableSpots}
-            </p>
-          </div>
-        ))}
+              {/* Time slots */}
+              {activity.timeSlots?.length > 0 && (
+                <div style={{ marginTop: '12px' }}>
+                  <strong>Time Slots:</strong>
+
+                  {activity.timeSlots.map(slot => (
+                    <p key={slot.id}>
+                      {slot.weekday} —{' '}
+                      {new Date(slot.startTime)
+                        .toISOString()
+                        .slice(11, 16)}
+                      {' - '}
+                      {new Date(slot.endTime)
+                        .toISOString()
+                        .slice(11, 16)}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
