@@ -1,5 +1,5 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
-import { ProfileRole } from '../db/prisma';
+import { ProfileRole } from '../db/prisma.js';
 
 export interface JwtPayload {
   /**

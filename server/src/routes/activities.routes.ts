@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { updateScheduleStatusHandler, getActivities, newActivity, updateActivity, deleteActivity } from '../controllers/activities.controller';
-import { authMiddleware, restrictToMinRole } from '../middleware/auth';
-import { ProfileRole } from "../db/prisma";
+import { updateScheduleStatusHandler, getActivities, newActivity, updateActivity, deleteActivity } from '../controllers/activities.controller.js';
+import { authMiddleware, restrictToMinRole } from '../middleware/auth.js';
+import { ProfileRole } from '../db/prisma.js';
 
 const router = Router();
 

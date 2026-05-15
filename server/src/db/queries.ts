@@ -1,4 +1,4 @@
-export { CREATE } from './createQueries';
-export { READ } from './readQueries';
-export { UPDATE } from './updateQueries';
-export { DELETE } from './deleteQueries';
+export { CREATE } from './createQueries.js';
+export { READ } from './readQueries.js';
+export { UPDATE } from './updateQueries.js';
+export { DELETE } from './deleteQueries.js';

@@ -10,7 +10,7 @@ to get any weeks schedule: send a date in the week you want in the url
 // current route: '/api/schedules'
 
 import  {Router} from 'express';
-import {controller} from "../controllers/schedule.controller";
+import {controller} from "../controllers/schedule.controller.js";
 
 
 const scheduleRoutes: Router = Router();
