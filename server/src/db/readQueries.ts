@@ -54,8 +54,8 @@ export class READ {
 
         const formatSched: ScheduleDto[] = [];
         schedule.forEach( el => {
-            let leader: any = el.activity.leaders;
-            leader = leader.map((el: { profile: any; }) => el.profile)
+            let leader: any = el.activity.leaders ?? [];
+            leader = Array.isArray(leader) ? leader.map((el: { profile: any; }) => el.profile) : [];
             (el.activity as any).leaders = undefined;
             formatSched.push({
                 id: el.id,
