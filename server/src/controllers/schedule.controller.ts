@@ -2,18 +2,15 @@ import {READ}  from '../db/readQueries'
 import {ApiError} from "../utils/ApiError";
 import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler";
-// import {ActivityTemplateModel, ProfileModel, FavoriteModel} from '../generated/prisma/models'
+import {ApiResponse} from "../types";
+import {ScheduleDto} from '../types'
+import {ScheduleDateSchema, ScheduleBoolWeekSchema} from "../validators/schedule.validator";
+import {output, ZodISODate, ZodLiteral, ZodNullable, ZodOptional, ZodUnion} from "zod";
 
 const currentWeek = asyncHandler(
-    async (_req: Request, res: Response) => {
-        const schedule = await READ.currentSchedule();
-        if(schedule){
-            res.status(200).json(schedule)
-        }
-        else{
-            // res.send(ApiError.notFound("The Week you are requesting hasn't been scheduled yet!"))
-            throw ApiError.notFound("The Week you are requesting hasn't been scheduled yet!")
-        }
+    async (_req: Request, res: Response< ApiResponse< ScheduleDto[] > >) => {
+        const schedule: ScheduleDto[] = await READ.currentSchedule();
+        res.status(200).json({status: "success", data: schedule})
     }
 )
 
@@ -22,59 +19,36 @@ const currentWeek = asyncHandler(
  * route: '/api/schedules?date=<someDate>&entireWeek=<boolean>'
  */
 const getSchedule = asyncHandler(
-    async (req: Request, res: Response) => {
-        if(!req.query){
-            const thisWeek = await READ.currentSchedule();
-            if(thisWeek){
-                res.status(200).json(thisWeek);
-            } else{
-                throw ApiError.notFound("The Week you are requesting hasn't been scheduled yet!")
-            }
+    async (req: Request, res: Response< ApiResponse< ScheduleDto[] > >) => {
+        let schedule: ScheduleDto[];// ScheduleDto[]
+        let date: output<ZodOptional<ZodNullable<ZodUnion<readonly [ZodISODate, ZodLiteral<"today">]>>>> | Date;
+        let entireWeek: boolean | null;
+        const resultDate = ScheduleDateSchema.safeParse(req.query.date);
+        const resultBool = ScheduleBoolWeekSchema.safeParse(req.query.entireWeek);
+        if(!resultDate.success) throw ApiError.badRequest(`Invalid Query Values: Bad date ${req.query.date}`);
+        else { date = resultDate.data}
+
+        if(!resultBool.success) throw ApiError.badRequest(`Invalid Query Values: Bad Boolean ${req.query.entireWeek}`);
+        else{ entireWeek = resultBool.data}
+
+
+        if (!date || date === "today") {
+            date = new Date();
+            date = date as Date;
+        } else{
+            date = new Date(date);
+        }
+        date.setUTCHours(0, 0, 0, 0);
+        if( typeof entireWeek === "undefined"){ entireWeek = true}
+        if (entireWeek) {
+            schedule = await READ.anyWeekSchedule(date);
+            res.status(200).json({status: "success", data: schedule});
             return;
         }
         else {
-            let schedule;
-            let date: Date | string | null = req.query.date as (Date | string | null);
-            let entireWeek: string | boolean = req.query.entireWeek as string;
-
-            if (!date || date === "today") {
-                date = new Date(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
-            }
-            else {
-                if (typeof date === "string"){ // or better check for "YYYY-MM-dd" format?
-                    date = new Date(date)
-                }
-            }
-
-            if (typeof entireWeek === "undefined") {
-                entireWeek = true;
-            }
-            if ( typeof entireWeek === "string"){
-                if( entireWeek ===  "true"){
-                    entireWeek = true;
-                } else{
-                    entireWeek = false
-                }
-            }
-
-            if (entireWeek) {
-                schedule = await READ.anyWeekSchedule(date);
-                if (!schedule || schedule.length === 0) {
-                    throw ApiError.notFound("The Week you are requesting hasn't been scheduled yet! Or has been deleted!")
-                } else {
-                    res.status(200).json(schedule);
-                    return;
-                }
-            }
-            else {
-                schedule = await READ.anyDaySchedule(date);
-                if (!schedule|| schedule.length === 0) {
-                    throw ApiError.notFound("The Day you are requesting hasn't been scheduled yet! Or has been deleted!")
-                } else {
-                    res.status(200).json(schedule);
-                    return;
-                }
-            }
+            schedule = await READ.anyDaySchedule(date) ?? [];
+            res.status(200).json({status: "success", data: schedule});
+            return;
         }
     }
 )

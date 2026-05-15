@@ -1,7 +1,37 @@
-import { Activity } from "../types/activity.types";
+import {Activity, FavoriteCreateDelete, ActivityDto} from "../types";
 import { prisma } from "./prisma";
+/*
+CREATE Queries
+    create new profile
+        adding favorites → use connect clause, cause the activities already exist
+    create new activity
+    add new time slot to an activity
+    perhaps a query for attending activity, CREATE query for Participations (e.g., linking a profile_id to a time_slot_id). wdyt?
+    add a new week to the schedule
+ */
 
-export class CREATE {
+
+export class CREATE{
+
+    // adding favorites
+    static async newFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto>{
+        const {activity} = await prisma.favorite.create({
+            data: {
+                profileId: ids.profileId,
+                activityId: ids.activityId
+            },
+            select: {
+                activity: {
+                    include: {
+                        leaders: true,
+                        timeSlots: true
+                    }
+                }
+            }
+        })
+        return activity;
+    }
+
     static async newActivity(newAct: Activity) {
         const activity = await prisma.activityTemplate.create({
             data: {
