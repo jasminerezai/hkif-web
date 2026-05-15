@@ -37,3 +37,5 @@ export type {
   Activity,
   TimeSlot,
 } from './activity.types';
+
+export type { ScheduleDto } from './schedule.types'

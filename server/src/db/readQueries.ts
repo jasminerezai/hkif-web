@@ -1,8 +1,7 @@
 import { prisma } from "./prisma";
 import { startAndEndOfWeek } from "../utils/weekCalculator";
 import { ActivityTemplate } from "../generated/prisma";
-import {ScheduleDto} from "../types/schedule.types";
-
+import { ScheduleDto } from '../types'
 export class READ {
     /**
      * Purpose: returns the current schedule of the week

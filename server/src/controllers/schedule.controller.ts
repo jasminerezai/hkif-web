@@ -3,7 +3,7 @@ import {ApiError} from "../utils/ApiError";
 import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler";
 import {ApiResponse} from "../types";
-import { ScheduleDto } from '../types/schedule.types';
+import {ScheduleDto} from '../types'
 import {ScheduleDateSchema, ScheduleBoolWeekSchema} from "../validators/schedule.validator";
 import {output, ZodISODate, ZodLiteral, ZodNullable, ZodOptional, ZodUnion} from "zod";
 
