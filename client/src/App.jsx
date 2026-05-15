@@ -7,6 +7,7 @@ import ActivitiesPage from './pages/ActivitiesPage.jsx'
 import LoginPage    from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import ActivityFormPage from './pages/ActivityFormPage.jsx'
+import SchedulePage from './pages/SchedulePage.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login.
@@ -89,7 +90,7 @@ function AppRoutes() {
       <main>
         <Routes>
           {/* Public routes — anyone can access */}
-          <Route path="/"               element={<Placeholder title="Schedule" />} />
+          <Route path="/" element={<SchedulePage />} />
           <Route path="/login"          element={<LoginPage />} />
           <Route path="/register"       element={<RegisterPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
