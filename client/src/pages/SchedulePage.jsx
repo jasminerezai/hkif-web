@@ -80,9 +80,10 @@ const mockActivities = [
     leader: 'Emma Svensson',
     date: '2026-05-14',
     time: '18:00',
-    location: 'Main Field',
+    location: 'Gym Hall',
     availableSpots: 8,
     cancelled: false,
+    notes: 'Bring indoor shoes',
   },
 
   {
@@ -112,7 +113,7 @@ useEffect(() => {
     try {
 
       const response = await fetch(
-        'http://localhost:3001/api/schedules/current'
+        '/api/schedules/current'
       )
 
       const {data} = await response.json()
@@ -120,44 +121,57 @@ useEffect(() => {
       console.log('Schedule API:', data)
 
       // If backend returns schedule data
-      if (Array.isArray(data) && data.length > 0) {
+      if (response.ok && Array.isArray(data)) {
 
-        // Transform backend format → frontend format
-        const formattedActivities = data.map(item => ({
+              // Transform backend format → frontend format
+        const formattedActivities = data.map(singleSchedule => ({
 
-          id: item.id,
+          id: singleSchedule.id,
 
-          title: item.activity?.name || 'Activity',
+          activityId: singleSchedule.activityId,
 
-          sport: item.activity?.name || 'Sport',
+          title:
+            singleSchedule.activity?.name || 'Activity',
 
-          leader: 'HKIF Leader',
+          sport:
+            singleSchedule.activity?.name || 'Sport',
+
+          leader:
+            singleSchedule.leaders
+              ?.map(leader => leader.profileName || 'Leader')
+              .join(', ') || 'Leader',
 
           date: (() => {
 
-            //This uses local date & local timezone instead of UTC conversion
-            const startDate = new Date(item.startAt)
+            const startDate = new Date(singleSchedule.startAt)
 
             return `${startDate.getFullYear()}-${
-                String(startDate.getMonth() + 1).padStart(2, '0')
+              String(startDate.getMonth() + 1).padStart(2, '0')
             }-${
-                String(startDate.getDate()).padStart(2, '0')
+              String(startDate.getDate()).padStart(2, '0')
             }`
 
-            })(),
+          })(),
 
-          time: new Date(item.startAt)
+          time: new Date(singleSchedule.startAt)
             .toLocaleTimeString([], {
               hour: '2-digit',
               minute: '2-digit',
             }),
 
-          location: item.activity?.location || 'Unknown',
+          location:
+            singleSchedule.activity?.location || 'Unknown',
 
-          availableSpots: 10,
+          availableSpots:
+            singleSchedule.activity?.maxCapacity || 0,
 
-          cancelled: false,
-        }))
+          cancelled:
+            singleSchedule.status === 'CANCELLED',
+
+          notes:
+            singleSchedule.activity?.notes || '',
+
+      }))
 
         setActivities(formattedActivities)
       }
@@ -505,8 +519,20 @@ return displayedActivities.filter(
                         fontSize: '0.85rem',
                       }}
                     >
-                      {activity.availableSpots} spots left
-                    </p>
+                      {activity.availableSpots} spots left</p>
+                                    
+                    {/* Notes */}
+                    {activity.notes && (
+                      <p
+                        style={{
+                          fontSize: '0.85rem',
+                          color: 'var(--color-text-muted)',
+                          marginTop: '4px',
+                        }}
+                      >
+                        {activity.notes}
+                      </p>
+                    )}              
 
                     {/* Attend Button */}
                     {!activity.cancelled && (
