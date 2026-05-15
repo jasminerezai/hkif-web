@@ -35,7 +35,7 @@ const deleteFavorites = asyncHandler(
     }
     const deletedFavorite: ActivityDto = await DELETE.deleteFavorite(ids);
     if(!deletedFavorite) throw ApiError.internal(`Something went wrong in the DB: ${deletedFavorite}`);
-    res.status(200).json({status: "success", data: deletedFavorite});
+    res.status(204).send()
 });
 
 export const controller = {
