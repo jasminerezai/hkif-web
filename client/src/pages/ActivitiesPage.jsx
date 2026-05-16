@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
+import Card from '../components/ui/Card.jsx'
+import Button from '../components/ui/Button.jsx'
 
 export default function ActivitiesPage() {
   // ── API State ─────────────────────────────────────────────
@@ -141,15 +143,12 @@ export default function ActivitiesPage() {
           <p>No activities found.</p>
         ) : (
           filteredActivities.map(activity => (
-            <div
+            <Card
               key={activity.id}
+              padding="md"
+              shadow="sm"
               style={{
                 position: 'relative',
-                border: '1px solid var(--color-border)',
-                borderRadius: '12px',
-                padding: '20px',
-                background: 'var(--color-surface-raised)',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
               }}
             >
               {/* Activity title */}
@@ -215,7 +214,7 @@ export default function ActivitiesPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </Card>
           ))
         )}
       </div>
