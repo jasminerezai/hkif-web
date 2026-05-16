@@ -87,29 +87,36 @@ export default function ActivitiesPage() {
       return
     }
 
+    const previousFavorites = favoriteActivities
+    
     try {
 
       if (favoriteActivities.includes(activityId)) {
 
-        await removeFavorite(activityId, token)
-
+        // Optimistically remove from UI first
         setFavoriteActivities(
           favoriteActivities.filter(id => id !== activityId)
         )
 
+        await removeFavorite(activityId, token)
+
       } else {
 
-        await addFavorite(activityId, token)
-
+        // Optimistically add to UI first
         setFavoriteActivities([
           ...favoriteActivities,
           activityId,
         ])
+
+        await addFavorite(activityId, token)
       }
 
     } catch (error) {
 
       console.error(error)
+
+      // Restore previous state if request fails
+      setFavoriteActivities(previousFavorites)
     }
   }
 
