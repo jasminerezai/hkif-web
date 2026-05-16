@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { register, login } from '../services/auth.service';
-import { asyncHandler } from '../middleware/asyncHandler';
-import { ApiError } from '../utils/ApiError';
-import { ApiResponse, AuthResponseDto, MeResponseDto } from '../types';
+import { register, login } from '../services/auth.service.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import { ApiResponse, AuthResponseDto, MeResponseDto } from '../types/index.js';
 
 /**
  * Success response shape:

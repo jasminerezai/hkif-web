@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../middleware/asyncHandler';
-import { ApiError } from '../utils/ApiError';
-import { prisma, ProfileRole, ActivityStatus } from '../db/prisma';
-import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity } from '../types';
-import { CreateActivitySchema, DeleteActivitySchema, UpdateActivityGeneralSchema, UpdateActivityURLSchema } from "../validators";
-import { DELETE, READ, UPDATE, CREATE } from "../db/queries";
-import { ActivityDto } from "../types/activity.types";
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import { prisma, ProfileRole, ActivityStatus } from '../db/prisma.js';
+import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity } from '../types/index.js';
+import { CreateActivitySchema, DeleteActivitySchema, UpdateActivityGeneralSchema, UpdateActivityURLSchema } from "../validators/index.js";
+import { DELETE, READ, UPDATE, CREATE } from "../db/queries.js";
+import { ActivityDto } from "../types/activity.types.js";
 
 // ──────────────────────────────────────────────────────────────
 // Shared helpers
@@ -225,40 +225,47 @@ export const getActivities = asyncHandler(
 
 export const registerParticipation = asyncHandler(async (
   req: Request<{ activityId: string; scheduleId: string }>,
-  res: Response
+  res: Response<ApiResponse<{ participantCount: number }>>
 ) => {
   const { activityId, scheduleId } = req.params
   const profileId = req.user!.id
 
-  // Check schedule exists and belongs to this activity
-  const schedule = await prisma.schedule.findUnique({
-    where: { id: scheduleId },
-    include: { activity: true }
-  })
-  if (!schedule) throw ApiError.notFound('Schedule not found')
-  if (schedule.activityId !== activityId) throw ApiError.badRequest('Schedule does not belong to this activity')
+  const participantCount = await prisma.$transaction(async (tx) => {
+    // Check schedule exists and belongs to this activity
+    const schedule = await tx.schedule.findUnique({
+      where: { id: scheduleId },
+      include: { activity: true }
+    })
+    if (!schedule) throw ApiError.notFound('Schedule not found')
+    if (schedule.activityId !== activityId) throw ApiError.badRequest('Schedule does not belong to this activity')
 
-  // Check capacity
-  if (schedule.activity.maxCapacity !== null) {
-    const count = await READ.participantCount(scheduleId)
-    if (count >= schedule.activity.maxCapacity) {
-      throw ApiError.conflict('Activity is full')
+    // Check capacity
+    if (schedule.activity.maxCapacity !== null) {
+      const count = await tx.participationLog.count({ where: { scheduleId } })
+      if (count >= schedule.activity.maxCapacity) {
+        throw ApiError.conflict('Activity is full')
+      }
     }
-  }
 
-  // Check not already registered
-  const existing = await READ.isParticipating(profileId, scheduleId)
-  if (existing) throw ApiError.conflict('Already registered for this activity')
+    // Check not already registered
+    const existing = await tx.participationLog.findUnique({
+      where: { profileId_scheduleId: { profileId, scheduleId } }
+    })
+    if (existing) throw ApiError.conflict('Already registered for this activity')
 
-  await CREATE.registerParticipation(profileId, scheduleId)
-  const participantCount = await READ.participantCount(scheduleId)
+    await tx.participationLog.create({
+      data: { profileId, scheduleId }
+    })
+
+    return tx.participationLog.count({ where: { scheduleId } })
+  })
 
   res.status(201).json({ status: 'success', data: { participantCount } })
 })
 
 export const unregisterParticipation = asyncHandler(async (
   req: Request<{ activityId: string; scheduleId: string }>,
-  res: Response
+  res: Response<ApiResponse<{ participantCount: number }>>
 ) => {
   const { scheduleId } = req.params
   const profileId = req.user!.id

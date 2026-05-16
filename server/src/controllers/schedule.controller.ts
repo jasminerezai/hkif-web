@@ -1,10 +1,10 @@
-import {READ}  from '../db/readQueries'
-import {ApiError} from "../utils/ApiError";
+import {READ}  from '../db/readQueries.js';
+import {ApiError} from "../utils/ApiError.js";
 import {Request, Response} from "express";
-import {asyncHandler} from "../middleware/asyncHandler";
-import {ApiResponse} from "../types";
-import {ScheduleDto} from '../types'
-import {ScheduleDateSchema, ScheduleBoolWeekSchema} from "../validators/schedule.validator";
+import {asyncHandler} from "../middleware/asyncHandler.js";
+import {ApiResponse} from "../types/index.js";
+import {ScheduleDto} from '../types/index.js';
+import {ScheduleDateSchema, ScheduleBoolWeekSchema} from "../validators/schedule.validator.js";
 import {output, ZodISODate, ZodLiteral, ZodNullable, ZodOptional, ZodUnion} from "zod";
 
 const currentWeek = asyncHandler(

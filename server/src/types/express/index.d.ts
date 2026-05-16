@@ -1,4 +1,4 @@
-import { ProfileRole } from '../../db/prisma';
+import { ProfileRole } from '../../db/prisma.js';
 
 declare global {
   namespace Express {

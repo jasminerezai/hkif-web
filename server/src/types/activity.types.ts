@@ -1,4 +1,4 @@
-import { Weekday, ActivityStatus } from '../db/prisma';
+import { Weekday, ActivityStatus } from '../db/prisma.js';
 
 export type Activity = {
   name: string,

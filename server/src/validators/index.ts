@@ -4,9 +4,9 @@ export {
   UpdateActivityGeneralSchema,
   UpdateActivityURLSchema,
   TimeSlotSchema,
-} from "./activity.validator";
+} from "./activity.validator.js";
 export {
   CreateFavoriteSchema,
   DeleteFavoriteSchema,
   isUUID,
-} from './favorites.validator'
+} from './favorites.validator.js';
