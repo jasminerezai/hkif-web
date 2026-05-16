@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
 
 export default function ActivitiesPage() {
   // ── API State ─────────────────────────────────────────────
@@ -40,29 +41,15 @@ export default function ActivitiesPage() {
   // ── Fetch favorites from backend ──────────────────────────────────────
   useEffect(() => {
 
-    async function fetchFavorites() {
+    async function loadFavorites() {
 
       // Only fetch favorites if logged in
       if (!isAuthenticated) return
 
       try {
 
-        const response = await fetch(
-          '/api/users/me/favorites',
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
+        const result = await fetchFavorites(token)
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch favorites')
-        }
-
-        const result = await response.json()
-
-        // Store only activity IDs
         const favoriteIds = result.data.map(
           activity => activity.id
         )
@@ -75,9 +62,9 @@ export default function ActivitiesPage() {
       }
     }
 
-    fetchFavorites()
+    loadFavorites()
 
-}, [isAuthenticated])
+}, [isAuthenticated, token])
 
   // ── Loading / Error States ───────────────────────────────
   if (loading) {
@@ -90,6 +77,39 @@ export default function ActivitiesPage() {
 
   // ── Display all activities ───────────────────────────────
   const filteredActivities = activities
+
+  async function handleToggleFavorite(activityId) {
+
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+
+    try {
+
+      if (favoriteActivities.includes(activityId)) {
+
+        await removeFavorite(activityId, token)
+
+        setFavoriteActivities(
+          favoriteActivities.filter(id => id !== activityId)
+        )
+
+      } else {
+
+        await addFavorite(activityId, token)
+
+        setFavoriteActivities([
+          ...favoriteActivities,
+          activityId,
+        ])
+      }
+
+    } catch (error) {
+
+      console.error(error)
+    }
+  }
 
   return (
     <div
@@ -135,64 +155,7 @@ export default function ActivitiesPage() {
               {/* Activity title */}
               {/* Heart-button */}
               <button
-                onClick={async () => {
-
-                  if (!isAuthenticated) {
-                    navigate('/login')
-                    return
-                  }
-
-                  try {
-
-                    // Remove favorite
-                    if (favoriteActivities.includes(activity.id)) {
-
-                      const response = await fetch(
-                        `/api/users/me/favorites/${activity.id}`,
-                        {
-                          method: 'DELETE',
-                          headers: {
-                            Authorization: `Bearer ${token}`,
-                          },
-                        }
-                      )
-
-                      if (!response.ok) {
-                        throw new Error('Failed to remove favorite')
-                      }
-
-                      setFavoriteActivities(
-                        favoriteActivities.filter(id => id !== activity.id)
-                      )
-
-                    } else {
-
-                      // Add favorite
-                      const response = await fetch(
-                        `/api/users/me/favorites/${activity.id}`,
-                        {
-                          method: 'POST',
-                          headers: {
-                            Authorization: `Bearer ${token}`,
-                          },
-                        }
-                      )
-
-                      if (!response.ok) {
-                        throw new Error('Failed to add favorite')
-                      }
-
-                      setFavoriteActivities([
-                        ...favoriteActivities,
-                        activity.id,
-                      ])
-                    }
-
-                  } catch (error) {
-
-                    console.error(error)
-                  }
-                }}
+                onClick={() => handleToggleFavorite(activity.id)}
 
                 style={{
                   position: 'absolute',
