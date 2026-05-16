@@ -1,5 +1,5 @@
-import {prisma} from "./prisma";
-import {ActivityDto, FavoriteCreateDelete} from "../types";
+import {prisma} from "./prisma.js";
+import {ActivityDto, FavoriteCreateDelete} from "../types/index.js";
 
 export class DELETE {
     /**

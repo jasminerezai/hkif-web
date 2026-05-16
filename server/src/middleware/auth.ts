@@ -1,7 +1,7 @@
-import { asyncHandler } from './asyncHandler';
-import { ApiError } from '../utils/ApiError';
-import { verifyToken } from '../utils/jwt';
-import { prisma, ProfileRole } from '../db/prisma';
+import { asyncHandler } from './asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import { verifyToken } from '../utils/jwt.js';
+import { prisma, ProfileRole } from '../db/prisma.js';
 
 // ──────────────────────────────────────────────
 // Privilege hierarchy (ascending)

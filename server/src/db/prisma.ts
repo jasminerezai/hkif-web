@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from "../generated/prisma";
+import { PrismaClient } from "../generated/prisma/index.js";
 
 const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
@@ -11,6 +11,6 @@ export { prisma };
 
 // Re-export Prisma enums so all code imports from this singleton
 // instead of directly from the generated client.
-export { ProfileRole } from '../generated/prisma';
-export { ActivityStatus } from '../generated/prisma';
-export { Weekday } from '../generated/prisma';
+export { ProfileRole } from '../generated/prisma/index.js';
+export { ActivityStatus } from '../generated/prisma/index.js';
+export { Weekday } from '../generated/prisma/index.js';

@@ -1,9 +1,9 @@
-import {ApiError} from "../utils/ApiError";
+import {ApiError} from "../utils/ApiError.js";
 import {Request, Response} from "express";
-import {asyncHandler} from "../middleware/asyncHandler";
-import {READ, CREATE, DELETE} from '../db/queries';
-import {CreateFavoriteSchema, DeleteFavoriteSchema} from "../validators";
-import {ApiResponse, FavoriteCreateDelete, ActivityDto} from "../types";
+import {asyncHandler} from "../middleware/asyncHandler.js";
+import {READ, CREATE, DELETE} from '../db/queries.js';
+import {CreateFavoriteSchema, DeleteFavoriteSchema} from "../validators/index.js";
+import {ApiResponse, FavoriteCreateDelete, ActivityDto} from "../types/index.js";
 
 const getFavorites = asyncHandler(
     async (req: Request, res: Response<ApiResponse<ActivityDto[]>>) => {

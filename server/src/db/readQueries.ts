@@ -1,7 +1,7 @@
-import { prisma } from "./prisma";
-import { startAndEndOfWeek } from "../utils/weekCalculator";
-import { ActivityTemplate, Profile } from "../generated/prisma";
-import { ScheduleDto, ActivityDto } from '../types'
+import { prisma } from "./prisma.js";
+import { startAndEndOfWeek } from "../utils/weekCalculator.js";
+import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
+import { ScheduleDto, ActivityDto } from '../types/index.js';
 export class READ {
     /**
  * returns user based of their unique email

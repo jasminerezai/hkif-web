@@ -1,5 +1,5 @@
-import {Activity, FavoriteCreateDelete, ActivityDto} from "../types";
-import { prisma } from "./prisma";
+import {Activity, FavoriteCreateDelete, ActivityDto} from "../types/index.js";
+import { prisma } from "./prisma.js";
 /*
 CREATE Queries
     create new profile

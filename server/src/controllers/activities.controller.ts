@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../middleware/asyncHandler';
-import { ApiError } from '../utils/ApiError';
-import { prisma, ProfileRole, ActivityStatus } from '../db/prisma';
-import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity } from '../types';
-import { CreateActivitySchema, DeleteActivitySchema, UpdateActivityGeneralSchema, UpdateActivityURLSchema } from "../validators";
-import { DELETE, READ, UPDATE, CREATE } from "../db/queries";
-import { ActivityDto } from "../types/activity.types";
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { ApiError } from '../utils/ApiError.js';
+import { prisma, ProfileRole, ActivityStatus } from '../db/prisma.js';
+import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity } from '../types/index.js';
+import { CreateActivitySchema, DeleteActivitySchema, UpdateActivityGeneralSchema, UpdateActivityURLSchema } from "../validators/index.js";
+import { DELETE, READ, UPDATE, CREATE } from "../db/queries.js";
+import { ActivityDto } from "../types/activity.types.js";
 
 // ──────────────────────────────────────────────────────────────
 // Shared helpers

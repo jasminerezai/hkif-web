@@ -1,12 +1,12 @@
 import express from 'express';
 import cors from 'cors';
-import { errorHandler } from './middleware/errorHandler';
+import { errorHandler } from './middleware/errorHandler.js';
 
 // routers
-import authRoutes from './routes/auth.routes';
-import activityRoutes from './routes/activities.routes';
-import scheduleRoutes from "./routes/schedule.routes";
-import userRoutes from './routes/user.routes'
+import authRoutes from './routes/auth.routes.js';
+import activityRoutes from './routes/activities.routes.js';
+import scheduleRoutes from "./routes/schedule.routes.js";
+import userRoutes from './routes/user.routes.js'
 
 export const app = express();
 

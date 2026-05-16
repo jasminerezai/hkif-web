@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
-import { prisma, ProfileRole } from '../db/prisma';
-import { ApiError } from '../utils/ApiError';
-import { generateToken } from '../utils/jwt';
-import { READ } from "../db/readQueries";
+import { prisma, ProfileRole } from '../db/prisma.js';
+import { ApiError } from '../utils/ApiError.js';
+import { generateToken } from '../utils/jwt.js';
+import { READ } from "../db/readQueries.js";
 
 /** Maps a Prisma Profile row to the public user DTO returned by auth endpoints. */
 const toUserDto = (p: { id: string; email: string; profileName: string | null; role: ProfileRole; }) => ({// does this need a return keyword
