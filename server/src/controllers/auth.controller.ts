@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import { register, login } from '../services/auth.service.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
-import { ApiResponse, AuthResponseDto, MeResponseDto } from '../types/index.js';
+import {ApiResponse, AuthResponseDto, MeResponseDto, userInputLogin, userInputRegister} from '../types/index.js';
+import {authLoginSchema, authRegisterSchema, parseZodError} from "../validators/index.js";
+import {ZodError} from "zod";
 
 /**
  * Success response shape:
@@ -16,19 +18,18 @@ export const registerHandler = asyncHandler(async (
   req: Request,
   res: Response<ApiResponse<AuthResponseDto>>,
 ) => {
-  const { email, password, name } = req.body;
-
-  if (!email || !password || !name) {
-    throw ApiError.badRequest('Please provide email, password, and name');
+  let newUser: userInputRegister;
+  try{
+    newUser = authRegisterSchema.parse(req.body);
+  } catch (error){
+    if(error instanceof ZodError){
+      throw ApiError.badRequest(JSON.stringify(parseZodError(error)))
+    }
+    else{
+      throw ApiError.internal(`Something went wrong: ${error}`)
+    }
   }
-
-  // Basic validation
-  if (password.length < 8) {
-    throw ApiError.badRequest('Password must be at least 8 characters long');
-  }
-
-  const result = await register(email, password, name);
-
+  const result: AuthResponseDto = await register(newUser)
   res.status(201).json({
     status: 'success',
     data: result,
@@ -39,18 +40,22 @@ export const loginHandler = asyncHandler(async (
   req: Request,
   res: Response<ApiResponse<AuthResponseDto>>,
 ) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    throw ApiError.badRequest('Please provide email and password');
+  let data: userInputLogin;
+  try {
+    data = authLoginSchema.parse(req.body)
+  } catch(error){
+    if(error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)))
+    else throw ApiError.internal(`Something went wrong: ${error}`)
   }
 
-  const result = await login(email, password);
+    // const {email, password} = req.body;
+    const result = await login(data.email, data.password);
 
-  res.status(200).json({
-    status: 'success',
-    data: result,
-  });
+    res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  // }
 });
 
 export const getMeHandler = asyncHandler(async (

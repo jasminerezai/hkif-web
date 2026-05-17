@@ -30,7 +30,14 @@ export interface PaginationQuery {
 
 // ── Domain types ────────────────────────────────────────────────
 
-export type { UserDto, AuthResponseDto, MeResponseDto } from './auth.types.js';
+export type {
+  UserDto,
+  AuthResponseDto,
+  MeResponseDto,
+  userInputLogin,
+  userInputRegister,
+} from './auth.types.js';
+
 export type {
   UpdateScheduleStatusBody,
   UpdateScheduleStatusDto,

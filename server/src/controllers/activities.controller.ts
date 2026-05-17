@@ -3,9 +3,16 @@ import { asyncHandler } from '../middleware/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { prisma, ProfileRole, ActivityStatus } from '../db/prisma.js';
 import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity } from '../types/index.js';
-import { CreateActivitySchema, DeleteActivitySchema, UpdateActivityGeneralSchema, UpdateActivityURLSchema } from "../validators/index.js";
+import {
+    CreateActivitySchema,
+    DeleteActivitySchema,
+    parseZodError,
+    UpdateActivityGeneralSchema,
+    UpdateActivityURLSchema
+} from "../validators/index.js";
 import { DELETE, READ, UPDATE, CREATE } from "../db/queries.js";
 import { ActivityDto } from "../types/activity.types.js";
+import {ZodError} from "zod";
 
 // ──────────────────────────────────────────────────────────────
 // Shared helpers
@@ -161,7 +168,8 @@ export const updateActivity = asyncHandler(
       updateBody = UpdateActivityGeneralSchema.parse(req.body);
     } catch (error) {
       console.error(error);
-      throw ApiError.badRequest(`Invalid request body or params: ${error}`);
+      if(error instanceof ZodError) throw ApiError.badRequest(`Invalid request body or params: ${parseZodError(error)}`);
+      else throw ApiError.internal(`Something went wrong: ${error}`)
     }
 
     // Check if activity exists before attempting update

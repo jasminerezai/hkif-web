@@ -3,8 +3,9 @@ import { prisma, ProfileRole } from '../db/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
 import { generateToken } from '../utils/jwt.js';
 import { READ } from "../db/readQueries.js";
+import { userInputRegister } from "../types/index.js";
 
-/** Maps a Prisma Profile row to the public user DTO returned by auth endpoints. */
+/** Maps a Prisma Profile row to the public user DTO returned by auth endpoints.*/
 const toUserDto = (p: { id: string; email: string; profileName: string | null; role: ProfileRole; }) => ({// does this need a return keyword
   id: p.id,
   email: p.email,
@@ -12,33 +13,33 @@ const toUserDto = (p: { id: string; email: string; profileName: string | null; r
   role: p.role,
 });
 
-export const register = async (email: string, password: string, name: string) => {
+export const register = async (newUser: userInputRegister) => {
   // Check if user already exists
   const existingUser = await prisma.profile.findUnique({
-    where: { email },
+    where: { email: newUser.email },
   });
 
   if (existingUser) {
     throw ApiError.conflict('User with this email already exists');
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(newUser.password, 10);
 
   // Create user
-  const newUser = await prisma.profile.create({
+  const createdUser = await prisma.profile.create({
     data: {
-      email,
+      email: newUser.email,
       password: hashedPassword,
-      profileName: name,
+      profileName: newUser.name,
       // New registrations default to the lowest privilege level
       role: ProfileRole.MEMBER,
     },
   });
 
   // Generate token
-  const token = generateToken(newUser.id, newUser.role);
+  const token = generateToken(createdUser.id, createdUser.role);
 
-  return { user: toUserDto(newUser), token };
+  return { user: toUserDto(createdUser), token };
 };
 
 export const login = async (email: string, password: string) => {
