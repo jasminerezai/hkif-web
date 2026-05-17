@@ -1,5 +1,5 @@
 import { ProfileRole } from '../db/prisma.js';
-import {authLoginInput, authRegisterInput} from "../validators/index.js";
+import {authLoginSchema, authRegisterSchema} from "../validators/index.js";
 import z from 'zod';
 
 
@@ -27,7 +27,7 @@ export interface MeResponseDto {
 }
 
 
-export type userInputRegister = z.infer<typeof authRegisterInput>
+export type userInputRegister = z.infer<typeof authRegisterSchema>
 
 
-export type userInputLogin = z.infer<typeof authLoginInput>;
+export type userInputLogin = z.infer<typeof authLoginSchema>;

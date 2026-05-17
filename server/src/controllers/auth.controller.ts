@@ -2,8 +2,9 @@ import { Request, Response } from 'express';
 import { register, login } from '../services/auth.service.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
-import { ApiResponse, AuthResponseDto, MeResponseDto, userInputRegister } from '../types/index.js';
-import {authLoginInput, authRegisterInput, parseZodError, zodError} from "../validators/index.js";
+import {ApiResponse, AuthResponseDto, MeResponseDto, userInputLogin, userInputRegister} from '../types/index.js';
+import {authLoginSchema, authRegisterSchema, parseZodError} from "../validators/index.js";
+import {ZodError} from "zod";
 
 /**
  * Success response shape:
@@ -17,45 +18,44 @@ export const registerHandler = asyncHandler(async (
   req: Request,
   res: Response<ApiResponse<AuthResponseDto>>,
 ) => {
-  const validRegisterInput = authRegisterInput.safeParse(req.body);
-  if(!validRegisterInput.success) {
-    const error: zodError[] = parseZodError(validRegisterInput.error)
-    throw ApiError.badRequest(JSON.stringify(error))
-  }
-  else{
-    const { email, password, name } = req.body;
-    const newUser: userInputRegister = {
-      email,
-      password,
-      name
+  let newUser: userInputRegister;
+  try{
+    newUser = authRegisterSchema.parse(req.body);
+  } catch (error){
+    if(error instanceof ZodError){
+      throw ApiError.badRequest(JSON.stringify(parseZodError(error)))
     }
-    const result: AuthResponseDto = await register(newUser)
-    res.status(201).json({
-      status: 'success',
-      data: result,
-    });
+    else{
+      throw ApiError.internal(`Something went wrong: ${error}`)
+    }
   }
+  const result: AuthResponseDto = await register(newUser)
+  res.status(201).json({
+    status: 'success',
+    data: result,
+  });
 });
 
 export const loginHandler = asyncHandler(async (
   req: Request,
   res: Response<ApiResponse<AuthResponseDto>>,
 ) => {
-  const isValidInput = authLoginInput.safeParse(req.body);
-  if(!isValidInput.success){
-    const error: zodError[] = parseZodError(isValidInput.error);
-    throw ApiError.badRequest(JSON.stringify(error))
+  let data: userInputLogin;
+  try {
+    data = authLoginSchema.parse(req.body)
+  } catch(error){
+    if(error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)))
+    else throw ApiError.internal(`Something went wrong: ${error}`)
   }
-  else {
 
-    const {email, password} = req.body;
-    const result = await login(email, password);
+    // const {email, password} = req.body;
+    const result = await login(data.email, data.password);
 
     res.status(200).json({
       status: 'success',
       data: result,
     });
-  }
+  // }
 });
 
 export const getMeHandler = asyncHandler(async (

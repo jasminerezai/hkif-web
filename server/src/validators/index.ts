@@ -8,16 +8,19 @@ export {
 export {
   CreateFavoriteSchema,
   DeleteFavoriteSchema,
-  isUUID,
 } from './favorites.validator.js';
 
 
 export {
-  authRegisterInput,
-  authLoginInput,
+  authRegisterSchema,
+  authLoginSchema,
 } from './auth.validation.js'
 
 export {
-  parseZodError,
-  zodError
+  parseZodError
 } from './zodError.formatting.js'
+
+export {
+  IdSchema,
+  isUUID,
+} from './idSchema.validator.js'
