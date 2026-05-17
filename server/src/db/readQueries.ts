@@ -203,4 +203,20 @@ export class READ {
             return [];
         }
     }
+
+    static async participantCount(scheduleId: string): Promise<number> {
+        return prisma.participationLog.count({
+            where: { scheduleId }
+        })
+
+    }
+
+    static async isParticipating(profileId: string, scheduleId: string): Promise<boolean> {
+        const record = await prisma.participationLog.findUnique({
+            where: { profileId_scheduleId: { profileId, scheduleId } }
+        });
+        return record !== null;
+    }
+
+
 }

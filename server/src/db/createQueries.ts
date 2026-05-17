@@ -1,4 +1,4 @@
-import {Activity, FavoriteCreateDelete, ActivityDto} from "../types/index.js";
+import { Activity, FavoriteCreateDelete, ActivityDto } from "../types/index.js";
 import { prisma } from "./prisma.js";
 /*
 CREATE Queries
@@ -11,11 +11,11 @@ CREATE Queries
  */
 
 
-export class CREATE{
+export class CREATE {
 
     // adding favorites
-    static async newFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto>{
-        const {activity} = await prisma.favorite.create({
+    static async newFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto> {
+        const { activity } = await prisma.favorite.create({
             data: {
                 profileId: ids.profileId,
                 activityId: ids.activityId
@@ -64,5 +64,11 @@ export class CREATE{
             }
         });
         return activity;
+    }
+
+    static async registerParticipation(profileId: string, scheduleId: string) {
+        return prisma.participationLog.create({
+            data: { profileId, scheduleId }
+        })
     }
 }

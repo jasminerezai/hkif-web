@@ -221,3 +221,60 @@ export const getActivities = asyncHandler(
     });
   }
 );
+
+
+export const registerParticipation = asyncHandler(async (
+  req: Request<{ activityId: string; scheduleId: string }>,
+  res: Response<ApiResponse<{ participantCount: number }>>
+) => {
+  const { activityId, scheduleId } = req.params
+  const profileId = req.user!.id
+
+  const participantCount = await prisma.$transaction(async (tx) => {
+    // Check schedule exists and belongs to this activity
+    const schedule = await tx.schedule.findUnique({
+      where: { id: scheduleId },
+      include: { activity: true }
+    })
+    if (!schedule) throw ApiError.notFound('Schedule not found')
+    if (schedule.activityId !== activityId) throw ApiError.badRequest('Schedule does not belong to this activity')
+
+    // Check capacity
+    if (schedule.activity.maxCapacity !== null) {
+      const count = await tx.participationLog.count({ where: { scheduleId } })
+      if (count >= schedule.activity.maxCapacity) {
+        throw ApiError.conflict('Activity is full')
+      }
+    }
+
+    // Check not already registered
+    const existing = await tx.participationLog.findUnique({
+      where: { profileId_scheduleId: { profileId, scheduleId } }
+    })
+    if (existing) throw ApiError.conflict('Already registered for this activity')
+
+    await tx.participationLog.create({
+      data: { profileId, scheduleId }
+    })
+
+    return tx.participationLog.count({ where: { scheduleId } })
+  })
+
+  res.status(201).json({ status: 'success', data: { participantCount } })
+})
+
+export const unregisterParticipation = asyncHandler(async (
+  req: Request<{ activityId: string; scheduleId: string }>,
+  res: Response<ApiResponse<{ participantCount: number }>>
+) => {
+  const { scheduleId } = req.params
+  const profileId = req.user!.id
+
+  const existing = await READ.isParticipating(profileId, scheduleId)
+  if (!existing) throw ApiError.notFound('Not registered for this activity')
+
+  await DELETE.unregisterParticipation(profileId, scheduleId)
+  const participantCount = await READ.participantCount(scheduleId)
+
+  res.status(200).json({ status: 'success', data: { participantCount } })
+})

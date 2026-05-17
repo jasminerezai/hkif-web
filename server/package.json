@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "postbuild": "cp -r src/generated/prisma/. dist/generated/prisma/",
+    "postbuild": "mkdir -p dist/generated/prisma && cp -r src/generated/prisma/. dist/generated/prisma/",
     "start": "node dist/server.js"
   },
   "dependencies": {
