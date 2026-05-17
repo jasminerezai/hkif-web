@@ -36,4 +36,12 @@ export class DELETE {
         });
         return res;
     }
+
+    static async deleteSchedule(scheduleId: string)
+    {
+        const res = await prisma.schedule.delete({
+            where: { id: scheduleId }
+        });
+        return res;
+    }
 }
