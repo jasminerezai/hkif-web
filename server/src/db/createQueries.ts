@@ -1,5 +1,5 @@
-import {Activity, FavoriteCreateDelete, ActivityDto} from "../types/index.js";
-import { prisma } from "./prisma.js";
+import {Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto} from "../types/index.js";
+import { prisma, ActivityStatus } from "./prisma.js";
 /*
 CREATE Queries
     create new profile
@@ -64,5 +64,48 @@ export class CREATE{
             }
         });
         return activity;
+    }
+
+    static async newSchedule(data: {
+        activityId: string;
+        startAt: Date;
+        endAt?: Date | null;
+        status: ActivityStatus;
+    }): Promise<ScheduleDto> {
+        const schedule = await prisma.schedule.create({
+            data,
+            include: {
+                activity: {
+                    include: {
+                        leaders: {
+                            select: {
+                                profile: {
+                                    select: {
+                                        id: true,
+                                        profileName: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        let leaders: any = schedule.activity.leaders ?? [];
+        leaders = Array.isArray(leaders) ? leaders.map((el: { profile: any; }) => el.profile) : [];
+        (schedule.activity as any).leaders = undefined;
+
+        return {
+            id: schedule.id,
+            activityId: schedule.activityId,
+            startAt: schedule.startAt,
+            endAt: schedule.endAt,
+            status: schedule.status,
+            createdAt: schedule.createdAt,
+            updatedAt: schedule.updatedAt,
+            activity: schedule.activity,
+            leaders
+        } satisfies ScheduleDto;
     }
 }
