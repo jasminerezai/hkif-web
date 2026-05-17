@@ -139,7 +139,7 @@ export const newActivity = asyncHandler(
     // If no leaders provided, assign the creator as the leader
     if (!newActivity.leaders || newActivity.leaders.length === 0) {
       if (req.user?.id) {
-        newActivity.leaders = [req.user.id];
+        newActivity.leaders = [req.user!.id];
       }
     }
 
