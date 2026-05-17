@@ -10,3 +10,14 @@ export {
   DeleteFavoriteSchema,
   isUUID,
 } from './favorites.validator.js';
+
+
+export {
+  authRegisterInput,
+  authLoginInput,
+} from './auth.validation.js'
+
+export {
+  parseZodError,
+  zodError
+} from './zodError.formatting.js'

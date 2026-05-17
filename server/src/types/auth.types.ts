@@ -1,4 +1,8 @@
 import { ProfileRole } from '../db/prisma.js';
+import {authLoginInput, authRegisterInput} from "../validators/index.js";
+import z from 'zod';
+
+
 
 /** Public user representation returned by auth endpoints (no password). */
 export interface UserDto {
@@ -21,3 +25,9 @@ export interface MeResponseDto {
     role: ProfileRole;
   };
 }
+
+
+export type userInputRegister = z.infer<typeof authRegisterInput>
+
+
+export type userInputLogin = z.infer<typeof authLoginInput>;
