@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext.jsx'
+import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
+import Card from '../components/ui/Card.jsx'
+import Button from '../components/ui/Button.jsx'
 
 export default function ActivitiesPage() {
   // ── API State ─────────────────────────────────────────────
   const [activities, setActivities] = useState([])
+  const [favoriteActivities, setFavoriteActivities] = useState([])
+  const navigate = useNavigate()
+  const { isAuthenticated, token } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   // ── Fetch Activities ──────────────────────────────────────
+  
   useEffect(() => {
     async function fetchActivities() {
       try {
         const response = await fetch(
-          'http://localhost:3001/api/activities'
+          '/api/activities'
         )
 
         if (!response.ok) {
@@ -31,6 +40,34 @@ export default function ActivitiesPage() {
     fetchActivities()
   }, [])
 
+  // ── Fetch favorites from backend ──────────────────────────────────────
+  useEffect(() => {
+
+    async function loadFavorites() {
+
+      // Only fetch favorites if logged in
+      if (!isAuthenticated) return
+
+      try {
+
+        const result = await fetchFavorites(token)
+
+        const favoriteIds = result.data.map(
+          activity => activity.id
+        )
+
+        setFavoriteActivities(favoriteIds)
+
+      } catch (error) {
+
+        console.error('Failed to fetch favorites:', error)
+      }
+    }
+
+    loadFavorites()
+
+}, [isAuthenticated, token])
+
   // ── Loading / Error States ───────────────────────────────
   if (loading) {
     return <p>Loading activities...</p>
@@ -42,6 +79,46 @@ export default function ActivitiesPage() {
 
   // ── Display all activities ───────────────────────────────
   const filteredActivities = activities
+
+  async function handleToggleFavorite(activityId) {
+
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+
+    const previousFavorites = favoriteActivities
+    
+    try {
+
+      if (favoriteActivities.includes(activityId)) {
+
+        // Optimistically remove from UI first
+        setFavoriteActivities(
+          favoriteActivities.filter(id => id !== activityId)
+        )
+
+        await removeFavorite(activityId, token)
+
+      } else {
+
+        // Optimistically add to UI first
+        setFavoriteActivities([
+          ...favoriteActivities,
+          activityId,
+        ])
+
+        await addFavorite(activityId, token)
+      }
+
+    } catch (error) {
+
+      console.error(error)
+
+      // Restore previous state if request fails
+      setFavoriteActivities(previousFavorites)
+    }
+  }
 
   return (
     <div
@@ -73,17 +150,36 @@ export default function ActivitiesPage() {
           <p>No activities found.</p>
         ) : (
           filteredActivities.map(activity => (
-            <div
+            <Card
               key={activity.id}
+              padding="md"
+              shadow="sm"
               style={{
-                border: '1px solid var(--color-border)',
-                borderRadius: '12px',
-                padding: '20px',
-                background: 'var(--color-surface-raised)',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+                position: 'relative',
               }}
             >
               {/* Activity title */}
+              {/* Heart-button */}
+              <button
+                onClick={() => handleToggleFavorite(activity.id)}
+
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '1.5rem',
+                  color: favoriteActivities.includes(activity.id)
+                    ? '#c0392b'
+                    : '#999',
+                }}
+              >
+                {favoriteActivities.includes(activity.id)
+                  ? '♥'
+                  : '♡'}
+              </button>
               <h2 style={{ marginBottom: '8px' }}>
                 {activity.name}
               </h2>
@@ -125,7 +221,7 @@ export default function ActivitiesPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </Card>
           ))
         )}
       </div>
