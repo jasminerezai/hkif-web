@@ -70,7 +70,7 @@ export class READ {
         const formatSched: ScheduleDto[] = [];
         schedule.forEach(el => {
             let leader: any = el.activity.leaders ?? [];
-            leader = Array.isArray(leader) ? leader.map((el: { profile: any; }) => el.profile) : [];
+            leader = Array.isArray(leader) ? leader.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
             (el.activity as any).leaders = undefined;
             formatSched.push({
                 id: el.id,
@@ -132,7 +132,7 @@ export class READ {
             }
         })
         //unsure about the satisfies keyword here: satisfies ActivityDto[]
-        return favorites.map(a => a.activity);
+        return favorites.map((a: { activity: ActivityDto }) => a.activity);
     }
 
     /**
@@ -155,7 +155,7 @@ export class READ {
                 }
             }
         });
-        return participants?.participations.map(el => el.profile);
+        return participants?.participations.map((el: { profile: Profile }) => el.profile);
     }
 
     // all activities updated after a given timestamp
@@ -198,7 +198,7 @@ export class READ {
             }
         })
         if (profilesFavorited) {
-            return profilesFavorited.favorites.map(el => el.profile);
+            return profilesFavorited.favorites.map((el: { profile: Profile }) => el.profile);
         } else {
             return [];
         }
