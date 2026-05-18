@@ -43,3 +43,7 @@ export type { ScheduleDto } from './schedule.types.js';
 export type {
   FavoriteCreateDelete
 } from './favorites.types.js';
+
+export type {
+  ProfileDto
+} from './profile.types.js'

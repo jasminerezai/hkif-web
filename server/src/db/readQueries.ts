@@ -1,7 +1,8 @@
 import { prisma } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
 import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
-import { ScheduleDto, ActivityDto } from '../types/index.js';
+import {ScheduleDto, ActivityDto, ProfileDto} from '../types/index.js';
+import {ApiError} from "../utils/ApiError.js";
 export class READ {
     /**
  * returns user based of their unique email
@@ -113,7 +114,7 @@ export class READ {
 
     /**
      * @param profileId --> requires to be logged-in, i.e. we need an account
-     * @return Promise<ActivityTemplate[]>
+     * @return Promise<ActivityDto[]>
      *     **FAIL**
      *     --> is empty if the profile doesn't have favorite activities
      *     **SUCCESS**
@@ -201,6 +202,108 @@ export class READ {
             return profilesFavorited.favorites.map((el: { profile: Profile }) => el.profile);
         } else {
             return [];
+        }
+    }
+
+    static async activitiesParticipatedBy(profileId: string): Promise<ScheduleDto[]> {
+        // const schedule = await prisma.participationLog.findMany({
+        //     where: {scheduleId},
+        //     select: {
+        //         schedule: {
+        //             include: {
+        //
+        //             }
+        //         }
+        //     }
+        // })
+        const test = await prisma.participationLog.findMany({
+            where: {profileId},
+            select: {
+                schedule: {
+                    include: {
+                        activity: {
+                            include: {
+                                leaders: {
+                                    select: {
+                                        profile: {
+                                            select: {
+                                                id: true,
+                                                profileName: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        const formatSched: ScheduleDto[] = [];
+        test.forEach( el => {
+            let leaders: any = el.schedule.activity.leaders ?? []; //{profile: Pick<Profile, 'id' | 'profileName'>}[]
+            // leaders = leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile);
+            leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
+            (el.schedule.activity as any).leaders = undefined;
+            formatSched.push({
+                id: el.schedule.id,
+                activityId: el.schedule.activityId,
+                createdAt: el.schedule.createdAt,
+                updatedAt: el.schedule.updatedAt,
+                startAt: el.schedule.startAt,
+                endAt: el.schedule.endAt,
+                status: el.schedule.status,
+                activity: el.schedule.activity,
+                leaders: leaders
+            } satisfies ScheduleDto)
+        })
+
+        return formatSched;
+    }
+    /*
+    activity: {
+                            include: {
+                                leaders: {
+                                    select: {
+                                        profile: {
+                                            select: {
+                                                id: true,
+                                                profileName: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+     */
+
+    static async fullProfile(activityId: string): Promise<ProfileDto> {
+        const profile = await prisma.profile.findUnique({
+            where: {id: activityId},
+            select: {
+                id: true,
+                profileName: true,
+                email: true,
+                role: true
+            }
+        })
+        if(!profile){
+            throw ApiError.badRequest("Invalid Id")
+        }
+        else{
+            const favorites: ActivityDto[] = await this.activitiesFavoritedBy(profile.id);
+            const participation: ScheduleDto[] = await this.activitiesParticipatedBy(profile.id);
+
+
+            const dto = {
+                email: profile.email,
+                profileName: profile.profileName,
+                role: profile.role,
+                favorites: favorites,
+                participations: participation
+            } satisfies ProfileDto
+
+            return dto;
         }
     }
 }
