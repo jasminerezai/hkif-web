@@ -95,7 +95,7 @@ export class CREATE {
                 data: { profileId, scheduleId }
             })
 
-            return tx.participationLog.count({ where: { scheduleId } })
+            return await tx.participationLog.count({ where: { scheduleId } })
         })
     }
 }
