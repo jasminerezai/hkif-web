@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Card from '../components/ui/Card.jsx'
@@ -17,17 +17,16 @@ export default function ActivityDetailPage() {
   useEffect(() => {
     async function loadActivity() {
       try {
-        const response = await fetch('/api/activities')
+        const headers = {}
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+        const response = await fetch(`/api/activities/${id}`, { headers })
         if (!response.ok) {
           throw new Error('Failed to fetch activity details')
         }
         const result = await response.json()
-        const found = result.data.find(act => act.id === id)
-        if (!found) {
-          setError('Activity not found')
-        } else {
-          setActivity(found)
-        }
+        setActivity(result.data)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -35,14 +34,17 @@ export default function ActivityDetailPage() {
       }
     }
     loadActivity()
-  }, [id])
+  }, [id, token])
 
   // ── Determine if user is a leader/admin for this activity ────
-  const isLeader = isAuthenticated && (
-    user.role === 'ADMIN' ||
-    user.role === 'BOARD_MEMBER' ||
-    (user.role === 'LEADER' && activity?.leaders?.some(l => l.profileId === user.id))
-  )
+  const isLeader = useMemo(() => {
+    if (!isAuthenticated || !activity) return false
+    return (
+      user.role === 'ADMIN' ||
+      user.role === 'BOARD_MEMBER' ||
+      (user.role === 'LEADER' && activity.leaders?.some(l => l.profileId === user.id))
+    )
+  }, [isAuthenticated, user, activity])
 
   // ── Fetch Attendee List (Leaders/Admins only) ────────────────
   useEffect(() => {
@@ -106,7 +108,7 @@ export default function ActivityDetailPage() {
             </p>
           </div>
           {/* Action buttons if logged in */}
-          {isAuthenticated && (user.role === 'ADMIN' || user.role === 'BOARD_MEMBER' || (user.role === 'LEADER' && activity.leaders?.some(l => l.profileId === user.id))) && (
+          {isAuthenticated && (user.role === 'ADMIN' || user.role === 'BOARD_MEMBER') && (
             <Button as={Link} to={`/activities/${activity.id}/edit`} variant="outline" size="sm">
               Edit Activity
             </Button>

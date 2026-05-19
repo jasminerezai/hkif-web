@@ -320,3 +320,17 @@ export const getActivityParticipants = asyncHandler(async (
   })
 })
 
+export const getActivityById = asyncHandler(async (
+  req: Request<{ activityId: string }>,
+  res: Response<ApiResponse<any>>
+) => {
+  const { activityId } = req.params
+  if (!isUUID(activityId)) {
+    throw ApiError.badRequest('Invalid activityId format')
+  }
+  const activity = await READ.activityById(activityId)
+  if (!activity) throw ApiError.notFound('Activity not found')
+  res.status(200).json({ status: 'success', data: activity })
+})
+
+

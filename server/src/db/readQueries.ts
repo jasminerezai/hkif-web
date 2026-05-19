@@ -1,6 +1,6 @@
 import { prisma } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
-import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
+import { Profile } from "../generated/prisma/index.js";
 import { ScheduleDto, ActivityDto } from '../types/index.js';
 import { formatSchedule } from "./utils.js";
 export class READ {
@@ -142,9 +142,13 @@ export class READ {
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
 
-    static async activityById(activityId: string): Promise<ActivityTemplate | null> {
+    static async activityById(activityId: string) {
         const activity = await prisma.activityTemplate.findUnique({
-            where: { id: activityId }
+            where: { id: activityId },
+            include: {
+                timeSlots: true,
+                leaders: true
+            }
         });
         return activity;
     }
