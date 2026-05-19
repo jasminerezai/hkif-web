@@ -1,5 +1,6 @@
-import {Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto} from "../types/index.js";
+import { Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto } from "../types/index.js";
 import { prisma, ActivityStatus } from "./prisma.js";
+import { ApiError } from "../utils/ApiError.js";
 /*
 CREATE Queries
     create new profile
@@ -11,11 +12,11 @@ CREATE Queries
  */
 
 
-export class CREATE{
+export class CREATE {
 
     // adding favorites
-    static async newFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto>{
-        const {activity} = await prisma.favorite.create({
+    static async newFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto> {
+        const { activity } = await prisma.favorite.create({
             data: {
                 profileId: ids.profileId,
                 activityId: ids.activityId
@@ -107,5 +108,38 @@ export class CREATE{
             activity: schedule.activity,
             leaders
         } satisfies ScheduleDto;
+    }
+
+    static async registerParticipation(profileId: string, scheduleId: string, activityId: string): Promise<number> {
+        return await prisma.$transaction(async (tx) => {
+            // Check schedule exists and belongs to this activity
+            const schedule = await tx.schedule.findUnique({
+                where: { id: scheduleId },
+                include: { activity: true }
+            })
+            if (!schedule) throw ApiError.notFound('Schedule not found')
+            if (schedule.activityId !== activityId) throw ApiError.badRequest('Schedule does not belong to this activity')
+
+            // Check capacity
+            if (schedule.activity.maxCapacity !== null) {
+                const count = await tx.participationLog.count({ where: { scheduleId } })
+                if (count >= schedule.activity.maxCapacity) {
+                    throw ApiError.conflict('Activity is full')
+                }
+            }
+
+            // Check not already registered
+            const existing = await tx.participationLog.findUnique({
+                where: { profileId_scheduleId: { profileId, scheduleId } }
+            })
+            if (existing) throw ApiError.conflict('Already registered for this activity')
+
+            await tx.participationLog.create({
+                data: { profileId, scheduleId }
+            })
+
+            return await tx.participationLog.count({ where: { scheduleId } })
+        })
+
     }
 }
