@@ -4,7 +4,6 @@ import {asyncHandler} from "../middleware/asyncHandler.js";
 import {READ, CREATE, DELETE} from '../db/queries.js';
 import { CreateFavoriteSchema, DeleteFavoriteSchema } from "../validators/index.js";
 import { ApiResponse, FavoriteCreateDelete, ActivityDto, ProfileDto } from "../types/index.js";
-import { IdSchema } from "../validators/profile.validator.js";
 
 const getFavorites = asyncHandler(
     async (req: Request, res: Response<ApiResponse<ActivityDto[]>>) => {
@@ -41,23 +40,17 @@ const deleteFavorites = asyncHandler(
 
 const getFullProfile = asyncHandler(
     async (req: Request, res: Response<ApiResponse<ProfileDto> > ) => {
-        const isValidId = IdSchema.safeParse(req.user.id);
-        if(!isValidId.success){
-            throw ApiError.badRequest(JSON.stringify(isValidId.error))
+        let fullProfile: ProfileDto;
+        try{
+            fullProfile = await READ.fullProfile(req.user.id);
+        } catch (error){
+            throw ApiError.internal(`Something went wrong: ${error}`)
+        }
+        if(fullProfile){
+            res.status(200).json({status: "success", data: fullProfile});
         }
         else{
-            let fullProfile: ProfileDto;
-            try{
-                fullProfile = await READ.fullProfile(req.user.id);
-            } catch (error){
-                throw ApiError.internal(`Something went wrong: ${error}`)
-            }
-            if(fullProfile){
-                res.status(200).json({status: "success", data: fullProfile});
-            }
-            else{
-                throw ApiError.badRequest(`Couldn't find the profile: ${req.user.id}`)
-            }
+            throw ApiError.badRequest(`Couldn't find the profile: ${req.user.id}`)
         }
     }
 )

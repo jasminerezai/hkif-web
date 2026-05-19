@@ -69,6 +69,7 @@ export class READ {
         });
 
         const formatSched: ScheduleDto[] = [];
+        // utils function in main branch, pull once input validation has been merged
         schedule.forEach(el => {
             let leader: any = el.activity.leaders ?? [];
             leader = Array.isArray(leader) ? leader.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
@@ -206,16 +207,6 @@ export class READ {
     }
 
     static async activitiesParticipatedBy(profileId: string): Promise<ScheduleDto[]> {
-        // const schedule = await prisma.participationLog.findMany({
-        //     where: {scheduleId},
-        //     select: {
-        //         schedule: {
-        //             include: {
-        //
-        //             }
-        //         }
-        //     }
-        // })
         const test = await prisma.participationLog.findMany({
             where: {profileId},
             select: {
@@ -277,14 +268,42 @@ export class READ {
                         }
      */
 
-    static async fullProfile(activityId: string): Promise<ProfileDto> {
+    static async fullProfile(profileId: string): Promise<ProfileDto> {
         const profile = await prisma.profile.findUnique({
-            where: {id: activityId},
+            where: {id: profileId},
             select: {
                 id: true,
                 profileName: true,
                 email: true,
-                role: true
+                role: true,
+                favorites: {
+                    include: {
+                        activity: {
+                            include: {
+                                timeSlots: true,
+                                leaders: true
+                            }
+                        }
+                    }
+                },
+                participationLogs: {
+                    include: {
+                        activity: {
+                            include: {
+                                leaders: {
+                                    select: {
+                                        profile: {
+                                            select: {
+                                                id: true,
+                                                profileName: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         })
         if(!profile){
