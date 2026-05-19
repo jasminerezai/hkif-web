@@ -34,9 +34,12 @@ export type {
   UserDto,
   AuthResponseDto,
   MeResponseDto,
+} from './auth.types.js';
+
+export{
   userInputLogin,
   userInputRegister,
-} from './auth.types.js';
+} from '../validators/auth.validation.js';
 
 export type {
   UpdateScheduleStatusBody,
@@ -50,3 +53,7 @@ export type { ScheduleDto } from './schedule.types.js';
 export type {
   FavoriteCreateDelete
 } from './favorites.types.js';
+
+export type {
+  zodError
+} from './zod.types.js'

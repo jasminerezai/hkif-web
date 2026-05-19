@@ -4,6 +4,7 @@ export {
   UpdateActivityGeneralSchema,
   UpdateActivityURLSchema,
   TimeSlotSchema,
+  StatusValidationSchema,
 } from "./activity.validator.js";
 export {
   CreateFavoriteSchema,
@@ -24,3 +25,8 @@ export {
   IdSchema,
   isUUID,
 } from './idSchema.validator.js'
+
+export {
+  ScheduleDateSchema,
+  ScheduleBoolWeekSchema
+} from './schedule.validator.js'
