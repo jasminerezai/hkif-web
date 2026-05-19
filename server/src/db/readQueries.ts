@@ -2,6 +2,7 @@ import { prisma } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
 import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
 import { ScheduleDto, ActivityDto } from '../types/index.js';
+import { formatSchedule } from "./utils.js";
 export class READ {
     /**
  * returns user based of their unique email
@@ -35,10 +36,9 @@ export class READ {
      *      **SUCCESS** --> array filled with ScheduleDto objects
      *      **FAIL** --> empty array
      */
-    static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {//: Promise<ScheduleDto[]>
+    static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {
         const { startDay, endDay } = startAndEndOfWeek(date);
-        // PART B - QUERY
-        // let schedule: Schedule;
+        
         const schedule = await prisma.schedule.findMany({
             where: {
                 AND: [
@@ -67,26 +67,7 @@ export class READ {
             }
         });
 
-        const formatSched: ScheduleDto[] = [];
-        schedule.forEach(el => {
-            let leader: any = el.activity.leaders ?? [];
-            leader = Array.isArray(leader) ? leader.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
-            (el.activity as any).leaders = undefined;
-            formatSched.push({
-                id: el.id,
-                activityId: el.activityId,
-                startAt: el.startAt,
-                endAt: el.endAt,
-                status: el.status,
-                createdAt: el.createdAt,
-                updatedAt: el.updatedAt,
-                activity: el.activity,
-                leaders: leader
-            } satisfies ScheduleDto)
-        })
-
-
-        return formatSched;
+        return schedule.map(formatSchedule);
     }
 
 
@@ -203,4 +184,20 @@ export class READ {
             return [];
         }
     }
+
+    static async participantCount(scheduleId: string): Promise<number> {
+        return prisma.participationLog.count({
+            where: { scheduleId }
+        })
+
+    }
+
+    static async isParticipating(profileId: string, scheduleId: string): Promise<boolean> {
+        const record = await prisma.participationLog.findUnique({
+            where: { profileId_scheduleId: { profileId, scheduleId } }
+        });
+        return record !== null;
+    }
+
+
 }
