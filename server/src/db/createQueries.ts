@@ -1,6 +1,7 @@
-import { Activity, FavoriteCreateDelete, ActivityDto } from "../types/index.js";
-import { prisma } from "./prisma.js";
+import { Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto } from "../types/index.js";
+import { prisma, ActivityStatus } from "./prisma.js";
 import { ApiError } from "../utils/ApiError.js";
+import { formatSchedule } from "./utils.js";
 /*
 CREATE Queries
     create new profile
@@ -67,6 +68,53 @@ export class CREATE {
         return activity;
     }
 
+    static async newSchedule(data: {
+        activityId: string;
+        startAt: Date;
+        endAt?: Date | null;
+        status?: ActivityStatus;
+    }): Promise<ScheduleDto> {
+        let finalStatus = data.status;
+
+        if (!finalStatus) {
+            const activity = await prisma.activityTemplate.findUnique({
+                where: { id: data.activityId },
+                select: { defaultStatus: true }
+            });
+            if (!activity) {
+                throw ApiError.notFound('Activity not found');
+            }
+            finalStatus = activity.defaultStatus;
+        }
+
+        const schedule = await prisma.schedule.create({
+            data: {
+                activityId: data.activityId,
+                startAt: data.startAt,
+                endAt: data.endAt,
+                status: finalStatus
+            },
+            include: {
+                activity: {
+                    include: {
+                        leaders: {
+                            select: {
+                                profile: {
+                                    select: {
+                                        id: true,
+                                        profileName: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return formatSchedule(schedule);
+    }
+
     static async registerParticipation(profileId: string, scheduleId: string, activityId: string): Promise<number> {
         return await prisma.$transaction(async (tx) => {
             // Check schedule exists and belongs to this activity
@@ -97,5 +145,6 @@ export class CREATE {
 
             return await tx.participationLog.count({ where: { scheduleId } })
         })
+
     }
 }

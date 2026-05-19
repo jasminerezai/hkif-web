@@ -10,3 +10,8 @@ export {
   DeleteFavoriteSchema,
   isUUID,
 } from './favorites.validator.js';
+export {
+  CreateScheduleSchema,
+  UpdateScheduleSchema,
+  ScheduleIdParamSchema,
+} from './schedule.validator.js';
