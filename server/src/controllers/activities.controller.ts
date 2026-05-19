@@ -257,3 +257,66 @@ export const unregisterParticipation = asyncHandler(async (
 
   res.status(200).json({ status: 'success', data: { participantCount } })
 })
+
+export const getActivityParticipants = asyncHandler(async (
+  req: Request<{ activityId: string }>,
+  res: Response<ApiResponse<any>>
+) => {
+  const { activityId } = req.params
+  const { id: requesterId, role } = req.user!
+
+  if (!isUUID(activityId)) {
+    throw ApiError.badRequest('Invalid activityId format')
+  }
+
+  // 1. Verify existence + leadership/admin access
+  const activity = await assertActivityAccess(activityId, requesterId, role)
+
+  // 2. Fetch schedules and their participants
+  const schedules = await prisma.schedule.findMany({
+    where: { activityId },
+    select: {
+      id: true,
+      startAt: true,
+      endAt: true,
+      status: true,
+      participations: {
+        select: {
+          profile: {
+            select: {
+              id: true,
+              profileName: true,
+              email: true,
+            }
+          }
+        }
+      }
+    },
+    orderBy: {
+      startAt: 'asc'
+    }
+  })
+
+  // 3. Format response
+  const formattedSchedules = schedules.map(s => ({
+    scheduleId: s.id,
+    startAt: s.startAt,
+    endAt: s.endAt,
+    status: s.status,
+    participants: s.participations.map(p => ({
+      id: p.profile.id,
+      profileName: p.profile.profileName || 'No Name',
+      email: p.profile.email
+    }))
+  }))
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      activityId: activity.id,
+      activityName: activity.name,
+      schedules: formattedSchedules
+    }
+  })
+})
+

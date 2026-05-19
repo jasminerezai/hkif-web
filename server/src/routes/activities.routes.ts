@@ -6,7 +6,8 @@ import {
   updateActivity,
   deleteActivity,
   registerParticipation,
-  unregisterParticipation
+  unregisterParticipation,
+  getActivityParticipants
 } from '../controllers/activities.controller.js';
 import { authMiddleware, restrictToMinRole } from '../middleware/auth.js';
 import { ProfileRole } from '../db/prisma.js';
@@ -57,6 +58,15 @@ router.delete(
   restrictToMinRole(ProfileRole.LEADER),
   deleteActivity
 );
+
+// GET /activities/:activityId/participants --- leader only --> get registered participants
+router.get(
+  '/:activityId/participants',
+  authMiddleware,
+  restrictToMinRole(ProfileRole.LEADER),
+  getActivityParticipants
+);
+
 
 router.post(
   '/:activityId/schedules/:scheduleId/participate',
