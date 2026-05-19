@@ -9,7 +9,9 @@ import {
     parseZodError,
     UpdateActivityGeneralSchema,
     UpdateActivityURLSchema,
-    StatusValidationSchema, IdSchema,
+    StatusValidationSchema,
+    IdSchema,
+    isUUID
 } from "../validators/index.js";
 import { DELETE, READ, UPDATE, CREATE } from "../db/queries.js";
 import {ZodError} from "zod";
@@ -228,3 +230,40 @@ export const getActivities = asyncHandler(
     });
   }
 );
+
+
+export const registerParticipation = asyncHandler(async (
+  req: Request<{ activityId: string; scheduleId: string }>,
+  res: Response<ApiResponse<{ participantCount: number }>>
+) => {
+  const { activityId, scheduleId } = req.params
+  const profileId = req.user!.id
+
+  if (!isUUID(activityId) || !isUUID(scheduleId)) {
+    throw ApiError.badRequest('Invalid activityId or scheduleId format')
+  }
+
+  const participantCount = await CREATE.registerParticipation(profileId, scheduleId, activityId)
+
+  res.status(201).json({ status: 'success', data: { participantCount } })
+})
+
+export const unregisterParticipation = asyncHandler(async (
+  req: Request<{ activityId: string; scheduleId: string }>,
+  res: Response<ApiResponse<{ participantCount: number }>>
+) => {
+  const { activityId, scheduleId } = req.params
+  const profileId = req.user!.id
+
+  if (!isUUID(activityId) || !isUUID(scheduleId)) {
+    throw ApiError.badRequest('Invalid activityId or scheduleId format')
+  }
+
+  const existing = await READ.isParticipating(profileId, scheduleId)
+  if (!existing) throw ApiError.notFound('Not registered for this activity')
+
+  await DELETE.unregisterParticipation(profileId, scheduleId)
+  const participantCount = await READ.participantCount(scheduleId)
+
+  res.status(200).json({ status: 'success', data: { participantCount } })
+})

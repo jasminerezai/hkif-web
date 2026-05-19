@@ -4,6 +4,10 @@ import Button from '../components/ui/Button.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
+// Central API base URL — prepends the backend origin in production
+// while staying empty in dev so the vite proxy keeps working.
+import { API_BASE_URL } from '../services/apiConfig.js'
+
 // ─────────────────────────────────────────────────────────────
 // SchedulePage
 //
@@ -113,7 +117,7 @@ useEffect(() => {
     try {
 
       const response = await fetch(
-        '/api/schedules/current'
+        `${API_BASE_URL}/api/schedules/current`
       )
 
       const {data} = await response.json()

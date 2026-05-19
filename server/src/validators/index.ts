@@ -28,5 +28,8 @@ export {
 
 export {
   ScheduleDateSchema,
-  ScheduleBoolWeekSchema
+  ScheduleBoolWeekSchema,
+  CreateScheduleSchema,
+  UpdateScheduleSchema,
+  ScheduleIdParamSchema,
 } from './schedule.validator.js'
