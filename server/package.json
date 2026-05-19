@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate --no-engine && tsc",
     "postbuild": "cp -r src/generated/prisma/. dist/generated/prisma/",
     "start": "node dist/server.js"
   },
