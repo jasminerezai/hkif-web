@@ -19,7 +19,7 @@ const newFavorites = asyncHandler(
     try{
         ids = CreateFavoriteSchema.parse({profileId: req.user.id, activityId: req.params.activityId})
     } catch(error){
-        if(error instanceof ZodError) throw ApiError.badRequest(`Invalid ids: ${parseZodError(error)}`)
+        if(error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)));
         else throw ApiError.internal(`Something went wrong: ${error}`)
     }
         const newFavorite: ActivityDto = await CREATE.newFavorite(ids);

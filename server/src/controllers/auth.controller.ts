@@ -3,7 +3,7 @@ import { register, login } from '../services/auth.service.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import {ApiResponse, AuthResponseDto, MeResponseDto, userInputLogin, userInputRegister} from '../types/index.js';
-import {authLoginSchema, authRegisterSchema, parseZodError} from "../validators/index.js";
+import { authLoginSchema, authRegisterSchema } from "../validators/index.js";
 import {ZodError} from "zod";
 
 /**
@@ -23,7 +23,7 @@ export const registerHandler = asyncHandler(async (
     newUser = authRegisterSchema.parse(req.body);
   } catch (error){
     if(error instanceof ZodError){
-      throw ApiError.badRequest(JSON.stringify(parseZodError(error)))
+      throw ApiError.badRequest('Invalid email or password format.')
     }
     else{
       throw ApiError.internal(`Something went wrong: ${error}`)
@@ -44,18 +44,16 @@ export const loginHandler = asyncHandler(async (
   try {
     data = authLoginSchema.parse(req.body)
   } catch(error){
-    if(error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)))
+    if(error instanceof ZodError) throw ApiError.badRequest('Invalid email or password format.')
     else throw ApiError.internal(`Something went wrong: ${error}`)
   }
 
-    // const {email, password} = req.body;
     const result = await login(data.email, data.password);
 
     res.status(200).json({
       status: 'success',
       data: result,
     });
-  // }
 });
 
 export const getMeHandler = asyncHandler(async (
