@@ -79,97 +79,186 @@ export default function ProfilePage() {
   }
 
   return (
-    <div
+  <div
+    style={{
+      padding: 'var(--space-6)',
+      maxWidth: '1100px',
+      margin: '0 auto',
+    }}
+  >
+
+    {/* Hero / User Card */}
+    <Card
+      padding="lg"
+      shadow="md"
       style={{
-        padding: 'var(--space-6)',
-        maxWidth: '900px',
-        margin: '0 auto',
+        marginBottom: '32px',
+        background: 'var(--color-primary-light)',
+        border: '1px solid var(--color-border)',
       }}
     >
-
-      {/* Page title */}
-      <h1
+      <div
         style={{
-          fontSize: '2rem',
-          marginBottom: 'var(--space-6)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '24px',
         }}
       >
-        Profile
-      </h1>
 
-      {/* User info */}
-      <Card
-        padding="md"
-        shadow="sm"
-        style={{ marginBottom: '24px' }}
+        <div>
+          <h1
+            style={{
+              fontSize: '2.5rem',
+              marginBottom: '8px',
+            }}
+          >
+            {user?.name || 'Profile'}
+          </h1>
+
+          <p
+            style={{
+              color: 'var(--color-text-muted)',
+              marginBottom: '12px',
+            }}
+          >
+            {user?.email}
+          </p>
+
+          <span
+            style={{
+              display: 'inline-block',
+              padding: '6px 12px',
+              borderRadius: '999px',
+              background: 'var(--color-primary)',
+              color: 'white',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              letterSpacing: '0.5px',
+            }}
+          >
+            {user?.role}
+          </span>
+        </div>
+
+        <div
+          style={{
+            minWidth: '180px',
+          }}
+        >
+        </div>
+
+      </div>
+    </Card>
+
+    {/* Upcoming Activities */}
+    <div style={{ marginBottom: '32px' }}>
+
+      <h2
+        style={{
+          marginBottom: '16px',
+          fontSize: '1.5rem',
+        }}
       >
-        <h2>User Information</h2>
+        Upcoming Activities
+      </h2>
 
-        <p>
-          <strong>Name:</strong> {user?.name}
-        </p>
-
-        <p>
-          <strong>Email:</strong> {user?.email}
-        </p>
-
-        <p>
-          <strong>Role:</strong> {user?.role}
-        </p>
-      </Card>
-
-      {/* Upcoming activities */}
-      <Card
-        padding="md"
-        shadow="sm"
-        style={{ marginBottom: '24px' }}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '16px',
+        }}
       >
-        <h2>Upcoming Activities</h2>
 
-        {upcomingActivities.length === 0 ? (
-          <p>No upcoming activities.</p>
-        ) : (
-          upcomingActivities.map(activity => (
-            <div
-              key={activity.id}
-              style={{ marginBottom: '12px' }}
-            >
-              <p>
-                <strong>{activity.name}</strong>
-              </p>
-
-              <p>{activity.date}</p>
-            </div>
-          ))
-        )}
-      </Card>
-
-      {/* Favorite activities */}
-      <Card
-        padding="md"
-        shadow="sm"
-      >
-        <h2>Favorite Activities</h2>
-
-        {favoriteActivities.length === 0 ? (
-          <p>No favorites saved.</p>
-        ) : (
-          favoriteActivities.map(activity => (
-            <div
-              key={activity.id}
+        {upcomingActivities.map(activity => (
+          <Card
+            key={activity.id}
+            padding="md"
+            shadow="sm"
+          >
+            <h3
               style={{
-                marginBottom: '20px',
-                paddingBottom: '12px',
-                borderBottom: '1px solid var(--color-border)',
+                marginBottom: '8px',
               }}
             >
-              <h3>{activity.name}</h3>
+              {activity.name}
+            </h3>
 
-              <p>{activity.description}</p>
+            <p
+              style={{
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              {activity.date}
+            </p>
+          </Card>
+        ))}
 
-              <p>
-                <strong>Location:</strong>{' '}
-                {activity.location}
+      </div>
+    </div>
+
+    {/* Favorite Activities */}
+    <div>
+
+      <h2
+        style={{
+          marginBottom: '16px',
+          fontSize: '1.5rem',
+        }}
+      >
+        Favorite Activities
+      </h2>
+
+      {favoriteActivities.length === 0 ? (
+
+        <Card padding="md">
+          <p>No favorites saved yet.</p>
+        </Card>
+
+      ) : (
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '20px',
+          }}
+        >
+
+          {favoriteActivities.map(activity => (
+
+            <Card
+              key={activity.id}
+              padding="md"
+              shadow="sm"
+            >
+              <h3
+                style={{
+                  marginBottom: '10px',
+                }}
+              >
+                {activity.name}
+              </h3>
+
+              <p
+                style={{
+                  color: 'var(--color-text-muted)',
+                  marginBottom: '14px',
+                  lineHeight: 1.5,
+                }}
+              >
+                {activity.description}
+              </p>
+
+              <p
+                style={{
+                  marginBottom: '16px',
+                  fontSize: '0.9rem',
+                }}
+              >
+                <strong>Location:</strong> {activity.location}
               </p>
 
               <Button
@@ -180,10 +269,16 @@ export default function ProfilePage() {
               >
                 Remove Favorite
               </Button>
-            </div>
-          ))
-        )}
-      </Card>
+            </Card>
+
+          ))}
+
+        </div>
+
+      )}
+
     </div>
-  )
+
+  </div>
+)
 }
