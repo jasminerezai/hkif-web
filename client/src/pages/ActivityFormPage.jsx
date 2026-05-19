@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { API_BASE_URL } from '../services/apiConfig.js'
 import { Button, Input, Card } from '../components/ui'
 
 const WEEKDAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
@@ -31,7 +32,7 @@ export default function ActivityFormPage() {
   // Load existing activity in edit mode
   useEffect(() => {
     if (!isEditMode) return
-    fetch(`/api/activities/${activityId}`, {
+    fetch(`${API_BASE_URL}/api/activities/${activityId}`, {
       headers: { ...getAuthHeader() }
     })
       .then(res => res.json())
@@ -120,8 +121,8 @@ export default function ActivityFormPage() {
 
     try {
       const url = isEditMode
-        ? `/api/activities/${activityId}`
-        : '/api/activities'
+        ? `${API_BASE_URL}/api/activities/${activityId}`
+        : `${API_BASE_URL}/api/activities`
 
       const res = await fetch(url, {
         method: isEditMode ? 'PUT' : 'POST',

@@ -14,7 +14,12 @@
 // Never rely on the login/register response for name or email.
 // Never rely on localStorage for anything beyond token and {id, role}.
 
-const BASE = '/api/auth'
+import { API_BASE_URL } from './apiConfig.js'
+
+// Prefix every auth route with the backend origin.
+// In dev  API_BASE_URL is ''  → BASE === '/api/auth' → vite proxy handles it.
+// In prod API_BASE_URL is the deployed backend → BASE is the full URL.
+const BASE = `${API_BASE_URL}/api/auth`
 
 // ── loginRequest ──────────────────────────────────────────────
 // POST /api/auth/login
@@ -68,16 +73,12 @@ export async function registerRequest(email, password, name) {
 // GET /api/auth/me
 // Protected by authMiddleware — MUST send Bearer token.
 //
-// This is now the ONLY source of truth for the user's name and email.
-// The JWT payload only carries { id, role } so we cannot get
-// name/email from the token or from the login response directly.
-//
 // Called:
-//   1. After login/register — to get the full user object
+//   1. After login/register — to verify the session
 //   2. On page load — to rehydrate the session from a stored token
 //
-// Returns the full user object: { id, email, name, role }
-// Throws if the token is missing, expired, or the user no longer exists
+// Returns { id, role } — the live DB values via authMiddleware.
+// Throws if the token is missing, expired, or the user no longer exists.
 export async function getMeRequest(token) {
   const res = await fetch(`${BASE}/me`, {
     method:  'GET',
@@ -97,20 +98,8 @@ export async function getMeRequest(token) {
     throw new Error(json.error || 'Session expired. Please log in again.')
   }
 
-  // json.data = { user: { id, email, name, role } }
-  // getMeHandler in auth.controller.ts does:
-  //   res.json({ status: 'success', data: { user: req.user } })
-  // But req.user from authMiddleware is only { id, role } —
-  // the DB lookup in authMiddleware uses select: { id: true, role: true }
-  //
-  // WAIT: re-reading auth.controller.ts getMeHandler:
-  //   res.json({ status: 'success', data: { user: req.user } })
-  // and auth.middleware attaches: req.user = { id, role }
-  //
-  // So /me actually returns { id, role } not the full profile.
-  // The full profile (with name/email) comes from the login response.
-  // We use /me only for rehydration to verify the token is still valid
-  // and to get the current role (in case it changed since last login).
+  // json.data.user from auth.controller.ts getMeHandler.
+  // authMiddleware attaches req.user = { id, role } so /me returns those.
+  // Used to verify the token and refresh the live role.
   return json.data.user
-  // Returns { id, role } — the live DB values after middleware lookup
 }
