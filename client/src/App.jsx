@@ -8,6 +8,7 @@ import LoginPage    from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import ActivityFormPage from './pages/ActivityFormPage.jsx'
 import SchedulePage from './pages/SchedulePage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login.
@@ -103,7 +104,7 @@ function AppRoutes() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Placeholder title="Profile" />
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
