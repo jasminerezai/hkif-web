@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
+import ScheduleFilters from '../components/ScheduleFilters.jsx'
 
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { fetchFavorites } from '../services/FavoritesService.js'
 
 // ─────────────────────────────────────────────────────────────
 // SchedulePage
@@ -13,180 +15,292 @@ import { useAuth } from '../context/AuthContext.jsx'
 // - Weekly / Monthly toggle
 // - Calendar layout
 // - Activity cards inside days
+// - Filter bar: sport, day-of-week, favorites only (logged-in users)
 //
 // TEMP:
 // Uses mock data until backend integration is finished.
 // ─────────────────────────────────────────────────────────────
 
+// Mapping JS Date.getDay() (0=Sun..6=Sat) to the enum strings
+// used by the day-of-week filter. Kept module-level so we don't
+// rebuild it on every render.
+const WEEKDAY_BY_INDEX = [
+  'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY',
+  'THURSDAY', 'FRIDAY', 'SATURDAY',
+]
+
 export default function SchedulePage() {
 
   // ── View State ────────────────────────────────────────────
-    const [view, setView] = useState('weekly')
-    
-    const navigate = useNavigate()
+  const [view, setView] = useState('weekly')
 
-    const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
 
-    const [loading, setLoading] = useState(true)
+  const { isAuthenticated, token } = useAuth()
 
-    //This stores which activity IDs the user joined
-    const [attendingActivities, setAttendingActivities] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  // Activity IDs the user has joined (attendance, NOT favorites)
+  const [attendingActivities, setAttendingActivities] = useState([])
+
+  // ── Filter State ──────────────────────────────────────────
+  // 'ALL' = sentinel value meaning "no filter applied".
+  // Using a string instead of null keeps the <select> happy
+  // (a controlled <select value={null}> warns in React).
+  const [filterSport,         setFilterSport]         = useState('ALL')
+  const [filterDay,           setFilterDay]           = useState('ALL')
+  const [filterFavoritesOnly, setFilterFavoritesOnly] = useState(false)
+
+  // ── Favorites (logged-in users only) ──────────────────────
+  // Stores the user's favorited activity-template IDs.
+  // Used by the "Favorites only" filter to decide which
+  // schedule entries to keep.
+  const [favoriteIds, setFavoriteIds] = useState([])
 
   // ── Mock Activity Data ────────────────────────────────────
-const [activities, setActivities] = useState([])
+  const [activities, setActivities] = useState([])
 
-// TEMP fallback mock data 
-const mockActivities = [
-  {
-    id: 1,
-    title: 'Football Match',
-    sport: 'Football',
-    leader: 'Emma Svensson',
-    date: '2026-05-15',
-    time: '18:00',
-    location: 'Main Field',
-    availableSpots: 8,
-    cancelled: false,
-  },
-
-  {
-    id: 3,
-    title: 'Football Match',
-    sport: 'Football',
-    leader: 'Emma Svensson',
-    date: '2026-05-01',
-    time: '18:00',
-    location: 'Main Field',
-    availableSpots: 8,
-    cancelled: false,
-  },
-
-  {
-    id: 4,
-    title: 'Basketball Training',
-    sport: 'Basketball',
-    leader: 'John Eriksson',
-    date: '2026-05-14',
-    time: '16:30',
-    location: 'Gym Hall',
-    availableSpots: 2,
-    cancelled: true,
-  },
-
-  {
-    id: 5,
-    title: 'Football Match',
-    sport: 'Football',
-    leader: 'Emma Svensson',
-    date: '2026-05-14',
-    time: '18:00',
-    location: 'Gym Hall',
-    availableSpots: 8,
-    cancelled: false,
-    notes: 'Bring indoor shoes',
-  },
-
-  {
-    id: 6,
-    title: 'Basketball Training',
-    sport: 'Basketball',
-    leader: 'John Eriksson',
-    date: '2026-05-30',
-    time: '16:30',
-    location: 'Gym Hall',
-    availableSpots: 2,
-    cancelled: true,
-  },
-]
+  // TEMP fallback mock data
+  const mockActivities = [
+    {
+      id: 1,
+      title: 'Football Match',
+      sport: 'Football',
+      leader: 'Emma Svensson',
+      date: '2026-05-15',
+      time: '18:00',
+      location: 'Main Field',
+      availableSpots: 8,
+      cancelled: false,
+    },
+    {
+      id: 3,
+      title: 'Football Match',
+      sport: 'Football',
+      leader: 'Emma Svensson',
+      date: '2026-05-01',
+      time: '18:00',
+      location: 'Main Field',
+      availableSpots: 8,
+      cancelled: false,
+    },
+    {
+      id: 4,
+      title: 'Basketball Training',
+      sport: 'Basketball',
+      leader: 'John Eriksson',
+      date: '2026-05-14',
+      time: '16:30',
+      location: 'Gym Hall',
+      availableSpots: 2,
+      cancelled: true,
+    },
+    {
+      id: 5,
+      title: 'Football Match',
+      sport: 'Football',
+      leader: 'Emma Svensson',
+      date: '2026-05-14',
+      time: '18:00',
+      location: 'Gym Hall',
+      availableSpots: 8,
+      cancelled: false,
+      notes: 'Bring indoor shoes',
+    },
+    {
+      id: 6,
+      title: 'Basketball Training',
+      sport: 'Basketball',
+      leader: 'John Eriksson',
+      date: '2026-05-30',
+      time: '16:30',
+      location: 'Gym Hall',
+      availableSpots: 2,
+      cancelled: true,
+    },
+  ]
 
   // ── Current Date ──────────────────────────────────────────
-  
-    const today = new Date()
-    // Test for JUNE
-    //const today = new Date('2026-06-15')
-    
-// ── Fetch Current Schedule ───────────────────────────────
-useEffect(() => {
+  const today = new Date()
+  // Test for JUNE
+  //const today = new Date('2026-06-15')
 
-  async function fetchSchedule() {
+  // ── Fetch Current Schedule ───────────────────────────────
+  useEffect(() => {
 
-    try {
+    async function fetchSchedule() {
 
-      const response = await fetch(
-        '/api/schedules/current'
-      )
+      try {
 
-      const {data} = await response.json()
+        const response = await fetch('/api/schedules/current')
 
-      console.log('Schedule API:', data)
+        const { data } = await response.json()
 
-      // If backend returns schedule data
-      if (response.ok && Array.isArray(data)) {
+        console.log('Schedule API:', data)
 
-              // Transform backend format → frontend format
-        const formattedActivities = data.map(singleSchedule => ({
+        // If backend returns schedule data
+        if (response.ok && Array.isArray(data)) {
 
-          id: singleSchedule.id,
+          // Transform backend format → frontend format
+          const formattedActivities = data.map(singleSchedule => ({
 
-          activityId: singleSchedule.activityId,
+            id: singleSchedule.id,
 
-          title:
-            singleSchedule.activity?.name || 'Activity',
+            // activityId is the *template activity* id — the same
+            // ID that the favorites endpoint stores. We keep it
+            // so the "Favorites only" filter can match correctly.
+            activityId: singleSchedule.activityId,
 
-          sport:
-            singleSchedule.activity?.name || 'Sport',
+            title:
+              singleSchedule.activity?.name || 'Activity',
 
-          leader:
-            singleSchedule.leaders
-              ?.map(leader => leader.profileName || 'Leader')
-              .join(', ') || 'Leader',
+            sport:
+              singleSchedule.activity?.name || 'Sport',
 
-          date: (() => {
+            leader:
+              singleSchedule.leaders
+                ?.map(leader => leader.profileName || 'Leader')
+                .join(', ') || 'Leader',
 
-            const startDate = new Date(singleSchedule.startAt)
+            date: (() => {
 
-            return `${startDate.getFullYear()}-${
-              String(startDate.getMonth() + 1).padStart(2, '0')
-            }-${
-              String(startDate.getDate()).padStart(2, '0')
-            }`
+              const startDate = new Date(singleSchedule.startAt)
 
-          })(),
+              return `${startDate.getFullYear()}-${
+                String(startDate.getMonth() + 1).padStart(2, '0')
+              }-${
+                String(startDate.getDate()).padStart(2, '0')
+              }`
 
-          time: new Date(singleSchedule.startAt)
-            .toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
+            })(),
 
-          location:
-            singleSchedule.activity?.location || 'Unknown',
+            time: new Date(singleSchedule.startAt)
+              .toLocaleTimeString([], {
+                hour:   '2-digit',
+                minute: '2-digit',
+              }),
 
-          availableSpots:
-            singleSchedule.activity?.maxCapacity || 0,
+            location:
+              singleSchedule.activity?.location || 'Unknown',
 
-          cancelled:
-            singleSchedule.status === 'CANCELLED',
+            availableSpots:
+              singleSchedule.activity?.maxCapacity || 0,
 
-          notes:
-            singleSchedule.activity?.notes || '',
+            cancelled:
+              singleSchedule.status === 'CANCELLED',
 
-      }))
+            notes:
+              singleSchedule.activity?.notes || '',
 
-        setActivities(formattedActivities)
+          }))
+
+          setActivities(formattedActivities)
+        }
+
+      } catch (error) {
+
+        console.error('Failed to fetch schedule:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSchedule()
+
+  }, [])
+
+  // ── Fetch Favorites (logged-in users only) ───────────────
+  // Mirrors the pattern already used in ActivitiesPage so the
+  // behaviour is consistent across the app. If the user logs
+  // out we reset the list to [] so the favorites filter goes
+  // empty rather than holding stale data.
+  useEffect(() => {
+
+    async function loadFavorites() {
+
+      if (!isAuthenticated) {
+        setFavoriteIds([])
+        return
       }
 
-    } catch (error) {
-
-      console.error('Failed to fetch schedule:', error)
-    } finally {
-        setLoading(false)
+      try {
+        const result = await fetchFavorites(token)
+        const ids = result.data.map(activity => activity.id)
+        setFavoriteIds(ids)
+      } catch (error) {
+        console.error('Failed to fetch favorites:', error)
+      }
     }
-  }
 
-  fetchSchedule()
+    loadFavorites()
 
-}, [])
+  }, [isAuthenticated, token])
+
+  // ── Activity Source ──────────────────────────────────────
+  // Falls back to mock data while the backend is still being
+  // hooked up. Defined as a memo so downstream hooks have a
+  // stable reference between renders.
+  const displayedActivities = useMemo(() => (
+    activities.length > 0 ? activities : mockActivities
+  ), [activities])
+
+  // ── Derived: Unique Sport Types ──────────────────────────
+  // Auto-builds the sport dropdown options from whatever data
+  // is currently loaded. As the backend adds more sports the
+  // dropdown updates automatically — no hardcoded list to keep
+  // in sync.
+  const sportTypes = useMemo(() => {
+
+    const set = new Set()
+
+    displayedActivities.forEach(activity => {
+      if (activity.sport) {
+        set.add(activity.sport)
+      }
+    })
+
+    // Sorted alphabetically so the dropdown is predictable.
+    return Array.from(set).sort()
+
+  }, [displayedActivities])
+
+  // ── Derived: Filtered Activities ─────────────────────────
+  // Applies the sport + favorites filters here (these don't
+  // depend on the date being rendered, so we do them once and
+  // reuse the result for every calendar cell).
+  //
+  // The day-of-week filter is NOT applied here — it depends
+  // on the specific date of each calendar cell, so it lives
+  // inside getActivitiesForDay() below.
+  const filteredActivities = useMemo(() => {
+
+    return displayedActivities.filter(activity => {
+
+      // Sport filter
+      if (filterSport !== 'ALL' && activity.sport !== filterSport) {
+        return false
+      }
+
+      // Favorites filter
+      // Real schedule entries carry activity.activityId. Mock data
+      // doesn't, so we fall back to activity.id to avoid crashes
+      // while the backend is being wired up.
+      if (filterFavoritesOnly) {
+        const idToCheck = activity.activityId ?? activity.id
+        if (!favoriteIds.includes(idToCheck)) {
+          return false
+        }
+      }
+
+      return true
+    })
+
+  }, [
+    displayedActivities,
+    filterSport,
+    filterFavoritesOnly,
+    favoriteIds,
+  ])
 
   // ── Generate Calendar Days ────────────────────────────────
   const days = useMemo(() => {
@@ -196,39 +310,28 @@ useEffect(() => {
     if (view === 'weekly') {
 
       // Get Monday of current week
-        const current = new Date(today)
+      const current = new Date(today)
 
-        // Test for other months:
-        // new Date('2026-01-15') // January
-        // new Date('2026-06-15') // June
-        // new Date('2026-12-15') // December
-
-      const day = current.getDay()
-
+      const day  = current.getDay()
       const diff = current.getDate() - day + (day === 0 ? -6 : 1)
 
       current.setDate(diff)
 
-      // Create 7 days
       for (let i = 0; i < 7; i++) {
-
         const date = new Date(current)
-
         date.setDate(current.getDate() + i)
-
         result.push(date)
       }
 
     } else {
 
       // Monthly view
-      const year = today.getFullYear()
+      const year  = today.getFullYear()
       const month = today.getMonth()
 
       const daysInMonth = new Date(year, month + 1, 0).getDate()
 
       for (let i = 1; i <= daysInMonth; i++) {
-
         result.push(new Date(year, month, i))
       }
     }
@@ -240,58 +343,68 @@ useEffect(() => {
   // ── Helper: Activities For A Specific Day ────────────────
   function getActivitiesForDay(date) {
 
-      
-    //This uses local date & local timezone instead of UTC conversion
+    // Day-of-week filter: if set, only return activities for
+    // calendar cells that fall on the chosen weekday.
+    if (filterDay !== 'ALL') {
+      const weekdayName = WEEKDAY_BY_INDEX[date.getDay()]
+      if (weekdayName !== filterDay) {
+        return []
+      }
+    }
+
+    // Build YYYY-MM-DD from local-timezone parts (NOT UTC),
+    // matching the format we stored on each activity above.
     const dateString =
-  `${date.getFullYear()}-${
-    String(date.getMonth() + 1).padStart(2, '0')
-  }-${
-    String(date.getDate()).padStart(2, '0')
-  }`
+      `${date.getFullYear()}-${
+        String(date.getMonth() + 1).padStart(2, '0')
+      }-${
+        String(date.getDate()).padStart(2, '0')
+      }`
 
-      const displayedActivities =
-  activities.length > 0
-    ? activities
-    : mockActivities
-
-return displayedActivities.filter(
-  activity => activity.date === dateString
-)
-    //return activities.filter(activity => activity.date === dateString)
+    return filteredActivities.filter(
+      activity => activity.date === dateString
+    )
   }
 
-    if (loading) {
-        return (
-            <div style={{ padding: '48px' }}>
-            <p>Loading schedule...</p>
-            </div>
-        )
-        }
+  // ── Filter handlers ──────────────────────────────────────
+  function handleClearFilters() {
+    setFilterSport('ALL')
+    setFilterDay('ALL')
+    setFilterFavoritesOnly(false)
+  }
+
+  if (loading) {
+    return (
+      <div style={{ padding: '48px' }}>
+        <p>Loading schedule...</p>
+      </div>
+    )
+  }
 
   return (
     <div
       style={{
-        padding: 'var(--space-6)',
+        padding:  'var(--space-6)',
         maxWidth: '1400px',
-        margin: '0 auto',
+        margin:   '0 auto',
       }}
     >
 
       {/* Header */}
       <div
         style={{
-          display: 'flex',
+          display:        'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 'var(--space-6)',
-          flexWrap: 'wrap',
-          gap: '16px',
+          alignItems:     'center',
+          marginBottom:   'var(--space-6)',
+          flexWrap:       'wrap',
+          gap:            '16px',
         }}
       >
 
         <h1
           style={{
-            fontSize: '2.4rem',
+            fontSize:   '2.4rem',
             fontFamily: 'Georgia, serif',
           }}
         >
@@ -299,12 +412,7 @@ return displayedActivities.filter(
         </h1>
 
         {/* Weekly / Monthly Toggle */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '12px',
-          }}
-        >
+        <div style={{ display: 'flex', gap: '12px' }}>
 
           <Button
             variant={view === 'weekly' ? 'primary' : 'ghost'}
@@ -325,274 +433,255 @@ return displayedActivities.filter(
         </div>
       </div>
 
-{/* Month header, placed above the calendar */}
-          <h2
-  style={{
-    fontSize: '2rem',
-    fontWeight: 800,
-    letterSpacing: '4px',
-    marginBottom: '24px',
-  }}
->
-  {today.toLocaleDateString('en-US', {
-    month: 'long',
-  }).toUpperCase()}
-</h2>
+      {/* ── Filter bar ──────────────────────────────────────
+          Lives between the header and the month label so it
+          reads top-to-bottom: title → filters → calendar.
+      ──────────────────────────────────────────────────── */}
+      <ScheduleFilters
+        sportTypes={sportTypes}
+        filterSport={filterSport}
+        onFilterSportChange={setFilterSport}
+        filterDay={filterDay}
+        onFilterDayChange={setFilterDay}
+        isAuthenticated={isAuthenticated}
+        filterFavoritesOnly={filterFavoritesOnly}
+        onFilterFavoritesChange={setFilterFavoritesOnly}
+        onClear={handleClearFilters}
+      />
 
-          {/* Calendar Grid */}
-          <div
-  style={{
-                  border: '1px solid var(--color-border)',
-       background: 'var(--color-surface-raised)'
-  }}
->
-      <div
+      {/* Month header, placed above the calendar */}
+      <h2
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '0',
+          fontSize:      '2rem',
+          fontWeight:    800,
+          letterSpacing: '4px',
+          marginBottom:  '24px',
         }}
       >
+        {today.toLocaleDateString('en-US', {
+          month: 'long',
+        }).toUpperCase()}
+      </h2>
 
-        {days.map((date, index) => {
+      {/* Calendar Grid */}
+      <div
+        style={{
+          border:     '1px solid var(--color-border)',
+          background: 'var(--color-surface-raised)',
+        }}
+      >
+        <div
+          style={{
+            display:             'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap:                 '0',
+          }}
+        >
 
-          const dayActivities = getActivitiesForDay(date)
+          {days.map((date, index) => {
 
-            
-          return (
-            <div
-              key={index}
-              style={{
-                minHeight: '220px',
-                  //border: '1px solid var(--color-border)',
-                borderRight: '1px solid var(--color-border)',
-                borderBottom: '1px solid var(--color-border)',
-                //borderRadius: '16px',
-                padding: '16px',
-                background: 'var(--color-surface-raised)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-              }}
-            >
+            const dayActivities = getActivitiesForDay(date)
 
-              {/* Day Header */}
+            return (
               <div
-  style={{
-    borderBottom: '1px solid var(--color-border)',
-    paddingBottom: '10px',
-  }}
->
-
-  {/* Date Number */}
-  <p
-    style={{
-      fontSize: '2rem',
-      fontWeight: 800,
-      lineHeight: 1,
-      marginBottom: '6px',
-    }}
-  >
-    {date.getDate()}
-  </p>
-
-  {/* Weekday */}
-  <p
-    style={{
-      color: 'var(--color-text-muted)',
-      fontSize: '0.95rem',
-      fontWeight: 500,
-    }}
-  >
-    {date.toLocaleDateString('en-US', {
-      weekday: 'long',
-    })}
-  </p>
-
-</div>
-
-              {/* Activities */}
-              <div
+                key={index}
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                          gap: '10px',
-                  
+                  minHeight:      '220px',
+                  borderRight:    '1px solid var(--color-border)',
+                  borderBottom:   '1px solid var(--color-border)',
+                  padding:        '16px',
+                  background:     'var(--color-surface-raised)',
+                  display:        'flex',
+                  flexDirection:  'column',
+                  gap:            '12px',
                 }}
               >
 
-                {dayActivities.length === 0 && (
+                {/* Day Header */}
+                <div
+                  style={{
+                    borderBottom:  '1px solid var(--color-border)',
+                    paddingBottom: '10px',
+                  }}
+                >
+
+                  {/* Date Number */}
                   <p
                     style={{
-                      color: 'var(--color-text-muted)',
-                      fontSize: '0.9rem',
+                      fontSize:     '2rem',
+                      fontWeight:   800,
+                      lineHeight:   1,
+                      marginBottom: '6px',
                     }}
                   >
-                    No activities
+                    {date.getDate()}
                   </p>
-                )}
 
-                                {dayActivities.map(activity => (
-
-                  <div
-                    key={activity.id}
+                  {/* Weekday */}
+                  <p
                     style={{
-                      background: activity.cancelled
-                        ? 'rgba(192,57,43,0.08)'
-                        : 'var(--color-primary-light)',
-
-                      padding: '12px',
-
-                      borderLeft: activity.cancelled
-                        ? '4px solid var(--color-danger)'
-                        : '4px solid var(--color-primary)',
-
-                      display: 'flex',
-                      flexDirection: 'column',
-                        gap: '6px',
+                      color:      'var(--color-text-muted)',
+                      fontSize:   '0.95rem',
+                      fontWeight: 500,
                     }}
                   >
+                    {date.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                    })}
+                  </p>
 
-                    {/* Cancelled Banner */}
-                    {activity.cancelled && (
-                      <p
-                        style={{
-                          color: 'var(--color-danger)',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          letterSpacing: '1px',
-                        }}
-                      >
-                        CANCELLED
-                      </p>
-                    )}
+                </div>
 
-                    {/* Title */}
+                {/* Activities */}
+                <div
+                  style={{
+                    display:       'flex',
+                    flexDirection: 'column',
+                    gap:           '10px',
+                  }}
+                >
+
+                  {dayActivities.length === 0 && (
                     <p
                       style={{
-                        fontWeight: 700,
-                      }}
-                    >
-                      {activity.title}
-                    </p>
-
-                    {/* Sport */}
-                    <p
-                      style={{
+                        color:    'var(--color-text-muted)',
                         fontSize: '0.9rem',
                       }}
                     >
-                      {activity.sport}
+                      No activities
                     </p>
+                  )}
 
-                    {/* Leader */}
-                    <p
+                  {dayActivities.map(activity => (
+
+                    <div
+                      key={activity.id}
                       style={{
-                        fontSize: '0.85rem',
-                        color: 'var(--color-text-muted)',
+                        background: activity.cancelled
+                          ? 'rgba(192,57,43,0.08)'
+                          : 'var(--color-primary-light)',
+
+                        padding: '12px',
+
+                        borderLeft: activity.cancelled
+                          ? '4px solid var(--color-danger)'
+                          : '4px solid var(--color-primary)',
+
+                        display:       'flex',
+                        flexDirection: 'column',
+                        gap:           '6px',
                       }}
                     >
-                      Leader: {activity.leader}
-                    </p>
 
-                    {/* Time */}
-                    <p
-                      style={{
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      {activity.time}
-                    </p>
+                      {/* Cancelled Banner */}
+                      {activity.cancelled && (
+                        <p
+                          style={{
+                            color:         'var(--color-danger)',
+                            fontWeight:    700,
+                            fontSize:      '0.8rem',
+                            letterSpacing: '1px',
+                          }}
+                        >
+                          CANCELLED
+                        </p>
+                      )}
 
-                    {/* Location */}
-                    <p
-                      style={{
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      {activity.location}
-                    </p>
+                      {/* Title */}
+                      <p style={{ fontWeight: 700 }}>
+                        {activity.title}
+                      </p>
 
-                    {/* Spots */}
-                    <p
-                      style={{
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      {activity.availableSpots} spots left</p>
-                                    
-                    {/* Notes */}
-                    {activity.notes && (
+                      {/* Sport */}
+                      <p style={{ fontSize: '0.9rem' }}>
+                        {activity.sport}
+                      </p>
+
+                      {/* Leader */}
                       <p
                         style={{
                           fontSize: '0.85rem',
-                          color: 'var(--color-text-muted)',
-                          marginTop: '4px',
+                          color:    'var(--color-text-muted)',
                         }}
                       >
-                        {activity.notes}
+                        Leader: {activity.leader}
                       </p>
-                    )}              
 
-                    {/* Attend Button */}
-                    {!activity.cancelled && (
+                      {/* Time */}
+                      <p style={{ fontSize: '0.85rem' }}>
+                        {activity.time}
+                      </p>
 
-                    <Button
-                        size="sm"
+                      {/* Location */}
+                      <p style={{ fontSize: '0.85rem' }}>
+                        {activity.location}
+                      </p>
 
-                        variant={
-                        attendingActivities.includes(activity.id)
-                            ? 'ghost'
-                            : 'primary'
-                        }
+                      {/* Spots */}
+                      <p style={{ fontSize: '0.85rem' }}>
+                        {activity.availableSpots} spots left
+                      </p>
 
-                        style={{
-                        marginTop: '8px',
-                        }}
+                      {/* Notes */}
+                      {activity.notes && (
+                        <p
+                          style={{
+                            fontSize:  '0.85rem',
+                            color:     'var(--color-text-muted)',
+                            marginTop: '4px',
+                          }}
+                        >
+                          {activity.notes}
+                        </p>
+                      )}
 
-                        onClick={() => {
+                      {/* Attend Button */}
+                      {!activity.cancelled && (
+                        <Button
+                          size="sm"
+                          variant={
+                            attendingActivities.includes(activity.id)
+                              ? 'ghost'
+                              : 'primary'
+                          }
+                          style={{ marginTop: '8px' }}
+                          onClick={() => {
 
-                        // Redirect logged-out users
-                        if (!isAuthenticated) {
-                            navigate('/login')
-                            return
-                        }
+                            // Redirect logged-out users
+                            if (!isAuthenticated) {
+                              navigate('/login')
+                              return
+                            }
 
-                        // Toggle attendance
-                        if (attendingActivities.includes(activity.id)) {
+                            // Toggle attendance
+                            if (attendingActivities.includes(activity.id)) {
+                              setAttendingActivities(
+                                attendingActivities.filter(id => id !== activity.id)
+                              )
+                            } else {
+                              setAttendingActivities([
+                                ...attendingActivities,
+                                activity.id,
+                              ])
+                            }
+                          }}
+                        >
+                          {attendingActivities.includes(activity.id)
+                            ? 'Leave'
+                            : 'Attend'}
+                        </Button>
+                      )}
 
-                            setAttendingActivities(
-                            attendingActivities.filter(id => id !== activity.id)
-                            )
+                    </div>
+                  ))}
 
-                        } else {
-
-                            setAttendingActivities([
-                            ...attendingActivities,
-                            activity.id,
-                            ])
-                        }
-                        }}
-                    >
-
-                        {attendingActivities.includes(activity.id)
-                        ? 'Leave'
-                        : 'Attend'}
-
-                    </Button>
-                    )}
-
-                  </div>
-
-                ))}
-
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
 
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
 }
