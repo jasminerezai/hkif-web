@@ -99,22 +99,11 @@ const createSchedule = asyncHandler(async (
 
     const { activityId, startAt, endAt, status } = parsed;
 
-    const activity = await prisma.activityTemplate.findUnique({
-        where: { id: activityId },
-        select: { id: true, defaultStatus: true }
-    });
-
-    if (!activity) {
-        throw ApiError.notFound('Activity not found');
-    }
-
-    const finalStatus = status || activity.defaultStatus;
-
     const newSchedule = await CREATE.newSchedule({
         activityId,
         startAt,
         endAt,
-        status: finalStatus
+        status
     });
 
     res.status(201).json({

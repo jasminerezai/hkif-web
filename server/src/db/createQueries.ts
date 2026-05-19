@@ -1,6 +1,7 @@
 import { Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto } from "../types/index.js";
 import { prisma, ActivityStatus } from "./prisma.js";
 import { ApiError } from "../utils/ApiError.js";
+import { formatSchedule } from "./utils.js";
 /*
 CREATE Queries
     create new profile
@@ -71,10 +72,28 @@ export class CREATE {
         activityId: string;
         startAt: Date;
         endAt?: Date | null;
-        status: ActivityStatus;
+        status?: ActivityStatus;
     }): Promise<ScheduleDto> {
+        let finalStatus = data.status;
+
+        if (!finalStatus) {
+            const activity = await prisma.activityTemplate.findUnique({
+                where: { id: data.activityId },
+                select: { defaultStatus: true }
+            });
+            if (!activity) {
+                throw ApiError.notFound('Activity not found');
+            }
+            finalStatus = activity.defaultStatus;
+        }
+
         const schedule = await prisma.schedule.create({
-            data,
+            data: {
+                activityId: data.activityId,
+                startAt: data.startAt,
+                endAt: data.endAt,
+                status: finalStatus
+            },
             include: {
                 activity: {
                     include: {
@@ -93,21 +112,7 @@ export class CREATE {
             }
         });
 
-        let leaders: any = schedule.activity.leaders ?? [];
-        leaders = Array.isArray(leaders) ? leaders.map((el: { profile: any; }) => el.profile) : [];
-        (schedule.activity as any).leaders = undefined;
-
-        return {
-            id: schedule.id,
-            activityId: schedule.activityId,
-            startAt: schedule.startAt,
-            endAt: schedule.endAt,
-            status: schedule.status,
-            createdAt: schedule.createdAt,
-            updatedAt: schedule.updatedAt,
-            activity: schedule.activity,
-            leaders
-        } satisfies ScheduleDto;
+        return formatSchedule(schedule);
     }
 
     static async registerParticipation(profileId: string, scheduleId: string, activityId: string): Promise<number> {

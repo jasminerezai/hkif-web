@@ -1,5 +1,6 @@
 import { prisma, ActivityStatus } from "./prisma.js";
 import { Activity, TimeSlot, ScheduleDto } from "../types/index.js";
+import { formatSchedule } from "./utils.js";
 
 export class UPDATE {
     static async updateActivity(activityId: string, newData: Partial<Activity>) {
@@ -100,20 +101,6 @@ export class UPDATE {
             }
         });
 
-        let leaders: any = schedule.activity.leaders ?? [];
-        leaders = Array.isArray(leaders) ? leaders.map((el: { profile: any; }) => el.profile) : [];
-        (schedule.activity as any).leaders = undefined;
-
-        return {
-            id: schedule.id,
-            activityId: schedule.activityId,
-            startAt: schedule.startAt,
-            endAt: schedule.endAt,
-            status: schedule.status,
-            createdAt: schedule.createdAt,
-            updatedAt: schedule.updatedAt,
-            activity: schedule.activity,
-            leaders
-        } satisfies ScheduleDto;
+        return formatSchedule(schedule);
     }
 }
