@@ -36,7 +36,7 @@ export type {
   MeResponseDto,
 } from './auth.types.js';
 
-export{
+export type {
   userInputLogin,
   userInputRegister,
 } from '../validators/auth.validation.js';
