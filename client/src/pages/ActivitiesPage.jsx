@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
 import Card from '../components/ui/Card.jsx'
@@ -181,7 +181,23 @@ export default function ActivitiesPage() {
                   : '♡'}
               </button>
               <h2 style={{ marginBottom: '8px' }}>
-                {activity.name}
+                <Link
+                  to={`/activities/${activity.id}`}
+                  style={{
+                    color: 'var(--color-text)',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.textDecoration = 'underline'
+                    e.target.style.color = 'var(--color-primary-dark)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.textDecoration = 'none'
+                    e.target.style.color = 'var(--color-text)'
+                  }}
+                >
+                  {activity.name}
+                </Link>
               </h2>
 
               {/* Activity details */}

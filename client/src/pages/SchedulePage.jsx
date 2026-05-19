@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 // ─────────────────────────────────────────────────────────────
@@ -473,7 +473,27 @@ return displayedActivities.filter(
                         fontWeight: 700,
                       }}
                     >
-                      {activity.title}
+                      {activity.activityId ? (
+                        <Link
+                          to={`/activities/${activity.activityId}`}
+                          style={{
+                            color: 'inherit',
+                            textDecoration: 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.textDecoration = 'underline'
+                            e.target.style.color = 'var(--color-primary-dark)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.textDecoration = 'none'
+                            e.target.style.color = 'inherit'
+                          }}
+                        >
+                          {activity.title}
+                        </Link>
+                      ) : (
+                        activity.title
+                      )}
                     </p>
 
                     {/* Sport */}
