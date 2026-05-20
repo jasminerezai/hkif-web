@@ -1,49 +1,82 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
-  fetchFavorites,
   removeFavorite,
 } from '../services/FavoritesService.js'
-
+import {
+  fetchProfile,
+} from '../services/ProfileService.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
 
 export default function ProfilePage() {
 
-  const { user, token } = useAuth()
+  // ── Auth ────────────────────────────────────────────────
+  const { token } = useAuth()
 
-  const [favoriteActivities, setFavoriteActivities] = useState([])
-  const [loading, setLoading] = useState(true)
+  // ── State ───────────────────────────────────────────────
+  // Stores general profile info:
+  // { name, email, role }
+  const [profile, setProfile] = useState({})
 
-  // Temporary mock data until backend exists
-  const [upcomingActivities] = useState([
-    {
-      id: 1,
-      name: 'Football Training',
-      date: '2026-05-20',
-    },
-    {
-      id: 2,
-      name: 'Yoga Session',
-      date: '2026-05-24',
-    },
-  ])
+  // Favorite activities from backend
+  const [favoriteActivities, setFavoriteActivities]
+    = useState([])
 
-  // ── Fetch favorite activities ─────────────────────────────
-    useEffect(() => {
-      
+  // Activities the user has registered/joined
+  const [upcomingActivities, setUpcomingActivities]
+    = useState([])
 
-    async function loadFavorites() {
+  // Loading state
+  const [loading, setLoading]
+    = useState(true)
+
+  // ── Fetch Profile ───────────────────────────────────────
+  // Loads all profile-related data from a single endpoint:
+  //
+  // /api/users/me
+  //
+  // The backend returns:
+  // {
+  //   name,
+  //   email,
+  //   role,
+  //   favorites: [],
+  //   participations: []
+  // }
+
+  useEffect(() => {
+
+    async function loadProfile() {
 
       try {
 
-        const result = await fetchFavorites(token)
+        const { data } =
+          await fetchProfile(token)
 
-        setFavoriteActivities(result.data)
+        // Favorites section
+        setFavoriteActivities(
+          data.favorites || []
+        )
+
+        // Upcoming activities section
+        setUpcomingActivities(
+          data.participations || []
+        )
+
+        // Remove nested arrays so profile only
+        // contains the actual user information.
+        delete data.favorites
+        delete data.participations
+
+        setProfile(data)
 
       } catch (error) {
 
-        console.error('Failed to fetch favorites:', error)
+        console.error(
+          'Failed to fetch profile:',
+          error
+        )
 
       } finally {
 
@@ -51,17 +84,18 @@ export default function ProfilePage() {
       }
     }
 
-    loadFavorites()
+    loadProfile()
 
   }, [token])
 
-  // ── Remove favorite ──────────────────────────────────────
+  // ── Remove Favorite ─────────────────────────────────────
   async function handleRemoveFavorite(activityId) {
 
     try {
 
       await removeFavorite(activityId, token)
 
+      // Update UI immediately after removing
       setFavoriteActivities(
         favoriteActivities.filter(
           activity => activity.id !== activityId
@@ -70,215 +104,240 @@ export default function ProfilePage() {
 
     } catch (error) {
 
-      console.error('Failed to remove favorite:', error)
+      console.error(
+        'Failed to remove favorite:',
+        error
+      )
     }
   }
 
+  // ── Loading State ───────────────────────────────────────
   if (loading) {
     return <p>Loading profile...</p>
   }
 
+  // ── Render ──────────────────────────────────────────────
   return (
-  <div
-    style={{
-      padding: 'var(--space-6)',
-      maxWidth: '1100px',
-      margin: '0 auto',
-    }}
-  >
 
-    {/* Hero / User Card */}
-    <Card
-      padding="lg"
-      shadow="md"
+    <div
       style={{
-        marginBottom: '32px',
-        background: 'var(--color-primary-light)',
-        border: '1px solid var(--color-border)',
+        padding: 'var(--space-6)',
+        maxWidth: '1100px',
+        margin: '0 auto',
       }}
     >
-      <div
+
+      {/* ── Hero / User Card ───────────────────────────── */}
+      <Card
+        padding="lg"
+        shadow="md"
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '24px',
+          marginBottom: '32px',
+          background: 'var(--color-primary-light)',
+          border: '1px solid var(--color-border)',
         }}
       >
-
-        <div>
-          <h1
-            style={{
-              fontSize: '2.5rem',
-              marginBottom: '8px',
-            }}
-          >
-            {user?.name || 'Profile'}
-          </h1>
-
-          <p
-            style={{
-              color: 'var(--color-text-muted)',
-              marginBottom: '12px',
-            }}
-          >
-            {user?.email}
-          </p>
-
-          <span
-            style={{
-              display: 'inline-block',
-              padding: '6px 12px',
-              borderRadius: '999px',
-              background: 'var(--color-primary)',
-              color: 'white',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-            }}
-          >
-            {user?.role}
-          </span>
-        </div>
 
         <div
           style={{
-            minWidth: '180px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '24px',
           }}
         >
-        </div>
 
-      </div>
-    </Card>
+          {/* User info */}
+          <div>
 
-    {/* Upcoming Activities */}
-    <div style={{ marginBottom: '32px' }}>
-
-      <h2
-        style={{
-          marginBottom: '16px',
-          fontSize: '1.5rem',
-        }}
-      >
-        Upcoming Activities
-      </h2>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
-        }}
-      >
-
-        {upcomingActivities.map(activity => (
-          <Card
-            key={activity.id}
-            padding="md"
-            shadow="sm"
-          >
-            <h3
+            <h1
               style={{
+                fontSize: '2.5rem',
                 marginBottom: '8px',
               }}
             >
-              {activity.name}
-            </h3>
+              {profile.name || 'Profile'}
+            </h1>
 
             <p
               style={{
                 color: 'var(--color-text-muted)',
+                marginBottom: '12px',
               }}
             >
-              {activity.date}
+              {profile.email}
             </p>
-          </Card>
-        ))}
 
-      </div>
-    </div>
-
-    {/* Favorite Activities */}
-    <div>
-
-      <h2
-        style={{
-          marginBottom: '16px',
-          fontSize: '1.5rem',
-        }}
-      >
-        Favorite Activities
-      </h2>
-
-      {favoriteActivities.length === 0 ? (
-
-        <Card padding="md">
-          <p>No favorites saved yet.</p>
-        </Card>
-
-      ) : (
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px',
-          }}
-        >
-
-          {favoriteActivities.map(activity => (
-
-            <Card
-              key={activity.id}
-              padding="md"
-              shadow="sm"
+            {/* Role badge */}
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '6px 12px',
+                borderRadius: '999px',
+                background: 'var(--color-primary)',
+                color: 'white',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+              }}
             >
-              <h3
-                style={{
-                  marginBottom: '10px',
-                }}
-              >
-                {activity.name}
-              </h3>
+              {profile.role}
+            </span>
 
-              <p
-                style={{
-                  color: 'var(--color-text-muted)',
-                  marginBottom: '14px',
-                  lineHeight: 1.5,
-                }}
-              >
-                {activity.description}
-              </p>
-
-              <p
-                style={{
-                  marginBottom: '16px',
-                  fontSize: '0.9rem',
-                }}
-              >
-                <strong>Location:</strong> {activity.location}
-              </p>
-
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  handleRemoveFavorite(activity.id)
-                }
-              >
-                Remove Favorite
-              </Button>
-            </Card>
-
-          ))}
+          </div>
 
         </div>
 
-      )}
+      </Card>
+
+      {/* ── Upcoming Activities ────────────────────────── */}
+      <div style={{ marginBottom: '32px' }}>
+
+        <h2
+          style={{
+            marginBottom: '16px',
+            fontSize: '1.5rem',
+          }}
+        >
+          Upcoming Activities
+        </h2>
+
+        {upcomingActivities.length === 0 ? (
+
+          <Card padding="md">
+            <p>No upcoming activities.</p>
+          </Card>
+
+        ) : (
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '16px',
+            }}
+          >
+
+            {upcomingActivities.map(activity => (
+
+              <Card
+                key={activity.id}
+                padding="md"
+                shadow="sm"
+              >
+
+                <h3
+                  style={{
+                    marginBottom: '8px',
+                  }}
+                >
+                  {activity.name}
+                </h3>
+
+                <p
+                  style={{
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  {activity.date}
+                </p>
+
+              </Card>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
+
+      {/* ── Favorite Activities ────────────────────────── */}
+      <div>
+
+        <h2
+          style={{
+            marginBottom: '16px',
+            fontSize: '1.5rem',
+          }}
+        >
+          Favorite Activities
+        </h2>
+
+        {favoriteActivities.length === 0 ? (
+
+          <Card padding="md">
+            <p>No favorites saved yet.</p>
+          </Card>
+
+        ) : (
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '20px',
+            }}
+          >
+
+            {favoriteActivities.map(activity => (
+
+              <Card
+                key={activity.id}
+                padding="md"
+                shadow="sm"
+              >
+
+                <h3
+                  style={{
+                    marginBottom: '10px',
+                  }}
+                >
+                  {activity.name}
+                </h3>
+
+                <p
+                  style={{
+                    color: 'var(--color-text-muted)',
+                    marginBottom: '14px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {activity.description}
+                </p>
+
+                <p
+                  style={{
+                    marginBottom: '16px',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  <strong>Location:</strong>{' '}
+                  {activity.location}
+                </p>
+
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    handleRemoveFavorite(activity.id)
+                  }
+                >
+                  Remove Favorite
+                </Button>
+
+              </Card>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
 
     </div>
-
-  </div>
-)
+  )
 }
