@@ -86,16 +86,18 @@ export default function ProfilePage() {
   // ── Remove Favorite ─────────────────────────────────────
   async function handleRemoveFavorite(activityId) {
 
+    const previousFavorites = favoriteActivities
+
+    // Optimistically update UI immediately
+    setFavoriteActivities(
+      favoriteActivities.filter(
+        activity => activity.id !== activityId
+      )
+    )
+
     try {
 
       await removeFavorite(activityId, token)
-
-      // Update UI immediately after removing
-      setFavoriteActivities(
-        favoriteActivities.filter(
-          activity => activity.id !== activityId
-        )
-      )
 
     } catch (error) {
 
@@ -103,6 +105,9 @@ export default function ProfilePage() {
         'Failed to remove favorite:',
         error
       )
+
+      // Roll back if request fails
+      setFavoriteActivities(previousFavorites)
     }
   }
 
