@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
-import Badge from '../components/ui/Badge.jsx'
+import Badge, { STATUS_VARIANT } from '../components/ui/Badge.jsx'
 
 export default function ActivitiesPage() {
   // ── API State ─────────────────────────────────────────────
@@ -184,7 +184,7 @@ export default function ActivitiesPage() {
               <h2 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                 {activity.name}
                 {activity.defaultStatus === 'CANCELLED' && (
-                  <Badge variant="danger">Cancelled</Badge>
+                  <Badge variant={STATUS_VARIANT[activity.defaultStatus]}>Cancelled</Badge>
                 )}
               </h2>
 

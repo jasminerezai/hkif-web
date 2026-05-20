@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
-import Badge from '../components/ui/Badge.jsx'
+import Badge, { STATUS_VARIANT } from '../components/ui/Badge.jsx'
 
 export default function ActivityDetailPage() {
   const { id } = useParams()
@@ -127,8 +127,8 @@ export default function ActivityDetailPage() {
             </div>
             
             {/* Status Badge */}
-            <Badge variant={isCancelled ? 'danger' : 'success'}>
-              {isCancelled ? 'Cancelled' : 'Active'}
+            <Badge variant={STATUS_VARIANT[activity.defaultStatus]}>
+              {activity.defaultStatus}
             </Badge>
           </div>
 
