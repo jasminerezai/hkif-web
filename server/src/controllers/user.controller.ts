@@ -2,8 +2,8 @@ import {ApiError} from "../utils/ApiError.js";
 import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler.js";
 import {READ, CREATE, DELETE} from '../db/queries.js';
-import {CreateFavoriteSchema, DeleteFavoriteSchema, parseZodError} from "../validators/index.js";
-import {ApiResponse, FavoriteCreateDelete, ActivityDto} from "../types/index.js";
+import { CreateFavoriteSchema, DeleteFavoriteSchema, parseZodError } from "../validators/index.js";
+import { ApiResponse, FavoriteCreateDelete, ActivityDto, ProfileDto } from "../types/index.js";
 import {ZodError} from "zod";
 
 const getFavorites = asyncHandler(
@@ -40,8 +40,16 @@ const deleteFavorites = asyncHandler(
     res.status(204).send()
 });
 
+const getFullProfile = asyncHandler(
+    async (req: Request, res: Response<ApiResponse<ProfileDto> > ) => {
+        const fullProfile: ProfileDto = await READ.fullProfile(req.user.id);
+        res.status(200).json({status: "success", data: fullProfile});
+    }
+)
+
 export const controller = {
     getFavorites,
     newFavorites,
     deleteFavorites,
+    getFullProfile,
 }

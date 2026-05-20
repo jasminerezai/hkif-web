@@ -3,17 +3,28 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { API_BASE_URL } from '../services/apiConfig.js'
 import { Button, Input, Card } from '../components/ui'
+import { WEEKDAYS, ACTIVITY_STATUSES } from '../constants/activityEnums.js'
 
-const WEEKDAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
-const STATUSES = ['ACTIVE', 'INACTIVE', 'CANCELLED', 'DELAYED']
-
+// ─────────────────────────────────────────────────────────────
+// ActivityFormPage
+//
+// Renders the create OR edit form for an activity.
+// Route distinguishes the two modes:
+//   /activities/new        → create  (no :id)
+//   /activities/:id/edit   → edit    (loads existing activity first)
+//
+// Access control is handled by ProtectedRoute in App.jsx
+// (requiredRoles = MANAGER_ROLES for create, EDITOR_ROLES for edit).
+// If we got here, the user is allowed to be here — the backend
+// enforces the same rules independently, which is the real layer.
+// ─────────────────────────────────────────────────────────────
 export default function ActivityFormPage() {
-  const { user, getAuthHeader } = useAuth()
+  const { getAuthHeader, logout } = useAuth()
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
 
-  // Form state
+  // ── Form state ────────────────────────────────────────────
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
@@ -24,19 +35,43 @@ export default function ActivityFormPage() {
     { weekday: 'MONDAY', startAt: '18:00:00', endAt: '19:30:00' }
   ])
 
-  // UI state 
+  // ── UI state ──────────────────────────────────────────────
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
 
-  // Load existing activity in edit mode
+  // ── handleAuthExpired ─────────────────────────────────────
+  // Consistent handling for "your session is gone" responses.
+  // Clears AuthContext + localStorage so the rest of the app sees
+  // the user as logged out, then bounces them to /login with the
+  // current URL preserved so LoginPage can return them here after
+  // they sign in again.
+  function handleAuthExpired() {
+    logout()
+    navigate('/login', {
+      replace: true,
+      state: { from: { pathname: window.location.pathname } },
+    })
+  }
+
+  // ── Load existing activity in edit mode ───────────────────
+  // Same 401 handling as handleSubmit — if the token expired
+  // between page load and this fetch firing, kick to /login
+  // instead of silently showing a generic error.
   useEffect(() => {
     if (!isEditMode) return
     fetch(`${API_BASE_URL}/api/activities/${activityId}`, {
       headers: { ...getAuthHeader() }
     })
-      .then(res => res.json())
+      .then(async res => {
+        if (res.status === 401) {
+          handleAuthExpired()
+          return null
+        }
+        return res.json()
+      })
       .then(json => {
+        if (!json) return
         if (json.status === 'success') {
           const a = json.data
           setName(a.name || '')
@@ -55,21 +90,10 @@ export default function ActivityFormPage() {
         }
       })
       .catch(() => setServerError('Failed to load activity.'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activityId, isEditMode])
 
-  // Role check
-  const canManageActivities = ['LEADER', 'BOARD_MEMBER', 'ADMIN'].includes(user?.role)
-  if (!canManageActivities) {
-    return (
-      <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-        <p style={{ color: 'var(--color-danger)' }}>
-          You don't have permission to access this page.
-        </p>
-      </div>
-    )
-  }
-
-  // TimeSlot helpers
+  // ── TimeSlot helpers ──────────────────────────────────────
   function addTimeSlot() {
     setTimeSlots([...timeSlots, { weekday: 'MONDAY', startAt: '18:00:00', endAt: '19:30:00' }])
   }
@@ -84,7 +108,7 @@ export default function ActivityFormPage() {
     ))
   }
 
-  // Validation
+  // ── Validation ────────────────────────────────────────────
   function validate() {
     const errs = {}
     if (!name.trim()) errs.name = 'Name is required.'
@@ -94,7 +118,7 @@ export default function ActivityFormPage() {
     return errs
   }
 
-  // Submit
+  // ── Submit ────────────────────────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault()
     setErrors({})
@@ -133,6 +157,15 @@ export default function ActivityFormPage() {
         body: JSON.stringify(body),
       })
 
+      // Token expired or rejected by authMiddleware.
+      // Clear the auth context and send them back through /login —
+      // the form state is intentionally not preserved, the user has
+      // to re-enter once authenticated. Could revisit later.
+      if (res.status === 401) {
+        handleAuthExpired()
+        return
+      }
+
       const json = await res.json()
 
       if (!res.ok) {
@@ -151,7 +184,7 @@ export default function ActivityFormPage() {
     }
   }
 
-  // Render
+  // ── Render ────────────────────────────────────────────────
   return (
     <div className="page-wrapper">
       <div className="container" style={{ maxWidth: '600px' }}>
@@ -245,7 +278,7 @@ export default function ActivityFormPage() {
                   cursor: loading ? 'not-allowed' : 'pointer',
                 }}
               >
-                {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                {ACTIVITY_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
