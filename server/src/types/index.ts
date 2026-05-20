@@ -30,7 +30,17 @@ export interface PaginationQuery {
 
 // ── Domain types ────────────────────────────────────────────────
 
-export type { UserDto, AuthResponseDto, MeResponseDto } from './auth.types.js';
+export type {
+  UserDto,
+  AuthResponseDto,
+  MeResponseDto,
+} from './auth.types.js';
+
+export type {
+  userInputLogin,
+  userInputRegister,
+} from '../validators/auth.validation.js';
+
 export type {
   UpdateScheduleStatusBody,
   UpdateScheduleStatusDto,
@@ -43,3 +53,11 @@ export type { ScheduleDto } from './schedule.types.js';
 export type {
   FavoriteCreateDelete
 } from './favorites.types.js';
+
+export type {
+  ProfileDto
+} from './profile.types.js'
+
+export type {
+  zodError
+} from './zod.types.js'

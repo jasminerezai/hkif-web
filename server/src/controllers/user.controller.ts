@@ -2,8 +2,9 @@ import {ApiError} from "../utils/ApiError.js";
 import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler.js";
 import {READ, CREATE, DELETE} from '../db/queries.js';
-import {CreateFavoriteSchema, DeleteFavoriteSchema} from "../validators/index.js";
-import {ApiResponse, FavoriteCreateDelete, ActivityDto} from "../types/index.js";
+import { CreateFavoriteSchema, DeleteFavoriteSchema, parseZodError } from "../validators/index.js";
+import { ApiResponse, FavoriteCreateDelete, ActivityDto, ProfileDto } from "../types/index.js";
+import {ZodError} from "zod";
 
 const getFavorites = asyncHandler(
     async (req: Request, res: Response<ApiResponse<ActivityDto[]>>) => {
@@ -18,7 +19,8 @@ const newFavorites = asyncHandler(
     try{
         ids = CreateFavoriteSchema.parse({profileId: req.user.id, activityId: req.params.activityId})
     } catch(error){
-        throw ApiError.badRequest(`Invalid ids: ${error}`)
+        if(error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)));
+        else throw ApiError.internal(`Something went wrong: ${error}`)
     }
         const newFavorite: ActivityDto = await CREATE.newFavorite(ids);
         if(!newFavorite) throw ApiError.internal(`Something went wrong in the DB: ${newFavorite}`);
@@ -38,8 +40,16 @@ const deleteFavorites = asyncHandler(
     res.status(204).send()
 });
 
+const getFullProfile = asyncHandler(
+    async (req: Request, res: Response<ApiResponse<ProfileDto> > ) => {
+        const fullProfile: ProfileDto = await READ.fullProfile(req.user.id);
+        res.status(200).json({status: "success", data: fullProfile});
+    }
+)
+
 export const controller = {
     getFavorites,
     newFavorites,
     deleteFavorites,
+    getFullProfile,
 }
