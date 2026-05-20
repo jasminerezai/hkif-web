@@ -16,7 +16,7 @@ export default function ProfilePage() {
 
   // ── State ───────────────────────────────────────────────
   // Stores general profile info:
-  // { name, email, role }
+  // { profileName, email, role }
   const [profile, setProfile] = useState({})
 
   // Favorite activities from backend
@@ -38,11 +38,11 @@ export default function ProfilePage() {
   //
   // The backend returns:
   // {
-  //   name,
+  //   profileName,
   //   email,
   //   role,
-  //   favorites: [],
-  //   participations: []
+  //   favorites: ActivityDto[],
+  //   participations: ScheduleDto[]
   // }
 
   useEffect(() => {
@@ -54,22 +54,20 @@ export default function ProfilePage() {
         const { data } =
           await fetchProfile(token)
 
-        // Favorites section
-        setFavoriteActivities(
-          data.favorites || []
-        )
 
-        // Upcoming activities section
+        const {
+          favorites,
+          participations,
+          ...profileData
+        } = data
+
+        setFavoriteActivities(favorites || [])
+
         setUpcomingActivities(
-          data.participations || []
+          participations || []
         )
 
-        // Remove nested arrays so profile only
-        // contains the actual user information.
-        delete data.favorites
-        delete data.participations
-
-        setProfile(data)
+        setProfile(profileData)
 
       } catch (error) {
 
@@ -157,7 +155,7 @@ export default function ProfilePage() {
                 marginBottom: '8px',
               }}
             >
-              {profile.name || 'Profile'}
+              {profile.profileName || 'Profile'}
             </h1>
 
             <p
@@ -220,10 +218,10 @@ export default function ProfilePage() {
             }}
           >
 
-            {upcomingActivities.map(activity => (
+            {upcomingActivities.map(schedule => (
 
               <Card
-                key={activity.id}
+                key={schedule.id}
                 padding="md"
                 shadow="sm"
               >
@@ -233,7 +231,7 @@ export default function ProfilePage() {
                     marginBottom: '8px',
                   }}
                 >
-                  {activity.name}
+                  {schedule.activity.name}
                 </h3>
 
                 <p
@@ -241,7 +239,7 @@ export default function ProfilePage() {
                     color: 'var(--color-text-muted)',
                   }}
                 >
-                  {activity.date}
+                  {new Date(schedule.startAt).toLocaleDateString()}
                 </p>
 
               </Card>
