@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { updateScheduleStatusHandler, getActivities, newActivity, updateActivity, deleteActivity } from '../controllers/activities.controller.js';
+import {
+  updateScheduleStatusHandler,
+  getActivities,
+  newActivity,
+  updateActivity,
+  deleteActivity,
+  registerParticipation,
+  unregisterParticipation
+} from '../controllers/activities.controller.js';
 import { authMiddleware, restrictToMinRole } from '../middleware/auth.js';
 import { ProfileRole } from '../db/prisma.js';
 
@@ -49,5 +57,17 @@ router.delete(
   restrictToMinRole(ProfileRole.LEADER),
   deleteActivity
 );
+
+router.post(
+  '/:activityId/schedules/:scheduleId/participate',
+  authMiddleware,
+  registerParticipation
+)
+
+router.delete(
+  '/:activityId/schedules/:scheduleId/participate',
+  authMiddleware,
+  unregisterParticipation
+)
 
 export default router;

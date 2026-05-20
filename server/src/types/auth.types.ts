@@ -1,5 +1,7 @@
 import { ProfileRole } from '../db/prisma.js';
 
+
+
 /** Public user representation returned by auth endpoints (no password). */
 export interface UserDto {
   id: string;
