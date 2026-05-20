@@ -55,5 +55,9 @@ export type {
 } from './favorites.types.js';
 
 export type {
+  ProfileDto
+} from './profile.types.js'
+
+export type {
   zodError
 } from './zod.types.js'
