@@ -1,325 +1,230 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
 import { API_BASE_URL } from '../services/apiConfig.js'
-import { Button, Input, Card } from '../components/ui'
+import Card from '../components/ui/Card.jsx'
+import Button from '../components/ui/Button.jsx'
 
-const WEEKDAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
-const STATUSES = ['ACTIVE', 'INACTIVE', 'CANCELLED', 'DELAYED']
-
-export default function ActivityFormPage() {
-  const { getAuthHeader } = useAuth()
+export default function ActivitiesPage() {
+  // ── API State ─────────────────────────────────────────────
+  const [activities, setActivities] = useState([])
+  const [favoriteActivities, setFavoriteActivities] = useState([])
   const navigate = useNavigate()
-  const { id: activityId } = useParams()
-  const isEditMode = Boolean(activityId)
+  const { isAuthenticated, token } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Form state
-  const [name, setName] = useState('')
-  const [location, setLocation] = useState('')
-  const [description, setDescription] = useState('')
-  const [notes, setNotes] = useState('')
-  const [maxCapacity, setMaxCapacity] = useState('')
-  const [defaultStatus, setDefaultStatus] = useState('ACTIVE')
-  const [timeSlots, setTimeSlots] = useState([
-    { weekday: 'MONDAY', startAt: '18:00:00', endAt: '19:30:00' }
-  ])
-
-  // UI state 
-  const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState({})
-  const [serverError, setServerError] = useState('')
-
-  // Load existing activity in edit mode
+  // ── Fetch Activities ──────────────────────────────────────
+  
   useEffect(() => {
-    if (!isEditMode) return
-    fetch(`${API_BASE_URL}/api/activities/${activityId}`, {
-      headers: { ...getAuthHeader() }
-    })
-      .then(res => res.json())
-      .then(json => {
-        if (json.status === 'success') {
-          const a = json.data
-          setName(a.name || '')
-          setLocation(a.location || '')
-          setDescription(a.description || '')
-          setNotes(a.notes || '')
-          setMaxCapacity(a.maxCapacity ?? '')
-          setDefaultStatus(a.defaultStatus || 'ACTIVE')
-          if (a.timeSlots?.length > 0) {
-            setTimeSlots(a.timeSlots.map(slot => ({
-              weekday: slot.weekday,
-              startAt: new Date(slot.startTime).toISOString().slice(11, 19),
-              endAt:   new Date(slot.endTime).toISOString().slice(11, 19),
-            })))
-          }
+    async function fetchActivities() {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/activities`
+        )
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch activities')
         }
-      })
-      .catch(() => setServerError('Failed to load activity.'))
-  }, [activityId, isEditMode])
 
-  // Role check is handled by the ProtectedRoute wrapper in App.jsx
-  // (requiredRoles={MANAGER_ROLES}). If we got here, the user is authorized.
-  // The backend also enforces this via role middleware — that's the real
-  // security layer; this component just trusts the route guard.
+        const result = await response.json()
 
-  // TimeSlot helpers
-  function addTimeSlot() {
-    setTimeSlots([...timeSlots, { weekday: 'MONDAY', startAt: '18:00:00', endAt: '19:30:00' }])
+        setActivities(result.data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchActivities()
+  }, [])
+
+  // ── Fetch favorites from backend ──────────────────────────────────────
+  useEffect(() => {
+
+    async function loadFavorites() {
+
+      // Only fetch favorites if logged in
+      if (!isAuthenticated) return
+
+      try {
+
+        const result = await fetchFavorites(token)
+
+        const favoriteIds = result.data.map(
+          activity => activity.id
+        )
+
+        setFavoriteActivities(favoriteIds)
+
+      } catch (error) {
+
+        console.error('Failed to fetch favorites:', error)
+      }
+    }
+
+    loadFavorites()
+
+}, [isAuthenticated, token])
+
+  // ── Loading / Error States ───────────────────────────────
+  if (loading) {
+    return <p>Loading activities...</p>
   }
 
-  function removeTimeSlot(index) {
-    setTimeSlots(timeSlots.filter((_, i) => i !== index))
+  if (error) {
+    return <p>Error: {error}</p>
   }
 
-  function updateTimeSlot(index, field, value) {
-    setTimeSlots(timeSlots.map((slot, i) =>
-      i === index ? { ...slot, [field]: value } : slot
-    ))
-  }
+  // ── Display all activities ───────────────────────────────
+  const filteredActivities = activities
 
-  // Validation
-  function validate() {
-    const errs = {}
-    if (!name.trim()) errs.name = 'Name is required.'
-    if (!location.trim()) errs.location = 'Location is required.'
-    if (maxCapacity && isNaN(Number(maxCapacity))) errs.maxCapacity = 'Must be a number.'
-    if (timeSlots.length === 0) errs.timeSlots = 'At least one time slot is required.'
-    return errs
-  }
+  async function handleToggleFavorite(activityId) {
 
-  // Submit
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setErrors({})
-    setServerError('')
-
-    const errs = validate()
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs)
+    if (!isAuthenticated) {
+      navigate('/login')
       return
     }
 
-    setLoading(true)
-
-    const body = {
-      name: name.trim(),
-      location: location.trim(),
-      description: description.trim() || null,
-      notes: notes.trim() || null,
-      maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
-      defaultStatus,
-      leaders: [],
-      timeSlots,
-    }
-
+    const previousFavorites = favoriteActivities
+    
     try {
-      const url = isEditMode
-        ? `${API_BASE_URL}/api/activities/${activityId}`
-        : `${API_BASE_URL}/api/activities`
 
-      const res = await fetch(url, {
-        method: isEditMode ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify(body),
-      })
+      if (favoriteActivities.includes(activityId)) {
 
-      const json = await res.json()
+        // Optimistically remove from UI first
+        setFavoriteActivities(
+          favoriteActivities.filter(id => id !== activityId)
+        )
 
-      if (!res.ok) {
-        setServerError(json.error || 'Something went wrong.')
-        return
+        await removeFavorite(activityId, token)
+
+      } else {
+
+        // Optimistically add to UI first
+        setFavoriteActivities([
+          ...favoriteActivities,
+          activityId,
+        ])
+
+        await addFavorite(activityId, token)
       }
 
-      // Redirect to activity detail page on success
-      const redirectId = isEditMode ? activityId : json.data.id
-      navigate(`/activities/${redirectId}`)
+    } catch (error) {
 
-    } catch {
-      setServerError('Network error. Please try again.')
-    } finally {
-      setLoading(false)
+      console.error(error)
+
+      // Restore previous state if request fails
+      setFavoriteActivities(previousFavorites)
     }
   }
 
-  // Render
   return (
-    <div className="page-wrapper">
-      <div className="container" style={{ maxWidth: '600px' }}>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: 'var(--text-3xl)',
-          marginBottom: 'var(--space-8)',
-          color: 'var(--color-text)',
-        }}>
-          {isEditMode ? 'Edit Activity' : 'Create Activity'}
-        </h1>
+    <div
+      style={{
+        padding: 'var(--space-6)',
+        maxWidth: '900px',
+        margin: '0 auto',
+      }}
+    >
+      {/* Page title */}
+      <h1
+        style={{
+          fontFamily: 'Georgia, serif',
+          fontSize: '2rem',
+          marginBottom: 'var(--space-6)',
+        }}
+      >
+        Activities
+      </h1>
 
-        {serverError && (
-          <div style={{
-            background: 'var(--color-danger-light)',
-            borderLeft: '4px solid var(--color-danger)',
-            color: 'var(--color-danger)',
-            padding: 'var(--space-3) var(--space-4)',
-            borderRadius: 'var(--radius-sm)',
-            marginBottom: 'var(--space-6)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            {serverError}
-          </div>
-        )}
+      {/* Activity cards */}
+      <div
+        style={{
+          display: 'grid',
+          gap: 'var(--space-4)',
+        }}
+      >
+        {filteredActivities.length === 0 ? (
+          <p>No activities found.</p>
+        ) : (
+          filteredActivities.map(activity => (
+            <Card
+              key={activity.id}
+              padding="md"
+              shadow="sm"
+              style={{
+                position: 'relative',
+              }}
+            >
+              {/* Activity title */}
+              {/* Heart-button */}
+              <button
+                onClick={() => handleToggleFavorite(activity.id)}
 
-        <Card>
-          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-
-            <Input
-              label="Activity name"
-              placeholder="e.g. Volleyball"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              error={errors.name}
-              disabled={loading}
-            />
-
-            <Input
-              label="Location"
-              placeholder="e.g. Sportshall"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              error={errors.location}
-              disabled={loading}
-            />
-
-            <Input
-              label="Description (optional)"
-              placeholder="Short description"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              disabled={loading}
-            />
-
-            <Input
-              label="Notes (optional)"
-              placeholder="Any extra info"
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              disabled={loading}
-            />
-
-            <Input
-              label="Max capacity (optional)"
-              type="number"
-              placeholder="e.g. 20"
-              value={maxCapacity}
-              onChange={e => setMaxCapacity(e.target.value)}
-              error={errors.maxCapacity}
-              disabled={loading}
-            />
-
-            {/* Default status */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
-                Default status
-              </label>
-              <select
-                value={defaultStatus}
-                onChange={e => setDefaultStatus(e.target.value)}
-                disabled={loading}
                 style={{
-                  padding: '9px 13px',
-                  border: '1.5px solid var(--color-border)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 'var(--text-base)',
-                  fontFamily: 'var(--font-body)',
-                  background: 'var(--color-surface-raised)',
-                  color: 'var(--color-text)',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '1.5rem',
+                  color: favoriteActivities.includes(activity.id)
+                    ? '#c0392b'
+                    : '#999',
                 }}
               >
-                {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+                {favoriteActivities.includes(activity.id)
+                  ? '♥'
+                  : '♡'}
+              </button>
+              <h2 style={{ marginBottom: '8px' }}>
+                {activity.name}
+              </h2>
 
-            {/* Time slots */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
-                  Time slots
-                </label>
-                <Button type="button" variant="outline" size="sm" onClick={addTimeSlot} disabled={loading}>
-                  + Add slot
-                </Button>
-              </div>
+              {/* Activity details */}
+              <p>
+                <strong>Location:</strong>{' '}
+                {activity.location}
+              </p>
 
-              {errors.timeSlots && (
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-danger)' }}>{errors.timeSlots}</p>
+              <p>
+                <strong>Capacity:</strong>{' '}
+                {activity.maxCapacity ?? 'Unlimited'}
+              </p>
+
+              {activity.description && (
+                <p>
+                  <strong>Description:</strong>{' '}
+                  {activity.description}
+                </p>
               )}
 
-              {timeSlots.map((slot, index) => (
-                <Card key={index} border="accent" padding="sm">
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Slot {index + 1}</span>
-                      {timeSlots.length > 1 && (
-                        <Button type="button" variant="danger" size="sm" onClick={() => removeTimeSlot(index)} disabled={loading}>
-                          Remove
-                        </Button>
-                      )}
-                    </div>
+              {/* Time slots */}
+              {activity.timeSlots?.length > 0 && (
+                <div style={{ marginTop: '12px' }}>
+                  <strong>Time Slots:</strong>
 
-                    {/* Weekday */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                      <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)' }}>Weekday</label>
-                      <select
-                        value={slot.weekday}
-                        onChange={e => updateTimeSlot(index, 'weekday', e.target.value)}
-                        disabled={loading}
-                        style={{
-                          padding: '9px 13px',
-                          border: '1.5px solid var(--color-border)',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: 'var(--text-base)',
-                          fontFamily: 'var(--font-body)',
-                          background: 'var(--color-surface-raised)',
-                          color: 'var(--color-text)',
-                        }}
-                      >
-                        {WEEKDAYS.map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-                      <Input
-                        label="Start time"
-                        placeholder="18:00:00"
-                        value={slot.startAt}
-                        onChange={e => updateTimeSlot(index, 'startAt', e.target.value)}
-                        disabled={loading}
-                      />
-                      <Input
-                        label="End time"
-                        placeholder="19:30:00"
-                        value={slot.endAt}
-                        onChange={e => updateTimeSlot(index, 'endAt', e.target.value)}
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            <Button type="submit" fullWidth loading={loading}>
-              {loading
-                ? isEditMode ? 'Saving...' : 'Creating...'
-                : isEditMode ? 'Save changes' : 'Create activity'
-              }
-            </Button>
-
-          </form>
-        </Card>
+                  {activity.timeSlots.map(slot => (
+                    <p key={slot.id}>
+                      {slot.weekday} —{' '}
+                      {new Date(slot.startTime)
+                        .toISOString()
+                        .slice(11, 16)}
+                      {' - '}
+                      {new Date(slot.endTime)
+                        .toISOString()
+                        .slice(11, 16)}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )
