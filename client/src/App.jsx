@@ -1,6 +1,7 @@
 import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import { ToastProvider } from './context/ToastContext.jsx'
 import Navbar from './components/Navbar.jsx'
 import ActivitiesPage from './pages/ActivitiesPage.jsx'
 import LoginPage    from './pages/LoginPage.jsx'
@@ -176,8 +177,14 @@ export default function App() {
   return (
     <AuthProvider>
       {/* AuthProvider must be the outermost wrapper
-          so every component in the tree can call useAuth() */}
-      <AppRoutes />
+          so every component in the tree can call useAuth().
+
+          ToastProvider lives inside AuthProvider so that the
+          toast-triggering code we'll add next (e.g. "session
+          expired") can read auth state. Order is intentional. */}
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
     </AuthProvider>
   )
 }

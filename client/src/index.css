@@ -124,6 +124,33 @@ button, input, select, textarea {
   padding: var(--space-12) 0 var(--space-20);
 }
 
+/* ── Animations ───────────────────────────────────────────────
+   Defined globally so any component can reference them by name
+   instead of inlining @keyframes inside style props (which React
+   can't do anyway — keyframes have to live in a stylesheet).
+──────────────────────────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+  /* Used by the auth-rehydration loader in App.jsx and by any
+     future spinner in the UI library. Was being referenced
+     before but never defined — added here as part of #30. */
+}
+
+@keyframes hkif-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+  /* Quick slide-up + fade for new toasts. Kept short (0.18s)
+     so toasts feel responsive, not floaty. */
+}
+
+@keyframes hkif-shimmer {
+  /* Used by Skeleton components in the next step. Animates a
+     light gradient across the placeholder bar to suggest
+     "content is loading" without a spinner. */
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {
