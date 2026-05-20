@@ -61,6 +61,13 @@ export default function SchedulePage() {
   // schedule entries to keep.
   const [favoriteIds, setFavoriteIds] = useState([])
 
+  // Tracks whether the last attempt to load favorites failed.
+  // We only surface this to the user when the "Favorites only"
+  // filter is actually active — no point alarming someone who
+  // never turned the filter on. Without this, a failed favorites
+  // request would just make the schedule look mysteriously empty.
+  const [favoritesError, setFavoritesError] = useState(false)
+
   // ── Mock Activity Data ────────────────────────────────────
   const [activities, setActivities] = useState([])
 
@@ -135,11 +142,12 @@ export default function SchedulePage() {
     async function fetchSchedule() {
 
       try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/schedules/current`
-      )
-
-        const response = await fetch('/api/schedules/current')
+        // Single fetch — API_BASE_URL is '' in dev so the
+        // vite proxy handles it, and the deployed backend
+        // origin in production.
+        const response = await fetch(
+          `${API_BASE_URL}/api/schedules/current`
+        )
 
         const { data } = await response.json()
 
@@ -221,21 +229,34 @@ export default function SchedulePage() {
   // behaviour is consistent across the app. If the user logs
   // out we reset the list to [] so the favorites filter goes
   // empty rather than holding stale data.
+  //
+  // We also track favoritesError so the UI can warn the user
+  // when "Favorites only" is on but the list never loaded.
   useEffect(() => {
 
     async function loadFavorites() {
 
       if (!isAuthenticated) {
         setFavoriteIds([])
+        // Clear any stale error from a previous session so a
+        // logged-out user doesn't see a leftover warning.
+        setFavoritesError(false)
         return
       }
 
       try {
+        // Reset the error flag before each attempt so a
+        // successful retry hides the previous warning.
+        setFavoritesError(false)
+
         const result = await fetchFavorites(token)
         const ids = result.data.map(activity => activity.id)
         setFavoriteIds(ids)
       } catch (error) {
         console.error('Failed to fetch favorites:', error)
+        // Flag the failure so the UI can show a warning *if*
+        // the user actually has the favorites filter enabled.
+        setFavoritesError(true)
       }
     }
 
@@ -455,6 +476,33 @@ export default function SchedulePage() {
         onFilterFavoritesChange={setFilterFavoritesOnly}
         onClear={handleClearFilters}
       />
+
+      {/* ── Favorites load error ─────────────────────────────
+          Only shown when the user actually has the favorites
+          filter on. Otherwise we'd be nagging users who never
+          enabled it about a request they didn't care about.
+
+          Styled inline with --color-danger so it matches the
+          cancelled-activity treatment below and the rest of
+          the project's existing visual language (no toast lib
+          in the project yet).
+      ──────────────────────────────────────────────────── */}
+      {filterFavoritesOnly && favoritesError && (
+        <p
+          role="alert"
+          style={{
+            color:        'var(--color-danger)',
+            background:   'rgba(192,57,43,0.08)',
+            borderLeft:   '4px solid var(--color-danger)',
+            padding:      '12px 16px',
+            marginBottom: '16px',
+            fontSize:     '0.9rem',
+          }}
+        >
+          Couldn&apos;t load your favorites — the schedule may look
+          empty. Please try again in a moment.
+        </p>
+      )}
 
       {/* Month header, placed above the calendar */}
       <h2
