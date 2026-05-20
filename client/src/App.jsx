@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage.jsx'
 import ActivityFormPage from './pages/ActivityFormPage.jsx'
 import SchedulePage from './pages/SchedulePage.jsx'
 import { MANAGER_ROLES, EDITOR_ROLES } from './constants/roles.js'
+import NotFoundPage from './pages/NotFoundPage.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login, and optionally a specific role.
@@ -164,8 +165,11 @@ function AppRoutes() {
             }
           />
 
-          {/* Catch-all: any unknown URL redirects to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch-all: any unknown URL renders the 404 page.
+              Previously this silently Navigate'd to "/" which masked
+              broken internal links and confused users who pasted a bad URL.
+              See: pages/NotFoundPage.jsx. */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
     </>
