@@ -251,22 +251,6 @@ export class READ {
 
         return formatSched;
     }
-    /*
-    activity: {
-                            include: {
-                                leaders: {
-                                    select: {
-                                        profile: {
-                                            select: {
-                                                id: true,
-                                                profileName: true
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-     */
 
     static async fullProfile(profileId: string): Promise<ProfileDto> {
         const profile = await prisma.profile.findUnique({
@@ -276,6 +260,28 @@ export class READ {
                 profileName: true,
                 email: true,
                 role: true,
+                participations: {
+                    select:{
+                        schedule:{
+                            include: {
+                                activity: {
+                                    include: {
+                                        leaders: {
+                                            select: {
+                                                profile: {
+                                                    select: {
+                                                        id: true,
+                                                        profileName: true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 favorites: {
                     include: {
                         activity: {
@@ -286,32 +292,33 @@ export class READ {
                         }
                     }
                 },
-                participationLogs: {
-                    include: {
-                        activity: {
-                            include: {
-                                leaders: {
-                                    select: {
-                                        profile: {
-                                            select: {
-                                                id: true,
-                                                profileName: true
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+
             }
         })
         if(!profile){
             throw ApiError.badRequest("Invalid Id")
         }
         else{
-            const favorites: ActivityDto[] = await this.activitiesFavoritedBy(profile.id);
-            const participation: ScheduleDto[] = await this.activitiesParticipatedBy(profile.id);
+            const favorites: ActivityDto[] = profile.favorites.map(el => el.activity);
+            //replace with helper function at merge: profile.participation.map(formatSchedule)
+            const participation: ScheduleDto[] = profile.participations.map( el => {
+                let leaders: any = el.schedule.activity.leaders ?? [];
+                leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
+                (el.schedule.activity as any).leaders = undefined;
+
+                    return {
+                        id: el.schedule.id,
+                        createdAt: el.schedule.createdAt,
+                        updatedAt: el.schedule.updatedAt,
+                        activityId: el.schedule.activityId,
+                        startAt: el.schedule.startAt,
+                        endAt: el.schedule.endAt,
+                        status: el.schedule.status,
+                        activity: el.schedule.activity,
+                        leaders: leaders
+                    } satisfies ScheduleDto;
+                }
+            )
 
 
             const dto = {

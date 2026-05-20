@@ -40,18 +40,8 @@ const deleteFavorites = asyncHandler(
 
 const getFullProfile = asyncHandler(
     async (req: Request, res: Response<ApiResponse<ProfileDto> > ) => {
-        let fullProfile: ProfileDto;
-        try{
-            fullProfile = await READ.fullProfile(req.user.id);
-        } catch (error){
-            throw ApiError.internal(`Something went wrong: ${error}`)
-        }
-        if(fullProfile){
-            res.status(200).json({status: "success", data: fullProfile});
-        }
-        else{
-            throw ApiError.badRequest(`Couldn't find the profile: ${req.user.id}`)
-        }
+        const fullProfile: ProfileDto = await READ.fullProfile(req.user.id);
+        res.status(200).json({status: "success", data: fullProfile});
     }
 )
 
