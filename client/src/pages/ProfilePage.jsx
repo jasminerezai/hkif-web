@@ -8,16 +8,16 @@ import {
 } from '../services/ProfileService.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
+import Badge, {
+  ROLE_VARIANT,
+} from '../components/ui/Badge.jsx'
 
 export default function ProfilePage() {
 
   // ── Auth ────────────────────────────────────────────────
-  const { token } = useAuth()
+  const { user, token } = useAuth()
 
   // ── State ───────────────────────────────────────────────
-  // Stores general profile info:
-  // { profileName, email, role }
-  const [profile, setProfile] = useState({})
 
   // Favorite activities from backend
   const [favoriteActivities, setFavoriteActivities]
@@ -36,14 +36,12 @@ export default function ProfilePage() {
   //
   // /api/users/me
   //
-  // The backend returns:
-  // {
-  //   profileName,
-  //   email,
-  //   role,
-  //   favorites: ActivityDto[],
-  //   participations: ScheduleDto[]
-  // }
+  // The endpoint is currently used for:
+  // - favorites
+  // - participations
+  //
+  // User identity data (name/email/role)
+  // comes from AuthContext.
 
   useEffect(() => {
 
@@ -58,7 +56,6 @@ export default function ProfilePage() {
         const {
           favorites,
           participations,
-          ...profileData
         } = data
 
         setFavoriteActivities(favorites || [])
@@ -67,7 +64,6 @@ export default function ProfilePage() {
           participations || []
         )
 
-        setProfile(profileData)
 
       } catch (error) {
 
@@ -155,7 +151,7 @@ export default function ProfilePage() {
                 marginBottom: '8px',
               }}
             >
-              {profile.profileName || 'Profile'}
+              {user?.name || 'Profile'}
             </h1>
 
             <p
@@ -164,24 +160,15 @@ export default function ProfilePage() {
                 marginBottom: '12px',
               }}
             >
-              {profile.email}
+              {user?.email}
             </p>
 
             {/* Role badge */}
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '6px 12px',
-                borderRadius: '999px',
-                background: 'var(--color-primary)',
-                color: 'white',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-              }}
+            <Badge
+              variant={ROLE_VARIANT[user?.role]}
             >
-              {profile.role}
-            </span>
+              {user?.role}
+            </Badge>
 
           </div>
 
@@ -318,7 +305,7 @@ export default function ProfilePage() {
                 </p>
 
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   onClick={() =>
                     handleRemoveFavorite(activity.id)
                   }
