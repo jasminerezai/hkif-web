@@ -4,10 +4,11 @@ import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { ToastProvider } from './context/ToastContext.jsx'
 import Navbar from './components/Navbar.jsx'
 import ActivitiesPage from './pages/ActivitiesPage.jsx'
-import LoginPage    from './pages/LoginPage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import ActivityFormPage from './pages/ActivityFormPage.jsx'
 import SchedulePage from './pages/SchedulePage.jsx'
+import ActivityDetailPage from './pages/ActivityDetailPage.jsx'
 import { MANAGER_ROLES, EDITOR_ROLES } from './constants/roles.js'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
@@ -125,12 +126,10 @@ function AppRoutes() {
         <Routes>
           {/* Public routes — anyone can access */}
           <Route path="/" element={<SchedulePage />} />
-          <Route path="/login"    element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
 
-          {/* Create form: BOARD_MEMBER+ only — backend POST /activities
-              is gated to the same set, so LEADERs would just hit a 403. */}
           <Route
             path="/activities/new"
             element={
@@ -140,12 +139,8 @@ function AppRoutes() {
             }
           />
 
-          <Route path="/activities/:id" element={<Placeholder title="Activity Detail" />} />
+          <Route path="/activities/:id" element={<ActivityDetailPage />} />
 
-          {/* Edit form: LEADER + BOARD_MEMBER + ADMIN.
-              Backend assertActivityAccess restricts LEADERs to activities
-              they're assigned to — we don't duplicate that check here,
-              we just let them load the form. */}
           <Route
             path="/activities/:id/edit"
             element={
