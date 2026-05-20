@@ -5,6 +5,7 @@ import { fetchFavorites, addFavorite, removeFavorite, } from '../services/Favori
 import { API_BASE_URL } from '../services/apiConfig.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
+import ActivityListSkeleton from '../components/skeletons/ActivityListSkeleton.jsx'
 
 export default function ActivitiesPage() {
   // ── API State ─────────────────────────────────────────────
@@ -69,14 +70,7 @@ export default function ActivitiesPage() {
 
 }, [isAuthenticated, token])
 
-  // ── Loading / Error States ───────────────────────────────
-  if (loading) {
-    return <p>Loading activities...</p>
-  }
-
-  if (error) {
-    return <p>Error: {error}</p>
-  }
+// TODO(#30): error toast wired in next commit
 
   // ── Display all activities ───────────────────────────────
   const filteredActivities = activities
@@ -146,8 +140,17 @@ export default function ActivitiesPage() {
           display: 'grid',
           gap: 'var(--space-4)',
         }}
+        aria-busy={loading}
+        // aria-busy tells screen readers the region is still updating —
+        // the skeleton primitive is aria-hidden so this is where the
+        // announcement actually happens.
       >
-        {filteredActivities.length === 0 ? (
+        {loading ? (
+          // While the API call is in flight, render placeholder cards
+          // in the same grid the real ones will land in. No layout
+          // shift when data arrives.
+          <ActivityListSkeleton count={4} />
+        ) : filteredActivities.length === 0 ? (
           <p>No activities found.</p>
         ) : (
           filteredActivities.map(activity => (

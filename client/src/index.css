@@ -145,11 +145,12 @@ button, input, select, textarea {
 }
 
 @keyframes hkif-shimmer {
-  /* Used by Skeleton components in the next step. Animates a
-     light gradient across the placeholder bar to suggest
-     "content is loading" without a spinner. */
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
+  /* Percentage-based so the sweep covers the full element regardless
+     of its width. Original px version from step 1 only worked well
+     for ~400-800px wide skeletons — narrower bars showed the shine
+     for a fraction of the loop and looked broken. */
+  from { background-position:  200% 0; }
+  to   { background-position: -200% 0; }
 }
 
 /* ── Responsive ───────────────────────────────────────────── */

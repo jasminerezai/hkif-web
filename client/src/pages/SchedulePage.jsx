@@ -10,6 +10,9 @@ import { fetchFavorites } from '../services/FavoritesService.js'
 // while staying empty in dev so the vite proxy keeps working.
 import { API_BASE_URL } from '../services/apiConfig.js'
 
+
+import ScheduleSkeleton from '../components/skeletons/ScheduleSkeleton.jsx'
+
 // ─────────────────────────────────────────────────────────────
 // SchedulePage
 //
@@ -402,11 +405,9 @@ export default function SchedulePage() {
   }
 
   if (loading) {
-    return (
-      <div style={{ padding: '48px' }}>
-        <p>Loading schedule...</p>
-      </div>
-    )
+    // Full-page skeleton: keeps the header/filters/grid in place
+    // visually so the page doesn't pop in once data arrives.
+    return <ScheduleSkeleton />
   }
 
   return (
