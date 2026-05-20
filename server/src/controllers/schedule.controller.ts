@@ -2,13 +2,18 @@ import {READ}  from '../db/readQueries.js';
 import {ApiError} from "../utils/ApiError.js";
 import {Request, Response} from "express";
 import {asyncHandler} from "../middleware/asyncHandler.js";
-import {ApiResponse} from "../types/index.js";
-import {ScheduleDto} from '../types/index.js';
-import {ScheduleDateSchema, ScheduleBoolWeekSchema} from "../validators/schedule.validator.js";
-import {output, ZodISODate, ZodLiteral, ZodNullable, ZodOptional, ZodUnion} from "zod";
+import {ApiResponse, ScheduleDto} from "../types/index.js";
+import {output, ZodError, ZodISODate, ZodLiteral, ZodNullable, ZodOptional, ZodUnion} from "zod";
+import {
+  parseZodError,
+  ScheduleDateSchema,
+  ScheduleBoolWeekSchema,
+  CreateScheduleSchema,
+  UpdateScheduleSchema,
+  ScheduleIdParamSchema,
+} from "../validators/index.js";
 import { CREATE, UPDATE, DELETE } from "../db/queries.js";
 import { prisma, ProfileRole } from "../db/prisma.js";
-import { CreateScheduleSchema, UpdateScheduleSchema, ScheduleIdParamSchema } from "../validators/index.js";
 
 // Helper to assert activity existence & ownership for LEADERs
 async function assertActivityAccess(
@@ -56,13 +61,14 @@ const getSchedule = asyncHandler(
         let schedule: ScheduleDto[];// ScheduleDto[]
         let date: output<ZodOptional<ZodNullable<ZodUnion<readonly [ZodISODate, ZodLiteral<"today">]>>>> | Date;
         let entireWeek: boolean | null;
-        const resultDate = ScheduleDateSchema.safeParse(req.query.date);
-        const resultBool = ScheduleBoolWeekSchema.safeParse(req.query.entireWeek);
-        if(!resultDate.success) throw ApiError.badRequest(`Invalid Query Values: Bad date ${req.query.date}`);
-        else { date = resultDate.data}
 
-        if(!resultBool.success) throw ApiError.badRequest(`Invalid Query Values: Bad Boolean ${req.query.entireWeek}`);
-        else{ entireWeek = resultBool.data}
+        try{
+            date = ScheduleDateSchema.parse(req.query.date)
+            entireWeek = ScheduleBoolWeekSchema.parse(req.query.entireWeek)
+        }  catch(error){
+            if(error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)))
+            else throw ApiError.internal(`Something went wrong: ${error}`)
+        }
 
 
         if (!date || date === "today") {
