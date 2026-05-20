@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 import { API_BASE_URL } from '../services/apiConfig.js'
 import { Button, Input, Card } from '../components/ui'
 import { WEEKDAYS, ACTIVITY_STATUSES } from '../constants/activityEnums.js'
@@ -19,10 +20,19 @@ import { WEEKDAYS, ACTIVITY_STATUSES } from '../constants/activityEnums.js'
 // enforces the same rules independently, which is the real layer.
 // ─────────────────────────────────────────────────────────────
 export default function ActivityFormPage() {
-  const { getAuthHeader, logout } = useAuth()
+  // logout is no longer needed directly here — useAuthExpiredHandler
+  // owns the logout-and-redirect flow now (see #30).
+  const { getAuthHeader } = useAuth()
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
+
+  // Shared mid-session expiry handler:
+  //   logout → toast → navigate('/login', { state: { from }})
+  // Replaces the inline handleAuthExpired we used to have here so
+  // the same logic isn't duplicated across pages that hit protected
+  // endpoints. See: hooks/useAuthExpiredHandler.js
+  const handleAuthExpired = useAuthExpiredHandler()
 
   // ── Form state ────────────────────────────────────────────
   const [name, setName] = useState('')
@@ -39,20 +49,6 @@ export default function ActivityFormPage() {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
-
-  // ── handleAuthExpired ─────────────────────────────────────
-  // Consistent handling for "your session is gone" responses.
-  // Clears AuthContext + localStorage so the rest of the app sees
-  // the user as logged out, then bounces them to /login with the
-  // current URL preserved so LoginPage can return them here after
-  // they sign in again.
-  function handleAuthExpired() {
-    logout()
-    navigate('/login', {
-      replace: true,
-      state: { from: { pathname: window.location.pathname } },
-    })
-  }
 
   // ── Load existing activity in edit mode ───────────────────
   // Same 401 handling as handleSubmit — if the token expired
