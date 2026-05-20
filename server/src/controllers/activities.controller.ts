@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { prisma, ProfileRole, ActivityStatus } from '../db/prisma.js';
-import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity, ActivityDto } from '../types/index.js';
+import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity, ActivityDto, ActivityParticipantsDto } from '../types/index.js';
 import { CreateActivitySchema, DeleteActivitySchema, UpdateActivityGeneralSchema, UpdateActivityURLSchema, isUUID } from "../validators/index.js";
 import { DELETE, READ, UPDATE, CREATE } from "../db/queries.js";
 
@@ -260,7 +260,7 @@ export const unregisterParticipation = asyncHandler(async (
 
 export const getActivityParticipants = asyncHandler(async (
   req: Request<{ activityId: string }>,
-  res: Response<ApiResponse<any>>
+  res: Response<ApiResponse<ActivityParticipantsDto>>
 ) => {
   const { activityId } = req.params
   const { id: requesterId, role } = req.user!
@@ -298,6 +298,8 @@ export const getActivityParticipants = asyncHandler(async (
   })
 
   // 3. Format response
+  // NOTE: Email addresses are intentionally exposed here to activity leaders and admins
+  // to facilitate direct communication, coordinates, and urgent notices with registered participants.
   const formattedSchedules = schedules.map(s => ({
     scheduleId: s.id,
     startAt: s.startAt,
@@ -322,7 +324,7 @@ export const getActivityParticipants = asyncHandler(async (
 
 export const getActivityById = asyncHandler(async (
   req: Request<{ activityId: string }>,
-  res: Response<ApiResponse<any>>
+  res: Response<ApiResponse<ActivityDto>>
 ) => {
   const { activityId } = req.params
   if (!isUUID(activityId)) {

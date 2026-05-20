@@ -45,3 +45,22 @@ export interface UpdateScheduleStatusDto {
   status: ActivityStatus;
   message: string;
 }
+
+export interface ParticipantScheduleDto {
+  scheduleId: string;
+  startAt: Date;
+  endAt: Date | null;
+  status: ActivityStatus;
+  participants: {
+    id: string;
+    profileName: string | null;
+    email: string;
+  }[];
+}
+
+export interface ActivityParticipantsDto {
+  activityId: string;
+  activityName: string;
+  schedules: ParticipantScheduleDto[];
+}
+

@@ -142,7 +142,7 @@ export class READ {
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
 
-    static async activityById(activityId: string) {
+    static async activityById(activityId: string): Promise<ActivityDto | null> {
         const activity = await prisma.activityTemplate.findUnique({
             where: { id: activityId },
             include: {
@@ -150,19 +150,19 @@ export class READ {
                 leaders: true
             }
         });
-        return activity;
+        return activity as ActivityDto | null;
     }
     /**
      * just returns all activityTemplates
      */
-    static async allActivities() {
+    static async allActivities(): Promise<ActivityDto[]> {
         let activities = await prisma.activityTemplate.findMany({
             include: {
                 timeSlots: true,
                 leaders: true
             },
         });
-        return activities;
+        return activities as ActivityDto[];
     }
 
 

@@ -44,8 +44,8 @@ router.get(
 // GET /activities
 router.get('', getActivities);
 
-// GET /activities/:activityId --- anyone logged in --> get single activity details
-router.get('/:activityId', authMiddleware, getActivityById);
+// GET /activities/:activityId --- public --> get single activity details
+router.get('/:activityId', getActivityById);
 
 // POST /activities --- leader only --> create new activity
 router.post(
