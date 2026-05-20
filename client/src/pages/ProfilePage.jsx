@@ -30,6 +30,8 @@ export default function ProfilePage() {
   // Loading state
   const [loading, setLoading]
     = useState(true)
+  
+  const [error, setError] = useState(null)
 
   // ── Fetch Profile ───────────────────────────────────────
   // Loads all profile-related data from a single endpoint:
@@ -46,6 +48,8 @@ export default function ProfilePage() {
   useEffect(() => {
 
     async function loadProfile() {
+
+      if (!token) return
 
       try {
 
@@ -67,10 +71,7 @@ export default function ProfilePage() {
 
       } catch (error) {
 
-        console.error(
-          'Failed to fetch profile:',
-          error
-        )
+        setError('Failed to load profile.')
 
       } finally {
 
@@ -107,8 +108,37 @@ export default function ProfilePage() {
 
   // ── Loading State ───────────────────────────────────────
   if (loading) {
-    return <p>Loading profile...</p>
+    return (
+      <div
+        style={{
+          padding: 'var(--space-6)',
+          maxWidth: '1100px',
+          margin: '0 auto',
+        }}
+      >
+        <Card padding="lg">
+          <p>Loading profile...</p>
+        </Card>
+      </div>
+    )
   }
+
+  // ── Error State ───────────────────────────────────────
+  if (error) {
+  return (
+    <div
+      style={{
+        padding: 'var(--space-6)',
+        maxWidth: '1100px',
+        margin: '0 auto',
+      }}
+    >
+      <Card padding="lg">
+        <p>{error}</p>
+      </Card>
+    </div>
+  )
+}
 
   // ── Render ──────────────────────────────────────────────
   return (
