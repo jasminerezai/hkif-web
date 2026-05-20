@@ -6,6 +6,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchFavorites } from '../services/FavoritesService.js'
 
+// Central API base URL — prepends the backend origin in production
+// while staying empty in dev so the vite proxy keeps working.
+import { API_BASE_URL } from '../services/apiConfig.js'
+
 // ─────────────────────────────────────────────────────────────
 // SchedulePage
 //
@@ -131,6 +135,9 @@ export default function SchedulePage() {
     async function fetchSchedule() {
 
       try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/schedules/current`
+      )
 
         const response = await fetch('/api/schedules/current')
 

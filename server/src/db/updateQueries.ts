@@ -1,5 +1,6 @@
-import { prisma } from "./prisma.js";
-import { Activity, TimeSlot } from "../types/index.js";
+import { prisma, ActivityStatus } from "./prisma.js";
+import { Activity, TimeSlot, ScheduleDto } from "../types/index.js";
+import { formatSchedule } from "./utils.js";
 
 export class UPDATE {
     static async updateActivity(activityId: string, newData: Partial<Activity>) {
@@ -72,5 +73,34 @@ export class UPDATE {
                 }
             },
         });
+    }
+
+    static async updateSchedule(scheduleId: string, data: {
+        startAt?: Date;
+        endAt?: Date | null;
+        status?: ActivityStatus;
+    }): Promise<ScheduleDto> {
+        const schedule = await prisma.schedule.update({
+            where: { id: scheduleId },
+            data,
+            include: {
+                activity: {
+                    include: {
+                        leaders: {
+                            select: {
+                                profile: {
+                                    select: {
+                                        id: true,
+                                        profileName: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return formatSchedule(schedule);
     }
 }
