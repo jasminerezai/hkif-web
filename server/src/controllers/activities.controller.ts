@@ -273,29 +273,7 @@ export const getActivityParticipants = asyncHandler(async (
   const activity = await assertActivityAccess(activityId, requesterId, role)
 
   // 2. Fetch schedules and their participants
-  const schedules = await prisma.schedule.findMany({
-    where: { activityId },
-    select: {
-      id: true,
-      startAt: true,
-      endAt: true,
-      status: true,
-      participations: {
-        select: {
-          profile: {
-            select: {
-              id: true,
-              profileName: true,
-              email: true,
-            }
-          }
-        }
-      }
-    },
-    orderBy: {
-      startAt: 'asc'
-    }
-  })
+  const schedules = await READ.activityParticipants(activityId)
 
   // 3. Format response
   // NOTE: Email addresses are intentionally exposed here to activity leaders and admins

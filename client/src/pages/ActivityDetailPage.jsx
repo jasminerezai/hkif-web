@@ -13,28 +13,59 @@ export default function ActivityDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // ── Fetch Activity Details ───────────────────────────────────
+  // ── Fetch Activity & Participants ────────────────────────────
   useEffect(() => {
-    async function loadActivity() {
+    async function loadData() {
       try {
+        setLoading(true)
+        setError(null)
+
         const headers = {}
         if (token) {
           headers['Authorization'] = `Bearer ${token}`
         }
+
         const response = await fetch(`/api/activities/${id}`, { headers })
         if (!response.ok) {
           throw new Error('Failed to fetch activity details')
         }
+
         const result = await response.json()
-        setActivity(result.data)
+        const activityData = result.data
+        setActivity(activityData)
+
+        // Fetch participants in the same flow if the user is authorized (leader/admin)
+        if (isAuthenticated && token && activityData) {
+          const isUserLeader =
+            user.role === 'ADMIN' ||
+            user.role === 'BOARD_MEMBER' ||
+            (user.role === 'LEADER' && activityData.leaders?.some(l => l.profileId === user.id))
+
+          if (isUserLeader) {
+            try {
+              const partResponse = await fetch(`/api/activities/${id}/participants`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
+              if (partResponse.ok) {
+                const partResult = await partResponse.json()
+                setParticipantData(partResult.data)
+              }
+            } catch (partErr) {
+              // Silently ignore participant loading errors so the main details still render
+            }
+          }
+        }
       } catch (err) {
         setError(err.message)
       } finally {
         setLoading(false)
       }
     }
-    loadActivity()
-  }, [id, token])
+
+    loadData()
+  }, [id, token, isAuthenticated, user])
 
   // ── Determine if user is a leader/admin for this activity ────
   const isLeader = useMemo(() => {
@@ -42,33 +73,11 @@ export default function ActivityDetailPage() {
     return (
       user.role === 'ADMIN' ||
       user.role === 'BOARD_MEMBER' ||
+      // NOTE: ActivityDto.leaders uses { profileId, activityId } shape.
+      // If normalized to { id, profileName } (see issue #XX), change to l.id === user.id
       (user.role === 'LEADER' && activity.leaders?.some(l => l.profileId === user.id))
     )
   }, [isAuthenticated, user, activity])
-
-  // ── Fetch Attendee List (Leaders/Admins only) ────────────────
-  useEffect(() => {
-    if (!isLeader) return
-
-    async function loadParticipants() {
-      try {
-        const response = await fetch(`/api/activities/${id}/participants`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        if (response.ok) {
-          const result = await response.json()
-          setParticipantData(result.data)
-        } else {
-          console.error('Failed to load participants', response.statusText)
-        }
-      } catch (err) {
-        console.error('Error fetching participants:', err)
-      }
-    }
-    loadParticipants()
-  }, [id, isLeader, token])
 
   if (loading) {
     return (

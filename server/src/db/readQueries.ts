@@ -203,5 +203,31 @@ export class READ {
         return record !== null;
     }
 
+    static async activityParticipants(activityId: string) {
+        return await prisma.schedule.findMany({
+            where: { activityId },
+            select: {
+                id: true,
+                startAt: true,
+                endAt: true,
+                status: true,
+                participations: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true,
+                                email: true,
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                startAt: 'asc'
+            }
+        });
+    }
+
 
 }
