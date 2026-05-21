@@ -113,7 +113,6 @@ export class READ {
                 }
             }
         })
-        // return favorites.map((a: { activity: ActivityDto }) => a.activity);
         const formattedFavorites: ActivityDto[] = favorites.map(formatActivity);
         return formattedFavorites;
     }
@@ -144,6 +143,7 @@ export class READ {
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
 
+    // TODO: normalize return type to ActivityDto.
     static async activityById(activityId: string): Promise<ActivityTemplate | null> {//
         const activity = await prisma.activityTemplate.findUnique({
             where: { id: activityId },

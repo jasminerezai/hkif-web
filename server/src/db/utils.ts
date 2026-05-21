@@ -27,18 +27,11 @@ export function formatSchedule(schedule: any): ScheduleDto {
 }
 
 export function formatActivity(activity: any): ActivityDto {
-    let leaders: any = activity.leaders ?? [];
+    let {leaders, ...rest} = activity.leaders ?? [];
     leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string | null } }) => el.profile) : [];
-    (activity as any).leaders = undefined;
+    // (activity as any).leaders = undefined;
     return {
-        leaders: leaders,
-        timeSlots: activity.timeSlots,
-        name: activity.name,
-        location: activity.location,
-        description: activity.description,
-        notes: activity.notes,
-        defaultStatus: activity.defaultStatus,
-        maxCapacity: activity.maxCapacity
-
+        ...rest,
+        leaders
     } satisfies ActivityDto
 }
