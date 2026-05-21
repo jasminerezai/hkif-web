@@ -1,5 +1,6 @@
 import { prisma } from "./prisma.js";
 import { ActivityDto, FavoriteCreateDelete } from "../types/index.js";
+import {formatActivity} from "./utils.js";
 
 export class DELETE {
     /**
@@ -24,7 +25,7 @@ export class DELETE {
             }
         })
 
-        return activity;
+        return formatActivity(activity);
     }
 
 

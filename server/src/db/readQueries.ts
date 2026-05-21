@@ -3,7 +3,7 @@ import { startAndEndOfWeek } from "../utils/weekCalculator.js";
 import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
 import {ScheduleDto, ActivityDto, ProfileDto} from '../types/index.js';
 import {ApiError} from "../utils/ApiError.js";
-import { formatSchedule } from "./utils.js";
+import {formatActivity, formatSchedule} from "./utils.js";
 export class READ {
     /**
  * returns user based of their unique email
@@ -113,7 +113,9 @@ export class READ {
                 }
             }
         })
-        return favorites.map((a: { activity: ActivityDto }) => a.activity);
+        // return favorites.map((a: { activity: ActivityDto }) => a.activity);
+        const formattedFavorites: ActivityDto[] = favorites.map(formatActivity);
+        return formattedFavorites;
     }
 
     /**
@@ -142,23 +144,33 @@ export class READ {
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
 
-    static async activityById(activityId: string): Promise<ActivityTemplate | null> {
+    static async activityById(activityId: string): Promise<ActivityTemplate | null> {//
         const activity = await prisma.activityTemplate.findUnique({
-            where: { id: activityId }
+            where: { id: activityId },
         });
         return activity;
     }
     /**
      * just returns all activityTemplates
      */
-    static async allActivities() {
+    static async allActivities(): Promise<ActivityDto[]> {
         let activities = await prisma.activityTemplate.findMany({
             include: {
                 timeSlots: true,
-                leaders: true
+                leaders: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true
+                            }
+                        }
+                    }
+                }
             },
         });
-        return activities;
+        const formattedActs: ActivityDto[] = activities.map(formatActivity);
+        return formattedActs;
     }
 
 
@@ -266,7 +278,16 @@ export class READ {
                         activity: {
                             include: {
                                 timeSlots: true,
-                                leaders: true
+                                leaders: {
+                                    select: {
+                                        profile: {
+                                            select: {
+                                                id: true,
+                                                profileName: true
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -278,26 +299,8 @@ export class READ {
             throw ApiError.badRequest("Invalid Id")
         }
         else{
-            const favorites: ActivityDto[] = profile.favorites.map(el => el.activity);
-            //replace with helper function at merge: profile.participation.map(formatSchedule)
-            const participation: ScheduleDto[] = profile.participations.map( el => {
-                let leaders: any = el.schedule.activity.leaders ?? [];
-                leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
-                (el.schedule.activity as any).leaders = undefined;
-
-                    return {
-                        id: el.schedule.id,
-                        createdAt: el.schedule.createdAt,
-                        updatedAt: el.schedule.updatedAt,
-                        activityId: el.schedule.activityId,
-                        startAt: el.schedule.startAt,
-                        endAt: el.schedule.endAt,
-                        status: el.schedule.status,
-                        activity: el.schedule.activity,
-                        leaders: leaders
-                    } satisfies ScheduleDto;
-                }
-            )
+            const favorites: ActivityDto[] = profile.favorites.map(formatActivity);
+            const participation: ScheduleDto[] = profile.participations.map(formatSchedule)
 
 
             const dto = {
@@ -311,6 +314,7 @@ export class READ {
             return dto;
         }
     }
+
     static async participantCount(scheduleId: string): Promise<number> {
         return prisma.participationLog.count({
             where: { scheduleId }
