@@ -1,22 +1,36 @@
-//
 import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import Navbar from './components/Navbar.jsx'
 import ActivitiesPage from './pages/ActivitiesPage.jsx'
-import LoginPage    from './pages/LoginPage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import ActivityFormPage from './pages/ActivityFormPage.jsx'
 import SchedulePage from './pages/SchedulePage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
+import ActivityDetailPage from './pages/ActivityDetailPage.jsx'
+import { MANAGER_ROLES, EDITOR_ROLES } from './constants/roles.js'
 
 // ── ProtectedRoute ────────────────────────────────────────────
-// Wraps any route that requires login.
-// If not authenticated → redirect to /login
-// Passes the blocked URL in location.state so LoginPage can
-// redirect back after a successful login.
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+// Wraps any route that requires login, and optionally a specific role.
+//
+// Props:
+//   children       — the page component to render when access is granted
+//   requiredRoles  — optional array of role names. If passed, the user's
+//                    role must be in the list to access the route.
+//                    Leave undefined for "logged-in only, any role".
+//
+// Redirects:
+//   Still rehydrating         → spinner (no redirect yet)
+//   Not logged in             → /login (preserves blocked URL)
+//   Logged in but no role     → /login (treat as broken session)
+//   Logged in, wrong role     → / (home)
+//
+// Note: backend role middleware is the real enforcement layer — this
+// guard just prevents the page from mounting client-side so we avoid
+// pointless fetches and dead-end "no permission" screens.
+function ProtectedRoute({ children, requiredRoles }) {
+  const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -37,17 +51,36 @@ function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
+    // Not logged in (or token was rejected during rehydration).
+    // Preserve the blocked URL so LoginPage can return them here.
     return (
       <Navigate
         to="/login"
         replace
-        // replace: don't push /profile onto history —
-        // back button won't loop them back to the blocked page
         state={{ from: location }}
-        // location.pathname passed here so LoginPage can redirect
-        // the user back after they log in
       />
     )
+  }
+
+  // Defensive: if a route requires a role but the user object somehow
+  // doesn't have one, treat the session as broken and force a fresh
+  // login. Better than silently bouncing the user to home with no
+  // explanation (which is what `requiredRoles.includes(undefined)`
+  // would produce).
+  if (requiredRoles && !user?.role) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location }}
+      />
+    )
+  }
+
+  // Logged in, but with the wrong role for this route.
+  // Bounce to home rather than showing an inline error page.
+  if (requiredRoles && !requiredRoles.includes(user.role)) {
+    return <Navigate to="/" replace />
   }
 
   return children
@@ -92,14 +125,31 @@ function AppRoutes() {
         <Routes>
           {/* Public routes — anyone can access */}
           <Route path="/" element={<SchedulePage />} />
-          <Route path="/login"          element={<LoginPage />} />
-          <Route path="/register"       element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
-          <Route path="/activities/new" element={<ProtectedRoute><ActivityFormPage /></ProtectedRoute>} />
-          <Route path="/activities/:id" element={<Placeholder title="Activity Detail" />} />
-          <Route path="/activities/:id/edit" element={<ProtectedRoute><ActivityFormPage /></ProtectedRoute>} />
 
-          {/* Protected route — must be logged in */}
+          <Route
+            path="/activities/new"
+            element={
+              <ProtectedRoute requiredRoles={MANAGER_ROLES}>
+                <ActivityFormPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="/activities/:id" element={<ActivityDetailPage />} />
+
+          <Route
+            path="/activities/:id/edit"
+            element={
+              <ProtectedRoute requiredRoles={EDITOR_ROLES}>
+                <ActivityFormPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected route — must be logged in (any role) */}
           <Route
             path="/profile"
             element={
@@ -111,8 +161,8 @@ function AppRoutes() {
 
           {/* Catch-all: any unknown URL redirects to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+        </Routes >
+      </main >
     </>
   )
 }
