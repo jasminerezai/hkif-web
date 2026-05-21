@@ -59,5 +59,13 @@ export type {
 } from './profile.types.js'
 
 export type {
+  AdminStatisticsDto,
+  ParticipantCountPerActivityDto,
+  PopularActivityDto,
+  CancellationRatePerActivityDto,
+  CancellationRatesDto,
+} from './admin.types.js';
+
+export type {
   zodError
 } from './zod.types.js'
