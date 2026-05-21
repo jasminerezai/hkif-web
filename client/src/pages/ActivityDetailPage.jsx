@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import Badge from '../components/ui/Badge.jsx'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
 
@@ -94,6 +95,28 @@ export default function ActivityDetailPage() {
           <h2 style={{ color: 'var(--color-danger)', marginBottom: '12px' }}>Error</h2>
           <p style={{ marginBottom: '24px' }}>{error || 'Activity not found.'}</p>
           <Button onClick={() => navigate('/activities')}>Back to Activities</Button>
+          {activity.defaultStatus === 'CANCELLED' && (
+            <div style={{
+              background: 'var(--color-danger-light)',
+              borderLeft: '6px solid var(--color-danger)',
+              color: 'var(--color-danger)',
+              padding: 'var(--space-4) var(--space-6)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: 'var(--space-6)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-3)',
+              fontWeight: 700,
+            }}>
+              <span>⚠️</span>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700 }}>This activity has been cancelled.</p>
+                <p style={{ margin: '2px 0 0', fontWeight: 400, fontSize: 'var(--text-sm)', opacity: 0.9 }}>
+                  No active schedules or future sessions will run until the activity is reactivated.
+                </p>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
     )

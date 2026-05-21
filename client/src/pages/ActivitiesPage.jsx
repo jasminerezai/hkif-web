@@ -5,6 +5,7 @@ import { fetchFavorites, addFavorite, removeFavorite, } from '../services/Favori
 import { API_BASE_URL } from '../services/apiConfig.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
+import Badge, { STATUS_VARIANT } from '../components/ui/Badge.jsx'
 
 export default function ActivitiesPage() {
   // ── API State ─────────────────────────────────────────────
@@ -16,7 +17,7 @@ export default function ActivitiesPage() {
   const [error, setError] = useState(null)
 
   // ── Fetch Activities ──────────────────────────────────────
-  
+
   useEffect(() => {
     async function fetchActivities() {
       try {
@@ -67,7 +68,7 @@ export default function ActivitiesPage() {
 
     loadFavorites()
 
-}, [isAuthenticated, token])
+  }, [isAuthenticated, token])
 
   // ── Loading / Error States ───────────────────────────────
   if (loading) {
@@ -89,7 +90,7 @@ export default function ActivitiesPage() {
     }
 
     const previousFavorites = favoriteActivities
-    
+
     try {
 
       if (favoriteActivities.includes(activityId)) {
@@ -181,7 +182,8 @@ export default function ActivitiesPage() {
                   ? '♥'
                   : '♡'}
               </button>
-              <h2 style={{ marginBottom: '8px' }}>
+
+              <h2 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                 <Link
                   to={`/activities/${activity.id}`}
                   style={{
@@ -199,6 +201,9 @@ export default function ActivitiesPage() {
                 >
                   {activity.name}
                 </Link>
+                {activity.defaultStatus === 'CANCELLED' && (
+                  <Badge variant={STATUS_VARIANT[activity.defaultStatus]}>Cancelled</Badge>
+                )}
               </h2>
 
               {/* Activity details */}
@@ -238,6 +243,17 @@ export default function ActivitiesPage() {
                   ))}
                 </div>
               )}
+
+              {/* View Details Button */}
+              <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-3)' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/activities/${activity.id}`)}
+                >
+                  View Details
+                </Button>
+              </div>
             </Card>
           ))
         )}

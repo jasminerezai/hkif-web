@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import ActivityFormPage from './pages/ActivityFormPage.jsx'
 import SchedulePage from './pages/SchedulePage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 import ActivityDetailPage from './pages/ActivityDetailPage.jsx'
 import { MANAGER_ROLES, EDITOR_ROLES } from './constants/roles.js'
 
@@ -139,7 +140,6 @@ function AppRoutes() {
 
           <Route path="/activities/:id" element={<ActivityDetailPage />} />
 
-
           <Route
             path="/activities/:id/edit"
             element={
@@ -153,15 +153,15 @@ function AppRoutes() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Placeholder title="Profile" />
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
 
           {/* Catch-all: any unknown URL redirects to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+        </Routes >
+      </main >
     </>
   )
 }
