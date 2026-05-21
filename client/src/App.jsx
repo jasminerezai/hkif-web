@@ -149,7 +149,6 @@ function AppRoutes() {
             }
           />
 
-          {/* Protected route — must be logged in (any role) */}
           <Route
             path="/profile"
             element={

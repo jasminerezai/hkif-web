@@ -1,8 +1,8 @@
 import { prisma } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
-import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
-import {ScheduleDto, ActivityDto, ProfileDto} from '../types/index.js';
-import {ApiError} from "../utils/ApiError.js";
+import { Profile } from "../generated/prisma/index.js";
+import { ScheduleDto, ActivityDto, ProfileDto } from '../types/index.js';
+import { ApiError } from "../utils/ApiError.js";
 import { formatSchedule } from "./utils.js";
 export class READ {
     /**
@@ -39,7 +39,7 @@ export class READ {
      */
     static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {
         const { startDay, endDay } = startAndEndOfWeek(date);
-        
+
         const schedule = await prisma.schedule.findMany({
             where: {
                 AND: [
@@ -142,23 +142,27 @@ export class READ {
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
 
-    static async activityById(activityId: string): Promise<ActivityTemplate | null> {
+    static async activityById(activityId: string): Promise<ActivityDto | null> {
         const activity = await prisma.activityTemplate.findUnique({
-            where: { id: activityId }
+            where: { id: activityId },
+            include: {
+                timeSlots: true,
+                leaders: true
+            }
         });
-        return activity;
+        return activity as ActivityDto | null;
     }
     /**
      * just returns all activityTemplates
      */
-    static async allActivities() {
+    static async allActivities(): Promise<ActivityDto[]> {
         let activities = await prisma.activityTemplate.findMany({
             include: {
                 timeSlots: true,
                 leaders: true
             },
         });
-        return activities;
+        return activities as ActivityDto[];
     }
 
 
@@ -187,7 +191,7 @@ export class READ {
 
     static async activitiesParticipatedBy(profileId: string): Promise<ScheduleDto[]> {
         const test = await prisma.participationLog.findMany({
-            where: {profileId},
+            where: { profileId },
             select: {
                 schedule: {
                     include: {
@@ -210,7 +214,7 @@ export class READ {
             }
         });
         const formatSched: ScheduleDto[] = [];
-        test.forEach( el => {
+        test.forEach(el => {
             let leaders: any = el.schedule.activity.leaders ?? []; //{profile: Pick<Profile, 'id' | 'profileName'>}[]
             // leaders = leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile);
             leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
@@ -233,15 +237,15 @@ export class READ {
 
     static async fullProfile(profileId: string): Promise<ProfileDto> {
         const profile = await prisma.profile.findUnique({
-            where: {id: profileId},
+            where: { id: profileId },
             select: {
                 id: true,
                 profileName: true,
                 email: true,
                 role: true,
                 participations: {
-                    select:{
-                        schedule:{
+                    select: {
+                        schedule: {
                             include: {
                                 activity: {
                                     include: {
@@ -274,29 +278,29 @@ export class READ {
 
             }
         })
-        if(!profile){
+        if (!profile) {
             throw ApiError.badRequest("Invalid Id")
         }
-        else{
+        else {
             const favorites: ActivityDto[] = profile.favorites.map(el => el.activity);
             //replace with helper function at merge: profile.participation.map(formatSchedule)
-            const participation: ScheduleDto[] = profile.participations.map( el => {
+            const participation: ScheduleDto[] = profile.participations.map(el => {
                 let leaders: any = el.schedule.activity.leaders ?? [];
                 leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
                 (el.schedule.activity as any).leaders = undefined;
 
-                    return {
-                        id: el.schedule.id,
-                        createdAt: el.schedule.createdAt,
-                        updatedAt: el.schedule.updatedAt,
-                        activityId: el.schedule.activityId,
-                        startAt: el.schedule.startAt,
-                        endAt: el.schedule.endAt,
-                        status: el.schedule.status,
-                        activity: el.schedule.activity,
-                        leaders: leaders
-                    } satisfies ScheduleDto;
-                }
+                return {
+                    id: el.schedule.id,
+                    createdAt: el.schedule.createdAt,
+                    updatedAt: el.schedule.updatedAt,
+                    activityId: el.schedule.activityId,
+                    startAt: el.schedule.startAt,
+                    endAt: el.schedule.endAt,
+                    status: el.schedule.status,
+                    activity: el.schedule.activity,
+                    leaders: leaders
+                } satisfies ScheduleDto;
+            }
             )
 
 
@@ -323,6 +327,32 @@ export class READ {
             where: { profileId_scheduleId: { profileId, scheduleId } }
         });
         return record !== null;
+    }
+
+    static async activityParticipants(activityId: string) {
+        return await prisma.schedule.findMany({
+            where: { activityId },
+            select: {
+                id: true,
+                startAt: true,
+                endAt: true,
+                status: true,
+                participations: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true,
+                                email: true,
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                startAt: 'asc'
+            }
+        });
     }
 
 
