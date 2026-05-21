@@ -11,6 +11,7 @@ export default function ActivityDetailPage() {
   const { isAuthenticated, user, token } = useAuth()
   const [activity, setActivity] = useState(null)
   const [participantData, setParticipantData] = useState(null)
+  const [participantError, setParticipantError] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -54,7 +55,7 @@ export default function ActivityDetailPage() {
                 setParticipantData(partResult.data)
               }
             } catch (partErr) {
-              // Silently ignore participant loading errors so the main details still render
+              setParticipantError('Could not load attendee list. Try refreshing.')
             }
           }
         }
@@ -95,28 +96,6 @@ export default function ActivityDetailPage() {
           <h2 style={{ color: 'var(--color-danger)', marginBottom: '12px' }}>Error</h2>
           <p style={{ marginBottom: '24px' }}>{error || 'Activity not found.'}</p>
           <Button onClick={() => navigate('/activities')}>Back to Activities</Button>
-          {activity.defaultStatus === 'CANCELLED' && (
-            <div style={{
-              background: 'var(--color-danger-light)',
-              borderLeft: '6px solid var(--color-danger)',
-              color: 'var(--color-danger)',
-              padding: 'var(--space-4) var(--space-6)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: 'var(--space-6)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-3)',
-              fontWeight: 700,
-            }}>
-              <span>⚠️</span>
-              <div>
-                <p style={{ margin: 0, fontWeight: 700 }}>This activity has been cancelled.</p>
-                <p style={{ margin: '2px 0 0', fontWeight: 400, fontSize: 'var(--text-sm)', opacity: 0.9 }}>
-                  No active schedules or future sessions will run until the activity is reactivated.
-                </p>
-              </div>
-            </div>
-          )}
         </Card>
       </div>
     )
@@ -128,6 +107,29 @@ export default function ActivityDetailPage() {
       <Link to="/activities" style={{ color: 'var(--color-primary-dark)', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
         ← Back to Activities
       </Link>
+
+      {activity.defaultStatus === 'CANCELLED' && (
+        <div style={{
+          background: 'var(--color-danger-light)',
+          borderLeft: '6px solid var(--color-danger)',
+          color: 'var(--color-danger)',
+          padding: 'var(--space-4) var(--space-6)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: 'var(--space-6)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          fontWeight: 700,
+        }}>
+          <span>⚠️</span>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700 }}>This activity has been cancelled.</p>
+            <p style={{ margin: '2px 0 0', fontWeight: 400, fontSize: 'var(--text-sm)', opacity: 0.9 }}>
+              No active schedules or future sessions will run until the activity is reactivated.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Card padding="md" shadow="md" style={{ marginBottom: 'var(--space-6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
@@ -186,6 +188,12 @@ export default function ActivityDetailPage() {
           <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '20px' }}>
             Registered participants for all schedules of this activity. Only visible to leaders.
           </p>
+
+          {participantError && (
+            <p style={{ color: 'var(--color-danger)', fontSize: '0.9rem', marginBottom: '16px' }}>
+              {participantError}
+            </p>
+          )}
 
           {!participantData || participantData.schedules?.length === 0 ? (
             <p style={{ fontStyle: 'italic', color: 'var(--color-text-muted)' }}>No schedules found for this activity.</p>
