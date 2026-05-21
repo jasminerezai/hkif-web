@@ -64,3 +64,5 @@ export const UpdateActivityGeneralSchema = z.object({
 }).refine((data) => Object.keys(data).length > 0, {
     message: "At least one field to update must be provided",
 });
+
+export const StatusValidationSchema = z.enum(["ACTIVE", "INACTIVE", "CANCELLED", "DELAYED"]);

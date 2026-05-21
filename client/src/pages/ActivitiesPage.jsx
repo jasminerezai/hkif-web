@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
+import { API_BASE_URL } from '../services/apiConfig.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
 
@@ -20,7 +21,7 @@ export default function ActivitiesPage() {
     async function fetchActivities() {
       try {
         const response = await fetch(
-          '/api/activities'
+          `${API_BASE_URL}/api/activities`
         )
 
         if (!response.ok) {

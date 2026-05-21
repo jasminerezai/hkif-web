@@ -193,8 +193,9 @@ export function AuthProvider({ children }) {
   // ── getAuthHeader ─────────────────────────────────────────
   // Returns the Authorization header needed for protected API calls.
   // Usage in any service file:
+  //   import { API_BASE_URL } from '../services/apiConfig.js'
   //   const { getAuthHeader } = useAuth()
-  //   fetch('/api/schedule', { headers: { ...getAuthHeader(), 'Content-Type': 'application/json' } })
+  //   fetch(`${API_BASE_URL}/api/schedule`, { headers: { ...getAuthHeader(), 'Content-Type': 'application/json' } })
   function getAuthHeader() {
     return token ? { Authorization: `Bearer ${token}` } : {}
     // authMiddleware checks: req.headers.authorization?.startsWith('Bearer ')
