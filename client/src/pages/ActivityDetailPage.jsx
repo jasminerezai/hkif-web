@@ -144,6 +144,19 @@ export default function ActivityDetailPage() {
               </p>
             </div>
 
+            {/*
+              TODO (bug ticket: "spots left counter not updating"):
+              Add register / unregister UI here once this page wires
+              up to a specific schedule. The same pattern used in
+              SchedulePage applies — call ParticipationService and
+              read participantCount from the response to refresh the
+              "spots left" display + disable the button when full.
+              This page currently only renders the activity template
+              (no scheduled session), so there's no participation UI
+              to bug-fix yet. Tracked separately from the schedule
+              fix shipped in this PR.
+            */}
+
             {/* Capacity */}
             <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 'var(--space-3)' }}>
               <p style={{ fontSize: 'var(--text-xs)', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '2px' }}>
