@@ -1,7 +1,7 @@
-import { prisma } from "./prisma.js";
+import { prisma, ProfileRole } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
 import { Profile } from "../generated/prisma/index.js";
-import { ScheduleDto, ActivityDto, ProfileDto } from '../types/index.js';
+import { ScheduleDto, ActivityDto, ProfileDto, ProfileSummaryDto } from '../types/index.js';
 import { ApiError } from "../utils/ApiError.js";
 import { formatSchedule } from "./utils.js";
 export class READ {
@@ -355,5 +355,20 @@ export class READ {
         });
     }
 
+    static async profilesByRole(role?: ProfileRole): Promise<ProfileSummaryDto[]> {
+        const where = role ? { role } : {};
+        return await prisma.profile.findMany({
+            where,
+            select: {
+                id: true,
+                profileName: true,
+                email: true,
+                role: true,
+            },
+            orderBy: {
+                profileName: 'asc'
+            }
+        });
+    }
 
 }

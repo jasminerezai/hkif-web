@@ -33,3 +33,7 @@ export {
   UpdateScheduleSchema,
   ScheduleIdParamSchema,
 } from './schedule.validator.js'
+
+export {
+  GetProfilesQuerySchema,
+} from './profiles.validator.js';
