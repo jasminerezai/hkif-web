@@ -17,6 +17,9 @@ import Badge, {
   ROLE_VARIANT,
   STATUS_VARIANT,
 } from '../components/ui/Badge.jsx'
+import ProfileSkeleton, {
+  ManageActivitiesGridSkeleton,
+} from '../components/skeletons/ProfileSkeleton.jsx'
 
 export default function ProfilePage() {
 
@@ -193,23 +196,14 @@ export default function ProfilePage() {
     }
   }
 
-  // ── Loading State ───────────────────────────────────────
+// ── Loading State ───────────────────────────────────────
+  // Renders the full page shape as shimmering placeholders so
+  // the layout doesn't jump when /api/users/me resolves.
+  // canManage is already available here — AuthContext hydrates
+  // user.role from localStorage before the profile fetch fires.
   if (loading) {
-    return (
-      <div
-        style={{
-          padding: 'var(--space-6)',
-          maxWidth: '1100px',
-          margin: '0 auto',
-        }}
-      >
-        <Card padding="lg">
-          <p>Loading profile...</p>
-        </Card>
-      </div>
-    )
+    return <ProfileSkeleton canManage={canManage} />
   }
-
   // ── Error State ───────────────────────────────────────
   if (error) {
   return (
@@ -321,9 +315,9 @@ export default function ProfilePage() {
               below — easier to read in one place for review. */}
           {manageLoading ? (
 
-            <Card padding="md">
-              <p>Loading activities...</p>
-            </Card>
+            // Shares the same shape as the real grid below, so
+            // when the fetch lands the card layout doesn't shift.
+            <ManageActivitiesGridSkeleton />
 
           ) : manageableActivities.length === 0 ? (
 
