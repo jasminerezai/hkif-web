@@ -151,7 +151,49 @@ export default function AboutPage() {
         Community Focused
       </Badge>
 
-    </div>
+          </div>
+          
+          <div
+  style={{
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap',
+    marginTop: '12px',
+  }}
+>
+
+  <a
+    href="mailto:hkif@hotmail.se"
+    style={{ textDecoration: 'none' }}
+  >
+    <Button variant="outline" size="sm">
+      Email
+    </Button>
+  </a>
+
+  <a
+    href="https://www.facebook.com/HKIFatHKR/"
+    target="_blank"
+    rel="noreferrer"
+    style={{ textDecoration: 'none' }}
+  >
+    <Button variant="outline" size="sm">
+      Facebook →
+    </Button>
+  </a>
+
+  <a
+    href="https://www.instagram.com/hkif_skane/"
+    target="_blank"
+    rel="noreferrer"
+    style={{ textDecoration: 'none' }}
+  >
+    <Button variant="outline" size="sm">
+      Instagram →
+    </Button>
+  </a>
+
+</div>
 
   </div>
 
@@ -367,7 +409,7 @@ export default function AboutPage() {
                 }}
               >
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
                 >
                   View GitHub →
