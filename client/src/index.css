@@ -140,7 +140,7 @@ button, input, select, textarea {
 /* Schedule view toggle responsiveness */
 .schedule-toggle {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .schedule-toggle button {
@@ -148,12 +148,33 @@ button, input, select, textarea {
 }
 
 /* Stretch buttons on smaller screens */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .schedule-toggle {
     width: 100%;
   }
 
   .schedule-toggle button {
     flex: 1;
+  }
+}
+
+/* ── Schedule Grid ─────────────────────────────────────── */
+
+.schedule-grid {
+  display: grid;
+}
+
+/* Collapse calendar on smaller screens */
+@media (max-width: 768px) {
+
+  .schedule-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .schedule-grid {
+    grid-template-columns: 1fr !important;
   }
 }

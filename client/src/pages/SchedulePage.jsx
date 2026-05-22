@@ -520,9 +520,13 @@ export default function SchedulePage() {
         }}
       >
         <div
+          className='schedule-grid'
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gridTemplateColumns:
+              view === 'weekly' || view === 'monthly'
+                ? 'repeat(7, 1fr)'
+                : 'repeat(7, 1fr)',
             gap: '0',
           }}
         >
