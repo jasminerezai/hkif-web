@@ -1,9 +1,14 @@
 import { prisma, ActivityStatus } from "./prisma.js";
-import { Activity, TimeSlot, ScheduleDto } from "../types/index.js";
-import { formatSchedule } from "./utils.js";
+import {Activity, TimeSlot, ScheduleDto, ActivityDto} from "../types/index.js";
+import {formatActivity, formatSchedule} from "./utils.js";
 
 export class UPDATE {
-    static async updateActivity(activityId: string, newData: Partial<Activity>) {
+    /**
+     * Updates an Activity.
+     * @param activityId
+     * @param newData Partial<Activity> --> where Activity is the type from th DB
+     */
+    static async updateActivity(activityId: string, newData: Partial<Activity>): Promise<ActivityDto> {
         // These fields require special handling, so we extract them from the update payload first  
         const timeSlots = newData.timeSlots;
         delete newData.timeSlots;
@@ -34,16 +39,31 @@ export class UPDATE {
                 }))
             });
         }
-
-        return prisma.activityTemplate.findUnique({
+        const newAct = await prisma.activityTemplate.findUnique({
             where: { id: activityId },
             include: {
-                leaders: true,
-                timeSlots: true
+                timeSlots: true,
+                leaders: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true
+                            }
+                        }
+                    }
+                }
             }
         });
+        return formatActivity(newAct);
     }
 
+    /**
+     * adds an array of timeslots to an activity
+     * Return value is currently not used
+     * @param activityId
+     * @param newData
+     */
     static async addTimeSlots(activityId: string, newData: TimeSlot[]) {
         return prisma.activityTemplate.update({
             where: { id: activityId },
@@ -64,6 +84,11 @@ export class UPDATE {
         });
     }
 
+    /**
+     * Deletes all timeslots of a given activity
+     * Return value is currently not used.
+     * @param activityId
+     */
     static async deleteAllTimeSlots(activityId: string) {
         return prisma.activityTemplate.update({
             where: { id: activityId },
@@ -75,6 +100,16 @@ export class UPDATE {
         });
     }
 
+
+    /**
+     * Updates a Schedules starting time, ending time. or/and their current status.
+     * @param scheduleId string (uuid)
+     * @param data {
+     *         startAt?: Date;
+     *         endAt?: Date | null;
+     *         status?: ActivityStatus;
+     *     }
+     */
     static async updateSchedule(scheduleId: string, data: {
         startAt?: Date;
         endAt?: Date | null;

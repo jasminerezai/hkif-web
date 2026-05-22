@@ -162,7 +162,7 @@ export const newActivity = asyncHandler(
 );
 
 export const updateActivity = asyncHandler(
-  async (req: Request<{ activityId: string; }, {}, Partial<Activity>>, res: Response<ApiResponse<ActivityDto>>) => {
+  async (req: Request<{ activityId: string; }, {}, Partial<Activity>>, res: Response<ApiResponse<ActivityDto>>) =>  {
     let updateParams: { activityId: string; };
     let updateBody: Partial<Activity>;
 
@@ -170,7 +170,7 @@ export const updateActivity = asyncHandler(
       updateParams = UpdateActivityURLSchema.parse(req.params);
       updateBody = UpdateActivityGeneralSchema.parse(req.body);
     } catch (error) {
-      if (error instanceof ZodError) throw ApiError.badRequest(`Invalid request body or params: ${parseZodError(error)}`);
+      if (error instanceof ZodError) throw ApiError.badRequest(`Invalid request body or params: ${JSON.stringify(parseZodError(error))}`);
       else throw ApiError.internal(`Something went wrong: ${error}`)
     }
 

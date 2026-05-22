@@ -43,7 +43,7 @@ export class CREATE {
         return formatActivity(activity);
     }
 
-    static async newActivity(newAct: Activity) {
+    static async newActivity(newAct: Activity): Promise<ActivityDto> {
         const activity = await prisma.activityTemplate.create({
             data: {
                 name: newAct.name,
@@ -70,11 +70,20 @@ export class CREATE {
                 },
             },
             include: {
-                leaders: true,
-                timeSlots: true
+                timeSlots: true,
+                leaders: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true
+                            }
+                        }
+                    }
+                }
             }
         });
-        return activity;
+        return formatActivity(activity);
     }
 
     static async newSchedule(data: {

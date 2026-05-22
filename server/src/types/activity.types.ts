@@ -13,6 +13,7 @@ export type Activity = {
 };
 
 export interface ActivityDto extends Omit<Activity, 'timeSlots' | 'leaders'> {
+  id: string,
   leaders: leaderDto[];
   timeSlots: {
     id: string;
