@@ -124,6 +124,34 @@ button, input, select, textarea {
   padding: var(--space-12) 0 var(--space-20);
 }
 
+/* ── Animations ───────────────────────────────────────────────
+   Defined globally so any component can reference them by name
+   instead of inlining @keyframes inside style props (which React
+   can't do anyway — keyframes have to live in a stylesheet).
+──────────────────────────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+  /* Used by the auth-rehydration loader in App.jsx and by any
+     future spinner in the UI library. Was being referenced
+     before but never defined — added here as part of #30. */
+}
+
+@keyframes hkif-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+  /* Quick slide-up + fade for new toasts. Kept short (0.18s)
+     so toasts feel responsive, not floaty. */
+}
+
+@keyframes hkif-shimmer {
+  /* Percentage-based so the sweep covers the full element regardless
+     of its width. Original px version from step 1 only worked well
+     for ~400-800px wide skeletons — narrower bars showed the shine
+     for a fraction of the loop and looked broken. */
+  from { background-position:  200% 0; }
+  to   { background-position: -200% 0; }
+}
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {
@@ -135,4 +163,46 @@ button, input, select, textarea {
 
 @media (min-width: 769px) {
   .show-mobile { display: none !important; }
+}
+
+/* Schedule view toggle responsiveness */
+.schedule-toggle {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.schedule-toggle button {
+  flex: 0 0 auto;
+}
+
+/* Stretch buttons on smaller screens */
+@media (max-width: 768px) {
+  .schedule-toggle {
+    width: 100%;
+  }
+
+  .schedule-toggle button {
+    flex: 1;
+  }
+}
+
+/* ── Schedule Grid ─────────────────────────────────────── */
+
+.schedule-grid {
+  display: grid;
+}
+
+/* Collapse calendar on smaller screens */
+@media (max-width: 768px) {
+
+  .schedule-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .schedule-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

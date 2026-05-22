@@ -1,10 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 import ScheduleFilters from '../components/ScheduleFilters.jsx'
+import ScheduleSkeleton from '../components/skeletons/ScheduleSkeleton.jsx'
 
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchFavorites } from '../services/FavoritesService.js'
+import { AuthExpiredError } from '../services/AuthExpiredError.js'
+import { useToast } from '../context/ToastContext.jsx'
+import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
+import {
+  registerParticipation,
+  unregisterParticipation,
+} from '../services/ParticipationService.js'
 
 // Central API base URL — prepends the backend origin in production
 // while staying empty in dev so the vite proxy keeps working.
@@ -44,6 +52,14 @@ export default function SchedulePage() {
 
   const [loading, setLoading] = useState(true)
 
+  // ── Toast + auth-expired plumbing (#30) ───────────────────
+  // showToast:         user-facing notifier for fetch failures.
+  // handleAuthExpired: shared mid-session expiry handler — logs out,
+  //                    toasts, and redirects to /login with the
+  //                    current URL preserved for return.
+  const { showToast } = useToast()
+  const handleAuthExpired = useAuthExpiredHandler()
+
   // Activity IDs the user has joined (attendance, NOT favorites)
   const [attendingActivities, setAttendingActivities] = useState([])
 
@@ -51,8 +67,8 @@ export default function SchedulePage() {
   // 'ALL' = sentinel value meaning "no filter applied".
   // Using a string instead of null keeps the <select> happy
   // (a controlled <select value={null}> warns in React).
-  const [filterSport,         setFilterSport]         = useState('ALL')
-  const [filterDay,           setFilterDay]           = useState('ALL')
+  const [filterSport, setFilterSport] = useState('ALL')
+  const [filterDay, setFilterDay] = useState('ALL')
   const [filterFavoritesOnly, setFilterFavoritesOnly] = useState(false)
 
   // ── Favorites (logged-in users only) ──────────────────────
@@ -181,25 +197,38 @@ export default function SchedulePage() {
 
               const startDate = new Date(singleSchedule.startAt)
 
-              return `${startDate.getFullYear()}-${
-                String(startDate.getMonth() + 1).padStart(2, '0')
-              }-${
-                String(startDate.getDate()).padStart(2, '0')
-              }`
+              return `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')
+                }-${String(startDate.getDate()).padStart(2, '0')
+                }`
 
             })(),
 
             time: new Date(singleSchedule.startAt)
               .toLocaleTimeString([], {
-                hour:   '2-digit',
+                hour: '2-digit',
                 minute: '2-digit',
               }),
 
             location:
               singleSchedule.activity?.location || 'Unknown',
 
-            availableSpots:
-              singleSchedule.activity?.maxCapacity || 0,
+            // Max capacity from the activity template + the number
+            // of currently registered participants. We compute
+            // "spots left" at render time as the difference between
+            // these two. Both fields drive the disable-when-full
+            // logic on the Attend button.
+            //
+            // NOTE: the /api/schedules/current endpoint doesn't
+            // include participantCount yet, so we default it to 0
+            // on initial load. The count updates correctly the
+            // moment the user clicks Attend / Leave (the response
+            // from /participate returns the authoritative count).
+            // Backend ticket needed to include participantCount in
+            // the schedule list response for accurate first paint.
+            maxCapacity:
+              singleSchedule.activity?.maxCapacity ?? null,
+            participantCount:
+              singleSchedule.participantCount ?? 0,
 
             cancelled:
               singleSchedule.status === 'CANCELLED',
@@ -214,7 +243,15 @@ export default function SchedulePage() {
 
       } catch (error) {
 
+        // Public endpoint, but the network could still fail or the
+        // backend could 500. Previously this was silent + the page
+        // just rendered empty — now we tell the user with a toast
+        // so they know to retry instead of staring at mock data.
         console.error('Failed to fetch schedule:', error)
+        showToast(
+          'Couldn\'t load the schedule. Please try again.',
+          'error',
+        )
       } finally {
         setLoading(false)
       }
@@ -222,6 +259,9 @@ export default function SchedulePage() {
 
     fetchSchedule()
 
+    // showToast is stable (useCallback) — keeping the deps array
+    // empty preserves the original "fetch once on mount" behaviour.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Fetch Favorites (logged-in users only) ───────────────
@@ -254,14 +294,26 @@ export default function SchedulePage() {
         setFavoriteIds(ids)
       } catch (error) {
         console.error('Failed to fetch favorites:', error)
-        // Flag the failure so the UI can show a warning *if*
-        // the user actually has the favorites filter enabled.
+
+        // 401 → session expired mid-session, full logout + redirect.
+        if (error instanceof AuthExpiredError) {
+          handleAuthExpired()
+          return
+        }
+
+        // Other errors → keep the existing contextual banner
+        // behaviour. We deliberately don't toast here because most
+        // users on this page never enable the "Favorites only"
+        // filter and don't care that the background favorites fetch
+        // failed. The inline banner below already shows up if/when
+        // it actually matters.
         setFavoritesError(true)
       }
     }
 
     loadFavorites()
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token])
 
   // ── Activity Source ──────────────────────────────────────
@@ -340,7 +392,7 @@ export default function SchedulePage() {
       // Get Monday of current week
       const current = new Date(today)
 
-      const day  = current.getDay()
+      const day = current.getDay()
       const diff = current.getDate() - day + (day === 0 ? -6 : 1)
 
       current.setDate(diff)
@@ -354,7 +406,7 @@ export default function SchedulePage() {
     } else {
 
       // Monthly view
-      const year  = today.getFullYear()
+      const year = today.getFullYear()
       const month = today.getMonth()
 
       const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -383,10 +435,8 @@ export default function SchedulePage() {
     // Build YYYY-MM-DD from local-timezone parts (NOT UTC),
     // matching the format we stored on each activity above.
     const dateString =
-      `${date.getFullYear()}-${
-        String(date.getMonth() + 1).padStart(2, '0')
-      }-${
-        String(date.getDate()).padStart(2, '0')
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')
+      }-${String(date.getDate()).padStart(2, '0')
       }`
 
     return filteredActivities.filter(
@@ -401,38 +451,120 @@ export default function SchedulePage() {
     setFilterFavoritesOnly(false)
   }
 
+  // ── Toggle Attendance ────────────────────────────────────
+  // Wires the Attend / Leave button on each card to the backend.
+  // Pattern mirrors ActivitiesPage.handleToggleFavorite:
+  //   1. Optimistically update local state (snappy UI)
+  //   2. Call the API
+  //   3. On success, overwrite participantCount with the server's
+  //      authoritative value — THIS is the actual bug fix; the
+  //      counter previously never moved after register/unregister
+  //   4. On failure, roll back both attendance + count
+  async function handleToggleAttendance(activity) {
+
+    // Logged-out users get redirected before any state changes
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+
+    // Real backend entries carry activity.activityId. Without it
+    // we can't hit /participate, so the mock-data dev path stays
+    // a pure local toggle. Once the backend is fully seeded and
+    // the schedule API is hooked up, this guard never triggers.
+    if (!activity.activityId) {
+      setAttendingActivities(prev =>
+        prev.includes(activity.id)
+          ? prev.filter(id => id !== activity.id)
+          : [...prev, activity.id]
+      )
+      return
+    }
+
+    const isCurrentlyAttending = attendingActivities.includes(activity.id)
+
+    // Snapshots so we can roll back if the request fails
+    const previousAttending = attendingActivities
+    const previousCount = activity.participantCount
+
+    // ── Optimistic update ────────────────────────────────
+    // Toggle attendance and nudge the count by ±1 so the card
+    // reacts instantly. The server's response will reconcile
+    // any drift a moment later.
+    if (isCurrentlyAttending) {
+      setAttendingActivities(prev => prev.filter(id => id !== activity.id))
+      setActivities(prev => prev.map(a =>
+        a.id === activity.id
+          ? { ...a, participantCount: Math.max(0, (a.participantCount ?? 0) - 1) }
+          : a
+      ))
+    } else {
+      setAttendingActivities(prev => [...prev, activity.id])
+      setActivities(prev => prev.map(a =>
+        a.id === activity.id
+          ? { ...a, participantCount: (a.participantCount ?? 0) + 1 }
+          : a
+      ))
+    }
+
+    // ── API call + reconcile ─────────────────────────────
+    try {
+      const apiResponse = isCurrentlyAttending
+        ? await unregisterParticipation(activity.activityId, activity.id, token)
+        : await registerParticipation(activity.activityId, activity.id, token)
+
+      // Server count is authoritative. Overwriting it here is the
+      // line that closes the bug ticket — the response shape is
+      // { status, data: { participantCount } }.
+      const serverCount = apiResponse?.data?.participantCount
+      if (typeof serverCount === 'number') {
+        setActivities(prev => prev.map(a =>
+          a.id === activity.id
+            ? { ...a, participantCount: serverCount }
+            : a
+        ))
+      }
+    } catch (error) {
+      console.error('Failed to update participation:', error)
+      // Roll everything back to the pre-click snapshot
+      setAttendingActivities(previousAttending)
+      setActivities(prev => prev.map(a =>
+        a.id === activity.id ? { ...a, participantCount: previousCount } : a
+      ))
+    }
+  }
+
+
   if (loading) {
-    return (
-      <div style={{ padding: '48px' }}>
-        <p>Loading schedule...</p>
-      </div>
-    )
+    // Full-page skeleton: keeps the header / filters / grid in place
+    // visually so the page doesn't pop in once data arrives.
+    return <ScheduleSkeleton />
   }
 
   return (
     <div
       style={{
-        padding:  'var(--space-6)',
+        padding: 'var(--space-6)',
         maxWidth: '1400px',
-        margin:   '0 auto',
+        margin: '0 auto',
       }}
     >
 
       {/* Header */}
       <div
         style={{
-          display:        'flex',
+          display: 'flex',
           justifyContent: 'space-between',
-          alignItems:     'center',
-          marginBottom:   'var(--space-6)',
-          flexWrap:       'wrap',
-          gap:            '16px',
+          alignItems: 'center',
+          marginBottom: 'var(--space-6)',
+          flexWrap: 'wrap',
+          gap: '16px',
         }}
       >
 
         <h1
           style={{
-            fontSize:   '2.4rem',
+            fontSize: '2.4rem',
             fontFamily: 'Georgia, serif',
           }}
         >
@@ -440,7 +572,7 @@ export default function SchedulePage() {
         </h1>
 
         {/* Weekly / Monthly Toggle */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className='schedule-toggle'>
 
           <Button
             variant={view === 'weekly' ? 'primary' : 'ghost'}
@@ -486,17 +618,23 @@ export default function SchedulePage() {
           cancelled-activity treatment below and the rest of
           the project's existing visual language (no toast lib
           in the project yet).
+
+          NOTE: 401s no longer reach this branch — the catch
+          block above routes session expiry through
+          handleAuthExpired (toast + redirect to /login).
+          This banner only appears for non-401 favorites
+          failures, which is the right UX.
       ──────────────────────────────────────────────────── */}
       {filterFavoritesOnly && favoritesError && (
         <p
           role="alert"
           style={{
-            color:        'var(--color-danger)',
-            background:   'rgba(192,57,43,0.08)',
-            borderLeft:   '4px solid var(--color-danger)',
-            padding:      '12px 16px',
+            color: 'var(--color-danger)',
+            background: 'rgba(192,57,43,0.08)',
+            borderLeft: '4px solid var(--color-danger)',
+            padding: '12px 16px',
             marginBottom: '16px',
-            fontSize:     '0.9rem',
+            fontSize: '0.9rem',
           }}
         >
           Couldn&apos;t load your favorites — the schedule may look
@@ -507,10 +645,10 @@ export default function SchedulePage() {
       {/* Month header, placed above the calendar */}
       <h2
         style={{
-          fontSize:      '2rem',
-          fontWeight:    800,
+          fontSize: '2rem',
+          fontWeight: 800,
           letterSpacing: '4px',
-          marginBottom:  '24px',
+          marginBottom: '24px',
         }}
       >
         {today.toLocaleDateString('en-US', {
@@ -521,15 +659,19 @@ export default function SchedulePage() {
       {/* Calendar Grid */}
       <div
         style={{
-          border:     '1px solid var(--color-border)',
+          border: '1px solid var(--color-border)',
           background: 'var(--color-surface-raised)',
         }}
       >
         <div
+          className='schedule-grid'
           style={{
-            display:             'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap:                 '0',
+            display: 'grid',
+            gridTemplateColumns:
+              view === 'weekly' || view === 'monthly'
+                ? 'repeat(7, 1fr)'
+                : 'repeat(7, 1fr)',
+            gap: '0',
           }}
         >
 
@@ -541,21 +683,21 @@ export default function SchedulePage() {
               <div
                 key={index}
                 style={{
-                  minHeight:      '220px',
-                  borderRight:    '1px solid var(--color-border)',
-                  borderBottom:   '1px solid var(--color-border)',
-                  padding:        '16px',
-                  background:     'var(--color-surface-raised)',
-                  display:        'flex',
-                  flexDirection:  'column',
-                  gap:            '12px',
+                  minHeight: '220px',
+                  borderRight: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--color-border)',
+                  padding: '16px',
+                  background: 'var(--color-surface-raised)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
                 }}
               >
 
                 {/* Day Header */}
                 <div
                   style={{
-                    borderBottom:  '1px solid var(--color-border)',
+                    borderBottom: '1px solid var(--color-border)',
                     paddingBottom: '10px',
                   }}
                 >
@@ -563,9 +705,9 @@ export default function SchedulePage() {
                   {/* Date Number */}
                   <p
                     style={{
-                      fontSize:     '2rem',
-                      fontWeight:   800,
-                      lineHeight:   1,
+                      fontSize: '2rem',
+                      fontWeight: 800,
+                      lineHeight: 1,
                       marginBottom: '6px',
                     }}
                   >
@@ -575,8 +717,8 @@ export default function SchedulePage() {
                   {/* Weekday */}
                   <p
                     style={{
-                      color:      'var(--color-text-muted)',
-                      fontSize:   '0.95rem',
+                      color: 'var(--color-text-muted)',
+                      fontSize: '0.95rem',
                       fontWeight: 500,
                     }}
                   >
@@ -590,16 +732,16 @@ export default function SchedulePage() {
                 {/* Activities */}
                 <div
                   style={{
-                    display:       'flex',
+                    display: 'flex',
                     flexDirection: 'column',
-                    gap:           '10px',
+                    gap: '10px',
                   }}
                 >
 
                   {dayActivities.length === 0 && (
                     <p
                       style={{
-                        color:    'var(--color-text-muted)',
+                        color: 'var(--color-text-muted)',
                         fontSize: '0.9rem',
                       }}
                     >
@@ -607,128 +749,143 @@ export default function SchedulePage() {
                     </p>
                   )}
 
-                  {dayActivities.map(activity => (
+                  {dayActivities.map(activity => {
+                    // ── Per-card derived state ────────────────
+                    // Computed once per render of this card so
+                    // the spots counter and the button can share
+                    // the same source of truth.
+                    const isAttending = attendingActivities.includes(activity.id)
 
-                    <div
-                      key={activity.id}
-                      style={{
-                        background: activity.cancelled
-                          ? 'rgba(192,57,43,0.08)'
-                          : 'var(--color-primary-light)',
+                    // Real backend cards have maxCapacity + participantCount.
+                    // Mock cards still use the legacy availableSpots field,
+                    // so we keep a fallback to avoid breaking the dev preview.
+                    const hasCapacityData = (
+                      typeof activity.maxCapacity === 'number' &&
+                      typeof activity.participantCount === 'number'
+                    )
 
-                        padding: '12px',
+                    const spotsLeft = hasCapacityData
+                      ? Math.max(0, activity.maxCapacity - activity.participantCount)
+                      : activity.availableSpots
 
-                        borderLeft: activity.cancelled
-                          ? '4px solid var(--color-danger)'
-                          : '4px solid var(--color-primary)',
+                    const isFull = hasCapacityData
+                      && activity.participantCount >= activity.maxCapacity
 
-                        display:       'flex',
-                        flexDirection: 'column',
-                        gap:           '6px',
-                      }}
-                    >
+                    return (
 
-                      {/* Cancelled Banner */}
-                      {activity.cancelled && (
-                        <p
-                          style={{
-                            color:         'var(--color-danger)',
-                            fontWeight:    700,
-                            fontSize:      '0.8rem',
-                            letterSpacing: '1px',
-                          }}
-                        >
-                          CANCELLED
-                        </p>
-                      )}
-
-                      {/* Title */}
-                      <p style={{ fontWeight: 700 }}>
-                        {activity.title}
-                      </p>
-
-                      {/* Sport */}
-                      <p style={{ fontSize: '0.9rem' }}>
-                        {activity.sport}
-                      </p>
-
-                      {/* Leader */}
-                      <p
+                      <div
+                        key={activity.id}
                         style={{
-                          fontSize: '0.85rem',
-                          color:    'var(--color-text-muted)',
+                          background: activity.cancelled
+                            ? 'rgba(192,57,43,0.08)'
+                            : 'var(--color-primary-light)',
+
+                          padding: '12px',
+
+                          borderLeft: activity.cancelled
+                            ? '4px solid var(--color-danger)'
+                            : '4px solid var(--color-primary)',
+
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
                         }}
                       >
-                        Leader: {activity.leader}
-                      </p>
 
-                      {/* Time */}
-                      <p style={{ fontSize: '0.85rem' }}>
-                        {activity.time}
-                      </p>
+                        {/* Cancelled Banner */}
+                        {activity.cancelled && (
+                          <p
+                            style={{
+                              color: 'var(--color-danger)',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              letterSpacing: '1px',
+                            }}
+                          >
+                            CANCELLED
+                          </p>
+                        )}
 
-                      {/* Location */}
-                      <p style={{ fontSize: '0.85rem' }}>
-                        {activity.location}
-                      </p>
+                        {/* Title */}
+                        <p style={{ fontWeight: 700 }}>
+                          {activity.activityId ? (
+                            <Link
+                              to={`/activities/${activity.activityId}`}
+                              style={{ color: 'inherit', textDecoration: 'none' }}
+                              onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; e.target.style.color = 'var(--color-primary-dark)' }}
+                              onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; e.target.style.color = 'inherit' }}
+                            >
+                              {activity.title}
+                            </Link>
+                          ) : (
+                            activity.title
+                          )}
+                        </p>
 
-                      {/* Spots */}
-                      <p style={{ fontSize: '0.85rem' }}>
-                        {activity.availableSpots} spots left
-                      </p>
+                        {/* Sport */}
+                        <p style={{ fontSize: '0.9rem' }}>
+                          {activity.sport}
+                        </p>
 
-                      {/* Notes */}
-                      {activity.notes && (
+                        {/* Leader */}
                         <p
                           style={{
-                            fontSize:  '0.85rem',
-                            color:     'var(--color-text-muted)',
-                            marginTop: '4px',
+                            fontSize: '0.85rem',
+                            color: 'var(--color-text-muted)',
                           }}
                         >
-                          {activity.notes}
+                          Leader: {activity.leader}
                         </p>
-                      )}
 
-                      {/* Attend Button */}
-                      {!activity.cancelled && (
-                        <Button
-                          size="sm"
-                          variant={
-                            attendingActivities.includes(activity.id)
-                              ? 'ghost'
-                              : 'primary'
-                          }
-                          style={{ marginTop: '8px' }}
-                          onClick={() => {
+                        {/* Time */}
+                        <p style={{ fontSize: '0.85rem' }}>
+                          {activity.time}
+                        </p>
 
-                            // Redirect logged-out users
-                            if (!isAuthenticated) {
-                              navigate('/login')
-                              return
-                            }
+                        {/* Location */}
+                        <p style={{ fontSize: '0.85rem' }}>
+                          {activity.location}
+                        </p>
 
-                            // Toggle attendance
-                            if (attendingActivities.includes(activity.id)) {
-                              setAttendingActivities(
-                                attendingActivities.filter(id => id !== activity.id)
-                              )
-                            } else {
-                              setAttendingActivities([
-                                ...attendingActivities,
-                                activity.id,
-                              ])
-                            }
-                          }}
-                        >
-                          {attendingActivities.includes(activity.id)
-                            ? 'Leave'
-                            : 'Attend'}
-                        </Button>
-                      )}
+                        {/* Spots */}
+                        <p style={{ fontSize: '0.85rem' }}>
+                          {spotsLeft} spots left
+                        </p>
 
-                    </div>
-                  ))}
+                        {/* Notes */}
+                        {activity.notes && (
+                          <p
+                            style={{
+                              fontSize: '0.85rem',
+                              color: 'var(--color-text-muted)',
+                              marginTop: '4px',
+                            }}
+                          >
+                            {activity.notes}
+                          </p>
+                        )}
+
+                        {/* Attend Button */}
+                        {!activity.cancelled && (
+                          <Button
+                            size="sm"
+                            variant={isAttending ? 'ghost' : 'primary'}
+                            // Disable when the schedule is full AND the
+                            // user isn't already attending. Attendees
+                            // can still leave a full session.
+                            disabled={!isAttending && isFull}
+                            style={{ marginTop: '8px' }}
+                            onClick={() => handleToggleAttendance(activity)}
+                          >
+                            {isAttending
+                              ? 'Leave'
+                              : (isFull ? 'Full' : 'Attend')}
+                          </Button>
+                        )}
+
+                      </div>
+                    )
+                  })}
 
                 </div>
               </div>

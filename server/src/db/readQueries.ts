@@ -1,9 +1,11 @@
-import { prisma } from "./prisma.js";
+import { prisma, ProfileRole } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
 import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
-import {ScheduleDto, ActivityDto, ProfileDto} from '../types/index.js';
-import {ApiError} from "../utils/ApiError.js";
-import {formatActivity, formatSchedule} from "./utils.js";
+import { ApiError } from "../utils/ApiError.js";
+import { formatActivity, formatSchedule } from "./utils.js";
+import { ScheduleDto, ActivityDto, ProfileDto, ProfileSummaryDto } from '../types/index.js';
+
+
 export class READ {
     /**
  * returns user based of their unique email
@@ -39,7 +41,7 @@ export class READ {
      */
     static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {
         const { startDay, endDay } = startAndEndOfWeek(date);
-        
+
         const schedule = await prisma.schedule.findMany({
             where: {
                 AND: [
@@ -153,12 +155,16 @@ export class READ {
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
 
-    // TODO: normalize return type to ActivityDto.
-    static async activityById(activityId: string): Promise<ActivityTemplate | null> {//
+  // TODO: refine query here  
+  static async activityById(activityId: string): Promise<ActivityDto | null> {
         const activity = await prisma.activityTemplate.findUnique({
             where: { id: activityId },
+            include: {
+                timeSlots: true,
+                leaders: true
+            }
         });
-        return activity;
+        return activity as ActivityDto | null;
     }
     /**
      * just returns all activityTemplates
@@ -209,7 +215,7 @@ export class READ {
 
     static async activitiesParticipatedBy(profileId: string): Promise<ScheduleDto[]> {
         const test = await prisma.participationLog.findMany({
-            where: {profileId},
+            where: { profileId },
             select: {
                 schedule: {
                     include: {
@@ -232,7 +238,7 @@ export class READ {
             }
         });
         const formatSched: ScheduleDto[] = [];
-        test.forEach( el => {
+        test.forEach(el => {
             let leaders: any = el.schedule.activity.leaders ?? []; //{profile: Pick<Profile, 'id' | 'profileName'>}[]
             // leaders = leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile);
             leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string } }) => el.profile) : [];
@@ -255,15 +261,15 @@ export class READ {
 
     static async fullProfile(profileId: string): Promise<ProfileDto> {
         const profile = await prisma.profile.findUnique({
-            where: {id: profileId},
+            where: { id: profileId },
             select: {
                 id: true,
                 profileName: true,
                 email: true,
                 role: true,
                 participations: {
-                    select:{
-                        schedule:{
+                    select: {
+                        schedule: {
                             include: {
                                 activity: {
                                     include: {
@@ -305,7 +311,7 @@ export class READ {
 
             }
         })
-        if(!profile){
+        if (!profile) {
             throw ApiError.badRequest("Invalid Id")
         }
         else{
@@ -339,5 +345,46 @@ export class READ {
         return record !== null;
     }
 
+    static async activityParticipants(activityId: string) {
+        return await prisma.schedule.findMany({
+            where: { activityId },
+            select: {
+                id: true,
+                startAt: true,
+                endAt: true,
+                status: true,
+                participations: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true,
+                                email: true,
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                startAt: 'asc'
+            }
+        });
+    }
+
+    static async profilesByRole(role?: ProfileRole): Promise<ProfileSummaryDto[]> {
+        const where = role ? { role } : {};
+        return await prisma.profile.findMany({
+            where,
+            select: {
+                id: true,
+                profileName: true,
+                email: true,
+                role: true,
+            },
+            orderBy: {
+                profileName: 'asc'
+            }
+        });
+    }
 
 }
