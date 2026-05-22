@@ -47,6 +47,8 @@ export type {
   Activity,
   TimeSlot,
   ActivityDto,
+  ParticipantScheduleDto,
+  ActivityParticipantsDto,
 } from './activity.types.js';
 
 export type { ScheduleDto } from './schedule.types.js';
@@ -55,7 +57,9 @@ export type {
 } from './favorites.types.js';
 
 export type {
-  ProfileDto
+  ProfileDto,
+  leaderDto,
+  ProfileSummaryDto,
 } from './profile.types.js'
 
 export type {

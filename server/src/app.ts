@@ -7,7 +7,7 @@ import authRoutes from './routes/auth.routes.js';
 import activityRoutes from './routes/activities.routes.js';
 import scheduleRoutes from "./routes/schedule.routes.js";
 import userRoutes from './routes/user.routes.js';
-import adminRoutes from './routes/admin.routes.js';
+import {adminRoutes, profilesRoutes} from './routes/admin.routes.js';
 
 export const app = express();
 
@@ -26,6 +26,7 @@ app.use('/api/activities', activityRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/profiles', profilesRoutes);
 
 // 404 catch-all (must be last route)
 app.use((_req, res) => {

@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { fetchFavorites, addFavorite, removeFavorite, } from '../services/FavoritesService.js'
+import {
+  fetchFavorites,
+  addFavorite,
+  removeFavorite,
+} from '../services/FavoritesService.js'
+import { AuthExpiredError } from '../services/AuthExpiredError.js'
 import { API_BASE_URL } from '../services/apiConfig.js'
+import { useToast } from '../context/ToastContext.jsx'
+import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
+import ActivityListSkeleton from '../components/skeletons/ActivityListSkeleton.jsx'
 import Badge, { STATUS_VARIANT } from '../components/ui/Badge.jsx'
 
 export default function ActivitiesPage() {
@@ -14,10 +22,19 @@ export default function ActivitiesPage() {
   const navigate = useNavigate()
   const { isAuthenticated, token } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+
+  // ── Toast + auth-expired plumbing (#30) ───────────────────
+  // showToast:         surfaces API failures to the user. The early-
+  //                    return error block was removed in step 2 of
+  //                    this PR — toasts replace it.
+  // handleAuthExpired: shared mid-session expiry handler. Clears auth
+  //                    state, toasts, and redirects to /login with
+  //                    the current URL preserved so the user lands
+  //                    back here after re-authenticating.
+  const { showToast }     = useToast()
+  const handleAuthExpired = useAuthExpiredHandler()
 
   // ── Fetch Activities ──────────────────────────────────────
-  
   useEffect(() => {
     async function fetchActivities() {
       try {
@@ -33,16 +50,26 @@ export default function ActivitiesPage() {
 
         setActivities(result.data)
       } catch (err) {
-        setError(err.message)
+        // Public endpoint — no auth-expired case to handle here.
+        // Surface as a toast instead of the previous setError()
+        // which had nothing left rendering it after step 2 of #30.
+        showToast(
+          err.message || 'Couldn\'t load activities. Please try again.',
+          'error',
+        )
       } finally {
         setLoading(false)
       }
     }
 
     fetchActivities()
+    // showToast is stable (useCallback in ToastContext) so it's safe
+    // to leave out of the deps array — this effect should only run
+    // once on mount regardless.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Fetch favorites from backend ──────────────────────────────────────
+  // ── Fetch favorites from backend ──────────────────────────
   useEffect(() => {
 
     async function loadFavorites() {
@@ -62,22 +89,26 @@ export default function ActivitiesPage() {
 
       } catch (error) {
 
+        // 401 → log them out and bounce to /login.
+        // The hook handles the toast + redirect for us.
+        if (error instanceof AuthExpiredError) {
+          handleAuthExpired()
+          return
+        }
+
+        // Anything else — quiet toast.
+        // Failing to load favorites isn't catastrophic (the page
+        // still works without filled hearts), so an error toast
+        // is enough.
         console.error('Failed to fetch favorites:', error)
+        showToast('Couldn\'t load your favorites.', 'error')
       }
     }
 
     loadFavorites()
 
-}, [isAuthenticated, token])
-
-  // ── Loading / Error States ───────────────────────────────
-  if (loading) {
-    return <p>Loading activities...</p>
-  }
-
-  if (error) {
-    return <p>Error: {error}</p>
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token])
 
   // ── Display all activities ───────────────────────────────
   const filteredActivities = activities
@@ -90,7 +121,7 @@ export default function ActivitiesPage() {
     }
 
     const previousFavorites = favoriteActivities
-    
+
     try {
 
       if (favoriteActivities.includes(activityId)) {
@@ -115,10 +146,21 @@ export default function ActivitiesPage() {
 
     } catch (error) {
 
-      console.error(error)
-
-      // Restore previous state if request fails
+      // Restore previous state if request fails — same as before.
       setFavoriteActivities(previousFavorites)
+
+      if (error instanceof AuthExpiredError) {
+        handleAuthExpired()
+        return
+      }
+
+      // The heart didn't stick — tell the user something failed
+      // so they know to retry, instead of silently snapping back.
+      console.error(error)
+      showToast(
+        'Couldn\'t update favorite. Please try again.',
+        'error',
+      )
     }
   }
 
@@ -147,8 +189,17 @@ export default function ActivitiesPage() {
           display: 'grid',
           gap: 'var(--space-4)',
         }}
+        aria-busy={loading}
+        // aria-busy tells screen readers the region is still updating —
+        // the Skeleton primitive itself is aria-hidden so this is where
+        // the loading announcement actually happens.
       >
-        {filteredActivities.length === 0 ? (
+        {loading ? (
+          // While the API call is in flight, render placeholder cards
+          // in the same grid the real ones will land in. No layout
+          // shift when data arrives.
+          <ActivityListSkeleton count={4} />
+        ) : filteredActivities.length === 0 ? (
           <p>No activities found.</p>
         ) : (
           filteredActivities.map(activity => (
@@ -182,8 +233,25 @@ export default function ActivitiesPage() {
                   ? '♥'
                   : '♡'}
               </button>
+
               <h2 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                {activity.name}
+                <Link
+                  to={`/activities/${activity.id}`}
+                  style={{
+                    color: 'var(--color-text)',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.textDecoration = 'underline'
+                    e.target.style.color = 'var(--color-primary-dark)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.textDecoration = 'none'
+                    e.target.style.color = 'var(--color-text)'
+                  }}
+                >
+                  {activity.name}
+                </Link>
                 {activity.defaultStatus === 'CANCELLED' && (
                   <Badge variant={STATUS_VARIANT[activity.defaultStatus]}>Cancelled</Badge>
                 )}

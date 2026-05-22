@@ -1,7 +1,7 @@
 import { Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto } from "../types/index.js";
 import { prisma, ActivityStatus } from "./prisma.js";
 import { ApiError } from "../utils/ApiError.js";
-import { formatSchedule } from "./utils.js";
+import {formatActivity, formatSchedule} from "./utils.js";
 /*
 CREATE Queries
     create new profile
@@ -25,13 +25,22 @@ export class CREATE {
             select: {
                 activity: {
                     include: {
-                        leaders: true,
+                        leaders: {
+                            select: {
+                                profile: {
+                                    select: {
+                                        id: true,
+                                        profileName: true
+                                    }
+                                }
+                            }
+                        },
                         timeSlots: true
                     }
                 }
             }
         })
-        return activity;
+        return formatActivity(activity);
     }
 
     static async newActivity(newAct: Activity) {
