@@ -7,5 +7,9 @@ export type ProfileDto = Pick<Profile, 'profileName' | 'email' | 'role'> & {
     participations: ScheduleDto[]
 }
 
+export type leaderDto = {
+    id: string,
+    profileName: string | null
+}
 export type ProfileSummaryDto = Pick<Profile, 'id' | 'profileName' | 'email' | 'role'>;
 

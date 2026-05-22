@@ -58,6 +58,7 @@ export type {
 
 export type {
   ProfileDto,
+  leaderDto,
   ProfileSummaryDto,
 } from './profile.types.js'
 
