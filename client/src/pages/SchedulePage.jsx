@@ -572,7 +572,7 @@ export default function SchedulePage() {
         </h1>
 
         {/* Weekly / Monthly Toggle */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className='schedule-toggle'>
 
           <Button
             variant={view === 'weekly' ? 'primary' : 'ghost'}
@@ -664,9 +664,13 @@ export default function SchedulePage() {
         }}
       >
         <div
+          className='schedule-grid'
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
+            gridTemplateColumns:
+              view === 'weekly' || view === 'monthly'
+                ? 'repeat(7, 1fr)'
+                : 'repeat(7, 1fr)',
             gap: '0',
           }}
         >

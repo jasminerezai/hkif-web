@@ -72,12 +72,12 @@ export default function Navbar() {
           {/* Clicking the brand always goes to home and closes
               the mobile menu if it's open */}
 
-          {/* Green square logo box */}
-          <div style={S.logoBox}>
-            <span style={S.logoLetters}>HK</span>
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="HKIF logo"
+            style={S.logo}
+          />
 
-          {/* Text next to the logo */}
           <div>
             <span style={S.brandName}>HKIF</span>
             <span style={S.brandSub}>Högskolan Kristianstad IF</span>
@@ -221,40 +221,26 @@ const S = {
     // when the nav links take up a lot of space
   },
 
-  logoBox: {
-    width:          36,
-    height:         36,
-    borderRadius:   'var(--radius-sm)',
-    background:     'var(--color-primary)',
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    flexShrink:     0,
-  },
-
-  logoLetters: {
-    color:      '#ffffff',
-    fontFamily: 'var(--font-serif)',
-    fontWeight: 700,
-    fontSize:   '13px',
-    lineHeight: 1,
-  },
-
+  logo: {
+    height: 48,
+    width: 'auto',
+    objectFit: 'contain',
+    flexShrink: 0,
+    },
+  
   brandName: {
-    display:    'block',
-    // display: block makes the <span> stack vertically
-    // instead of sitting inline with brandSub
+    display: 'block',
     fontFamily: 'var(--font-serif)',
     fontWeight: 700,
-    fontSize:   'var(--text-lg)',
-    color:      'var(--color-text)',
+    fontSize: 'var(--text-lg)',
+    color: 'var(--color-text)',
     lineHeight: 1.1,
   },
 
   brandSub: {
-    display:    'block',
-    fontSize:   'var(--text-xs)',
-    color:      'var(--color-text-muted)',
+    display: 'block',
+    fontSize: 'var(--text-xs)',
+    color: 'var(--color-text-muted)',
     lineHeight: 1.2,
   },
 
