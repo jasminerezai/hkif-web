@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   removeFavorite,
@@ -6,16 +7,29 @@ import {
 import {
   fetchProfile,
 } from '../services/ProfileService.js'
+import {
+  fetchManageableActivities,
+} from '../services/ManageActivitiesService.js'
+import { MANAGER_ROLES } from '../constants/roles.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
 import Badge, {
   ROLE_VARIANT,
+  STATUS_VARIANT,
 } from '../components/ui/Badge.jsx'
 
 export default function ProfilePage() {
 
-  // ── Auth ────────────────────────────────────────────────
+// ── Auth ────────────────────────────────────────────────
   const { user, token } = useAuth()
+  const navigate = useNavigate()
+
+  // ── Role gate ───────────────────────────────────────────
+  // Single source of truth for "should this user see the
+  // Manage Activities section?" — used both to skip the fetch
+  // in step 2's effect and to conditionally render the section
+  // below. Computed here so both spots can't drift apart.
+  const canManage = MANAGER_ROLES.includes(user?.role)
 
   // ── State ───────────────────────────────────────────────
 
@@ -32,6 +46,22 @@ export default function ProfilePage() {
     = useState(true)
   
   const [error, setError] = useState(null)
+
+  // ── Manage Activities state (ADMIN / BOARD_MEMBER only) ─
+  // Populated by a separate effect below that only fires for
+  // users with a role in MANAGER_ROLES. For MEMBER / LEADER the
+  // array stays empty and the Manage Activities section just
+  // doesn't render (step 3).
+  //
+  // manageLoading is tracked independently from the main `loading`
+  // flag so the favorites/participations sections aren't blocked
+  // waiting for this extra fetch — the hero card and existing
+  // sections can paint as soon as /api/users/me resolves.
+  const [manageableActivities, setManageableActivities]
+    = useState([])
+
+  const [manageLoading, setManageLoading]
+    = useState(false)
 
   // ── Fetch Profile ───────────────────────────────────────
   // Loads all profile-related data from a single endpoint:
@@ -82,6 +112,58 @@ export default function ProfilePage() {
     loadProfile()
 
   }, [token])
+
+  // ── Fetch Manageable Activities ─────────────────────────
+  // Only ADMIN and BOARD_MEMBER see the Manage Activities
+  // section, so we only hit the network for those roles.
+  // Gating client-side avoids a pointless fetch for every
+  // MEMBER who opens their profile.
+  //
+  // user?.role guards against the brief render where AuthContext
+  // is still rehydrating from localStorage and user is null —
+  // re-running once role is available is fine, the dependency
+  // array picks it up.
+  //
+  // Note: backend access control is still the real enforcement
+  // layer — the endpoint is public so any role *could* call it,
+  // but a MEMBER has no UI to act on the data.
+  useEffect(() => {
+
+    if (!user?.role) return
+
+    if (!MANAGER_ROLES.includes(user.role)) return
+
+    async function loadManageableActivities() {
+
+      setManageLoading(true)
+
+      try {
+
+        const { data } =
+          await fetchManageableActivities()
+
+        setManageableActivities(data || [])
+
+      } catch (error) {
+
+        // Soft-fail: log but don't block the rest of the page.
+        // The favorites + participations sections are still useful
+        // even if the management list fails to load. We'll surface
+        // an empty-state message in step 3.
+        console.error(
+          'Failed to load manageable activities:',
+          error
+        )
+
+      } finally {
+
+        setManageLoading(false)
+      }
+    }
+
+    loadManageableActivities()
+
+  }, [user?.role])
 
   // ── Remove Favorite ─────────────────────────────────────
   async function handleRemoveFavorite(activityId) {
@@ -210,6 +292,164 @@ export default function ProfilePage() {
         </div>
 
       </Card>
+
+      {/* ── Manage Activities (ADMIN / BOARD_MEMBER only) ─
+          Rendered above Upcoming/Favorites because for these
+          roles the management dashboard *is* the primary use
+          of /profile — favorites/upcoming are secondary.
+          Hidden entirely for MEMBER and LEADER (LEADER has its
+          own dashboard in a separate ticket). */}
+      {canManage && (
+
+        <div style={{ marginBottom: '32px' }}>
+
+          <h2
+            style={{
+              marginBottom: '16px',
+              fontSize: '1.5rem',
+            }}
+          >
+            Manage Activities
+          </h2>
+
+          {/* Three render states:
+              1. manageLoading       — fetch in flight
+              2. empty array         — nothing to manage yet
+              3. populated array     — the grid of cards
+              Kept inline (no extracted sub-component) to match
+              the pattern already used by Upcoming / Favorites
+              below — easier to read in one place for review. */}
+          {manageLoading ? (
+
+            <Card padding="md">
+              <p>Loading activities...</p>
+            </Card>
+
+          ) : manageableActivities.length === 0 ? (
+
+            <Card padding="md">
+              <p>No activities to manage yet.</p>
+            </Card>
+
+          ) : (
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '20px',
+              }}
+            >
+
+              {manageableActivities.map(activity => (
+
+                <Card
+                  key={activity.id}
+                  padding="md"
+                  shadow="sm"
+                  style={{
+                    // position: relative so the absolutely
+                    // positioned edit-pen anchors to this card.
+                    // Same pattern ActivitiesPage uses for the
+                    // heart-favorite button.
+                    position: 'relative',
+                  }}
+                >
+
+                  {/* ── Quick-edit pen (top-right) ──────────
+                      Mirrors the heart-button on ActivitiesPage
+                      so the interaction feels familiar. Routes
+                      straight to the existing edit form — no new
+                      page needed since /activities/:id/edit is
+                      already wired up in App.jsx and protected
+                      by EDITOR_ROLES. */}
+                  <button
+                    onClick={() =>
+                      navigate(`/activities/${activity.id}/edit`)
+                    }
+                    aria-label={`Edit ${activity.name}`}
+                    title="Edit activity"
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.25rem',
+                      color: 'var(--color-text-muted)',
+                      padding: '4px 8px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ✎
+                  </button>
+
+                  {/* Title + status badge.
+                      paddingRight leaves room for the pen so
+                      long activity names don't run under it. */}
+                  <h3
+                    style={{
+                      marginBottom: '8px',
+                      paddingRight: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {activity.name}
+
+                    {activity.defaultStatus === 'CANCELLED' && (
+                      <Badge
+                        variant={
+                          STATUS_VARIANT[activity.defaultStatus]
+                        }
+                      >
+                        Cancelled
+                      </Badge>
+                    )}
+                  </h3>
+
+                  <p
+                    style={{
+                      color: 'var(--color-text-muted)',
+                      marginBottom: '12px',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <strong>Location:</strong>{' '}
+                    {activity.location}
+                  </p>
+
+                  {/* Explicit "Edit Activity" button.
+                      The pen is a fast-path for power users; this
+                      button is the obvious, labelled action for
+                      anyone who doesn't recognise the icon. Both
+                      navigate to the same place — duplication is
+                      intentional for discoverability. */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      navigate(`/activities/${activity.id}/edit`)
+                    }
+                  >
+                    Edit Activity
+                  </Button>
+
+                </Card>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </div>
+
+      )}
 
       {/* ── Upcoming Activities ────────────────────────── */}
       <div style={{ marginBottom: '32px' }}>
