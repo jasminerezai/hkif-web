@@ -6,3 +6,8 @@ export type ProfileDto = Pick<Profile, 'profileName' | 'email' | 'role'> & {
     favorites: ActivityDto[],
     participations: ScheduleDto[]
 }
+
+export type leaderDto = {
+    profileId: string,
+    profileName: string | null
+}

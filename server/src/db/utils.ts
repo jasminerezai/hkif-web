@@ -1,4 +1,4 @@
-import {ActivityDto, ScheduleDto} from "../types/index.js";
+import {ActivityDto, leaderDto, ScheduleDto} from "../types/index.js";
 
 /**
  * Shared utility to format a raw schedule from Prisma, extracting and flattening 
@@ -27,11 +27,20 @@ export function formatSchedule(schedule: any): ScheduleDto {
 }
 
 export function formatActivity(activity: any): ActivityDto {
-    let {leaders, ...rest} = activity.leaders ?? [];
-    leaders = Array.isArray(leaders) ? leaders.map((el: { profile: { id: string; profileName: string | null } }) => el.profile) : [];
-    // (activity as any).leaders = undefined;
+    let leadersRaw = activity.leaders ?? [];
+    const leaders: leaderDto[] = Array.isArray(leadersRaw)
+        ? leadersRaw.map((el: { profile: { profileId: string; profileName: string | null } }) => el.profile)
+        : [];
+    const restOfActivity = {...activity}
+    delete restOfActivity.leaders;
     return {
-        ...rest,
-        leaders
+        leaders: leaders,
+        timeSlots: restOfActivity.timeSlot,
+        name: restOfActivity.name,
+        location: restOfActivity.location,
+        description: restOfActivity.description,
+        maxCapacity: restOfActivity.maxCapacity,
+        defaultStatus: restOfActivity.defaultStatus,
+        notes: restOfActivity.notes
     } satisfies ActivityDto
 }

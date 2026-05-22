@@ -1,4 +1,5 @@
 import { Weekday, ActivityStatus } from '../db/prisma.js';
+import {leaderDto} from "./profile.types.js";
 
 export type Activity = {
   name: string,
@@ -12,10 +13,7 @@ export type Activity = {
 };
 
 export interface ActivityDto extends Omit<Activity, 'timeSlots' | 'leaders'> {
-  leaders: {
-    profileName: string,
-    profileId: string,
-  }[];
+  leaders: leaderDto[];
   timeSlots: {
     id: string;
     activityId: string;

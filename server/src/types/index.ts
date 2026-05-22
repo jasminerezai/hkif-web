@@ -55,7 +55,8 @@ export type {
 } from './favorites.types.js';
 
 export type {
-  ProfileDto
+  ProfileDto,
+  leaderDto,
 } from './profile.types.js'
 
 export type {
