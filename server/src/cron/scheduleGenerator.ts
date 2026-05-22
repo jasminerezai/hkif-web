@@ -83,7 +83,7 @@ export async function generateWeeklySchedules(): Promise<void> {
             const existing = await prisma.schedule.findFirst({
                 where: {
                     activityId: activity.id,
-                    startAt: { gte: startDay, lte: endDay },
+                    startAt,
                 },
             });
 
