@@ -7,7 +7,8 @@ import authRoutes from './routes/auth.routes.js';
 import activityRoutes from './routes/activities.routes.js';
 import scheduleRoutes from "./routes/schedule.routes.js";
 import userRoutes from './routes/user.routes.js';
-import {adminRoutes, profilesRoutes} from './routes/admin.routes.js';
+import adminRoutes from './routes/admin.routes.js';
+import profilesRoutes from './routes/profiles.routes.js';
 
 export const app = express();
 
