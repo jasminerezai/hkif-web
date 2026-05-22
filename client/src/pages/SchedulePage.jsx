@@ -9,6 +9,10 @@ import { fetchFavorites } from '../services/FavoritesService.js'
 import { AuthExpiredError } from '../services/AuthExpiredError.js'
 import { useToast } from '../context/ToastContext.jsx'
 import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
+import {
+  registerParticipation,
+  unregisterParticipation,
+} from '../services/ParticipationService.js'
 
 // Central API base URL — prepends the backend origin in production
 // while staying empty in dev so the vite proxy keeps working.
@@ -208,8 +212,23 @@ export default function SchedulePage() {
             location:
               singleSchedule.activity?.location || 'Unknown',
 
-            availableSpots:
-              singleSchedule.activity?.maxCapacity || 0,
+            // Max capacity from the activity template + the number
+            // of currently registered participants. We compute
+            // "spots left" at render time as the difference between
+            // these two. Both fields drive the disable-when-full
+            // logic on the Attend button.
+            //
+            // NOTE: the /api/schedules/current endpoint doesn't
+            // include participantCount yet, so we default it to 0
+            // on initial load. The count updates correctly the
+            // moment the user clicks Attend / Leave (the response
+            // from /participate returns the authoritative count).
+            // Backend ticket needed to include participantCount in
+            // the schedule list response for accurate first paint.
+            maxCapacity:
+              singleSchedule.activity?.maxCapacity ?? null,
+            participantCount:
+              singleSchedule.participantCount ?? 0,
 
             cancelled:
               singleSchedule.status === 'CANCELLED',
@@ -425,12 +444,96 @@ export default function SchedulePage() {
     )
   }
 
-  // ── Filter handlers ──────────────────────────────────────
+// ── Filter handlers ──────────────────────────────────────
   function handleClearFilters() {
     setFilterSport('ALL')
     setFilterDay('ALL')
     setFilterFavoritesOnly(false)
   }
+
+  // ── Toggle Attendance ────────────────────────────────────
+  // Wires the Attend / Leave button on each card to the backend.
+  // Pattern mirrors ActivitiesPage.handleToggleFavorite:
+  //   1. Optimistically update local state (snappy UI)
+  //   2. Call the API
+  //   3. On success, overwrite participantCount with the server's
+  //      authoritative value — THIS is the actual bug fix; the
+  //      counter previously never moved after register/unregister
+  //   4. On failure, roll back both attendance + count
+  async function handleToggleAttendance(activity) {
+
+    // Logged-out users get redirected before any state changes
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+
+    // Real backend entries carry activity.activityId. Without it
+    // we can't hit /participate, so the mock-data dev path stays
+    // a pure local toggle. Once the backend is fully seeded and
+    // the schedule API is hooked up, this guard never triggers.
+    if (!activity.activityId) {
+      setAttendingActivities(prev =>
+        prev.includes(activity.id)
+          ? prev.filter(id => id !== activity.id)
+          : [...prev, activity.id]
+      )
+      return
+    }
+
+    const isCurrentlyAttending = attendingActivities.includes(activity.id)
+
+    // Snapshots so we can roll back if the request fails
+    const previousAttending = attendingActivities
+    const previousCount    = activity.participantCount
+
+    // ── Optimistic update ────────────────────────────────
+    // Toggle attendance and nudge the count by ±1 so the card
+    // reacts instantly. The server's response will reconcile
+    // any drift a moment later.
+    if (isCurrentlyAttending) {
+      setAttendingActivities(prev => prev.filter(id => id !== activity.id))
+      setActivities(prev => prev.map(a =>
+        a.id === activity.id
+          ? { ...a, participantCount: Math.max(0, (a.participantCount ?? 0) - 1) }
+          : a
+      ))
+    } else {
+      setAttendingActivities(prev => [...prev, activity.id])
+      setActivities(prev => prev.map(a =>
+        a.id === activity.id
+          ? { ...a, participantCount: (a.participantCount ?? 0) + 1 }
+          : a
+      ))
+    }
+
+    // ── API call + reconcile ─────────────────────────────
+    try {
+      const apiResponse = isCurrentlyAttending
+        ? await unregisterParticipation(activity.activityId, activity.id, token)
+        : await registerParticipation(activity.activityId, activity.id, token)
+
+      // Server count is authoritative. Overwriting it here is the
+      // line that closes the bug ticket — the response shape is
+      // { status, data: { participantCount } }.
+      const serverCount = apiResponse?.data?.participantCount
+      if (typeof serverCount === 'number') {
+        setActivities(prev => prev.map(a =>
+          a.id === activity.id
+            ? { ...a, participantCount: serverCount }
+            : a
+        ))
+      }
+    } catch (error) {
+      console.error('Failed to update participation:', error)
+      // Roll everything back to the pre-click snapshot
+      setAttendingActivities(previousAttending)
+      setActivities(prev => prev.map(a =>
+        a.id === activity.id ? { ...a, participantCount: previousCount } : a
+      ))
+    }
+  }
+
 
   if (loading) {
     // Full-page skeleton: keeps the header / filters / grid in place
@@ -642,7 +745,29 @@ export default function SchedulePage() {
                     </p>
                   )}
 
-                  {dayActivities.map(activity => (
+                  {dayActivities.map(activity => {
+                  // ── Per-card derived state ────────────────
+                    // Computed once per render of this card so
+                    // the spots counter and the button can share
+                    // the same source of truth.
+                    const isAttending = attendingActivities.includes(activity.id)
+
+                    // Real backend cards have maxCapacity + participantCount.
+                    // Mock cards still use the legacy availableSpots field,
+                    // so we keep a fallback to avoid breaking the dev preview.
+                    const hasCapacityData = (
+                      typeof activity.maxCapacity      === 'number' &&
+                      typeof activity.participantCount === 'number'
+                    )
+
+                    const spotsLeft = hasCapacityData
+                      ? Math.max(0, activity.maxCapacity - activity.participantCount)
+                      : activity.availableSpots
+
+                    const isFull = hasCapacityData
+                      && activity.participantCount >= activity.maxCapacity
+
+                    return (
 
                     <div
                       key={activity.id}
@@ -720,7 +845,7 @@ export default function SchedulePage() {
 
                       {/* Spots */}
                       <p style={{ fontSize: '0.85rem' }}>
-                        {activity.availableSpots} spots left
+                        {spotsLeft} spots left
                       </p>
 
                       {/* Notes */}
@@ -740,41 +865,23 @@ export default function SchedulePage() {
                       {!activity.cancelled && (
                         <Button
                           size="sm"
-                          variant={
-                            attendingActivities.includes(activity.id)
-                              ? 'ghost'
-                              : 'primary'
-                          }
+                          variant={isAttending ? 'ghost' : 'primary'}
+                          // Disable when the schedule is full AND the
+                          // user isn't already attending. Attendees
+                          // can still leave a full session.
+                          disabled={!isAttending && isFull}
                           style={{ marginTop: '8px' }}
-                          onClick={() => {
-
-                            // Redirect logged-out users
-                            if (!isAuthenticated) {
-                              navigate('/login')
-                              return
-                            }
-
-                            // Toggle attendance
-                            if (attendingActivities.includes(activity.id)) {
-                              setAttendingActivities(
-                                attendingActivities.filter(id => id !== activity.id)
-                              )
-                            } else {
-                              setAttendingActivities([
-                                ...attendingActivities,
-                                activity.id,
-                              ])
-                            }
-                          }}
+                          onClick={() => handleToggleAttendance(activity)}
                         >
-                          {attendingActivities.includes(activity.id)
+                          {isAttending
                             ? 'Leave'
-                            : 'Attend'}
+                            : (isFull ? 'Full' : 'Attend')}
                         </Button>
                       )}
 
                     </div>
-                  ))}
+                    )
+          })}
 
                 </div>
               </div>
