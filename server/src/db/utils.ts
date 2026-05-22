@@ -35,13 +35,14 @@ export function formatActivity(activity: any): ActivityDto {
     const restOfActivity = { ...activity }
     delete restOfActivity.leaders;
     return {
-        leaders: leaders,
-        timeSlots: restOfActivity.timeSlots,
+        id: restOfActivity.id,
         name: restOfActivity.name,
         location: restOfActivity.location,
         description: restOfActivity.description,
         maxCapacity: restOfActivity.maxCapacity,
         defaultStatus: restOfActivity.defaultStatus,
-        notes: restOfActivity.notes
+        notes: restOfActivity.notes,
+        leaders: leaders,
+        timeSlots: restOfActivity.timeSlots,
     } satisfies ActivityDto
 }
