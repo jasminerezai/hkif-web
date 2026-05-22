@@ -324,7 +324,8 @@ export class READ {
         });
         return record !== null;
     }
-
+    // TODO: This fetches all activities + schedules unbounded.
+    // Should be paginated or aggregated at DB level post-launch.
     static async adminStatistics(): Promise<AdminStatisticsDto> {
         const activitiesData = await prisma.activityTemplate.findMany({
             select: {
