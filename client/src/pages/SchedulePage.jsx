@@ -62,7 +62,8 @@ export default function SchedulePage() {
 
   // Activity IDs the user has joined (attendance, NOT favorites)
   const [attendingActivities, setAttendingActivities] = useState([])
-
+  // Prevents double-clicks from firing multiple requests
+  const [attendanceLoading, setAttendanceLoading] = useState({})
   // ── Filter State ──────────────────────────────────────────
   // 'ALL' = sentinel value meaning "no filter applied".
   // Using a string instead of null keeps the <select> happy
@@ -510,6 +511,9 @@ export default function SchedulePage() {
 
     const isCurrentlyAttending = attendingActivities.includes(activity.id)
 
+    if (attendanceLoading[activity.id]) return
+    setAttendanceLoading(prev => ({ ...prev, [activity.id]: true }))
+
     // Snapshots so we can roll back if the request fails
     const previousAttending = attendingActivities
     const previousCount = activity.participantCount
@@ -562,6 +566,8 @@ export default function SchedulePage() {
       setActivities(prev => prev.map(a =>
         a.id === activity.id ? { ...a, participantCount: previousCount } : a
       ))
+    } finally {
+      setAttendanceLoading(prev => ({ ...prev, [activity.id]: false }))
     }
   }
 
@@ -904,7 +910,7 @@ export default function SchedulePage() {
                             // Disable when the schedule is full AND the
                             // user isn't already attending. Attendees
                             // can still leave a full session.
-                            disabled={!isAttending && isFull}
+                            disabled={(!isAttending && isFull) || attendanceLoading[activity.id]}
                             style={{ marginTop: '8px' }}
                             onClick={() => handleToggleAttendance(activity)}
                           >

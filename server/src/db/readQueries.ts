@@ -1,6 +1,6 @@
 import { prisma, ProfileRole } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
-import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
+import { Profile } from "../generated/prisma/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { formatActivity, formatSchedule } from "./utils.js";
 import { ScheduleDto, ActivityDto, ProfileDto, ProfileSummaryDto } from '../types/index.js';
@@ -53,6 +53,9 @@ export class READ {
                 startAt: "asc"
             },
             include: {
+                _count: {
+                    select: { participations: true }
+                },
                 activity: {
                     include: {
                         leaders: {
@@ -155,8 +158,8 @@ export class READ {
     // all activities updated after a given timestamp
     // static async activitiesUpdatedAfter(lastRequest: Date){}
 
-  // TODO: refine query here  
-  static async activityById(activityId: string): Promise<ActivityDto | null> {
+    // TODO: refine query here  
+    static async activityById(activityId: string): Promise<ActivityDto | null> {
         const activity = await prisma.activityTemplate.findUnique({
             where: { id: activityId },
             include: {
@@ -252,7 +255,8 @@ export class READ {
                 endAt: el.schedule.endAt,
                 status: el.schedule.status,
                 activity: el.schedule.activity,
-                leaders: leaders
+                leaders: leaders,
+                participantCount: 0
             } satisfies ScheduleDto)
         })
 
@@ -314,7 +318,7 @@ export class READ {
         if (!profile) {
             throw ApiError.badRequest("Invalid Id")
         }
-        else{
+        else {
             const favorites: ActivityDto[] = profile.favorites.map(el => formatActivity(el.activity));
             const participation: ScheduleDto[] = profile.participations.map(el => formatSchedule(el.schedule))
 
