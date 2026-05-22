@@ -1,10 +1,9 @@
-import { prisma, ProfileRole } from "./prisma.js";
+import { prisma, ActivityStatus, ProfileRole } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
-import { Profile } from "../generated/prisma/index.js";
-import { ApiError } from "../utils/ApiError.js";
-import { formatActivity, formatSchedule } from "./utils.js";
-import { ScheduleDto, ActivityDto, ProfileDto, ProfileSummaryDto } from '../types/index.js';
-
+import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
+import {ScheduleDto, ActivityDto, ProfileDto, AdminStatisticsDto, ProfileSummaryDto} from '../types/index.js';
+import {ApiError} from "../utils/ApiError.js";
+import { formatSchedule, formatActivity } from "./utils.js";
 
 export class READ {
     /**
@@ -348,6 +347,86 @@ export class READ {
         });
         return record !== null;
     }
+    // TODO: This fetches all activities + schedules unbounded.
+    // Should be paginated or aggregated at DB level post-launch.
+    static async adminStatistics(): Promise<AdminStatisticsDto> {
+        const activitiesData = await prisma.activityTemplate.findMany({
+            select: {
+                id: true,
+                name: true,
+                _count: {
+                    select: {
+                        favorites: true
+                    }
+                },
+                schedules: {
+                    select: {
+                        status: true,
+                        _count: {
+                            select: {
+                                participations: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 1. Total participants per activity
+        const totalParticipantsPerActivity = activitiesData.map(act => {
+            const participantCount = act.schedules.reduce((acc, sched) => acc + sched._count.participations, 0);
+            return {
+                activityId: act.id,
+                activityName: act.name,
+                participantCount
+            };
+        });
+
+        // 2. Most popular activities
+        const mostPopularActivities = activitiesData.map(act => {
+            const participantCount = act.schedules.reduce((acc, sched) => acc + sched._count.participations, 0);
+            return {
+                activityId: act.id,
+                activityName: act.name,
+                participantCount,
+                favoriteCount: act._count.favorites
+            };
+        }).sort((a, b) => b.participantCount - a.participantCount || b.favoriteCount - a.favoriteCount);
+
+        // 3. Cancellation rates
+        let totalSchedules = 0;
+        let cancelledSchedules = 0;
+
+        const perActivity = activitiesData.map(act => {
+            const actTotal = act.schedules.length;
+            const actCancelled = act.schedules.filter(s => s.status === ActivityStatus.CANCELLED).length;
+            const cancellationRate = actTotal > 0 ? (actCancelled / actTotal) : 0;
+
+            totalSchedules += actTotal;
+            cancelledSchedules += actCancelled;
+            return {
+                activityId: act.id,
+                activityName: act.name,
+                totalSchedules: actTotal,
+                cancelledSchedules: actCancelled,
+                cancellationRate,
+            };
+
+        });
+
+        const overallRate = totalSchedules > 0 ? (cancelledSchedules / totalSchedules) : 0;
+
+        return {
+            totalParticipantsPerActivity,
+            mostPopularActivities,
+            cancellationRates: {
+                overallRate,
+                totalSchedules,
+                cancelledSchedules,
+                perActivity
+            }
+        };
+    }
 
     static async activityParticipants(activityId: string) {
         return await prisma.schedule.findMany({
@@ -390,5 +469,4 @@ export class READ {
             }
         });
     }
-
 }
