@@ -19,7 +19,6 @@ export class UPDATE {
         });
 
         if (!!timeSlots) {
-            await this.deleteAllTimeSlots(activityId);
             await this.addTimeSlots(activityId, timeSlots);
         }
 
