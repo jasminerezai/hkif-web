@@ -63,8 +63,8 @@ export default function SchedulePage() {
   // 'ALL' = sentinel value meaning "no filter applied".
   // Using a string instead of null keeps the <select> happy
   // (a controlled <select value={null}> warns in React).
-  const [filterSport,         setFilterSport]         = useState('ALL')
-  const [filterDay,           setFilterDay]           = useState('ALL')
+  const [filterSport, setFilterSport] = useState('ALL')
+  const [filterDay, setFilterDay] = useState('ALL')
   const [filterFavoritesOnly, setFilterFavoritesOnly] = useState(false)
 
   // ── Favorites (logged-in users only) ──────────────────────
@@ -193,17 +193,15 @@ export default function SchedulePage() {
 
               const startDate = new Date(singleSchedule.startAt)
 
-              return `${startDate.getFullYear()}-${
-                String(startDate.getMonth() + 1).padStart(2, '0')
-              }-${
-                String(startDate.getDate()).padStart(2, '0')
-              }`
+              return `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')
+                }-${String(startDate.getDate()).padStart(2, '0')
+                }`
 
             })(),
 
             time: new Date(singleSchedule.startAt)
               .toLocaleTimeString([], {
-                hour:   '2-digit',
+                hour: '2-digit',
                 minute: '2-digit',
               }),
 
@@ -375,7 +373,7 @@ export default function SchedulePage() {
       // Get Monday of current week
       const current = new Date(today)
 
-      const day  = current.getDay()
+      const day = current.getDay()
       const diff = current.getDate() - day + (day === 0 ? -6 : 1)
 
       current.setDate(diff)
@@ -389,7 +387,7 @@ export default function SchedulePage() {
     } else {
 
       // Monthly view
-      const year  = today.getFullYear()
+      const year = today.getFullYear()
       const month = today.getMonth()
 
       const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -418,10 +416,8 @@ export default function SchedulePage() {
     // Build YYYY-MM-DD from local-timezone parts (NOT UTC),
     // matching the format we stored on each activity above.
     const dateString =
-      `${date.getFullYear()}-${
-        String(date.getMonth() + 1).padStart(2, '0')
-      }-${
-        String(date.getDate()).padStart(2, '0')
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')
+      }-${String(date.getDate()).padStart(2, '0')
       }`
 
     return filteredActivities.filter(
@@ -445,27 +441,27 @@ export default function SchedulePage() {
   return (
     <div
       style={{
-        padding:  'var(--space-6)',
+        padding: 'var(--space-6)',
         maxWidth: '1400px',
-        margin:   '0 auto',
+        margin: '0 auto',
       }}
     >
 
       {/* Header */}
       <div
         style={{
-          display:        'flex',
+          display: 'flex',
           justifyContent: 'space-between',
-          alignItems:     'center',
-          marginBottom:   'var(--space-6)',
-          flexWrap:       'wrap',
-          gap:            '16px',
+          alignItems: 'center',
+          marginBottom: 'var(--space-6)',
+          flexWrap: 'wrap',
+          gap: '16px',
         }}
       >
 
         <h1
           style={{
-            fontSize:   '2.4rem',
+            fontSize: '2.4rem',
             fontFamily: 'Georgia, serif',
           }}
         >
@@ -530,12 +526,12 @@ export default function SchedulePage() {
         <p
           role="alert"
           style={{
-            color:        'var(--color-danger)',
-            background:   'rgba(192,57,43,0.08)',
-            borderLeft:   '4px solid var(--color-danger)',
-            padding:      '12px 16px',
+            color: 'var(--color-danger)',
+            background: 'rgba(192,57,43,0.08)',
+            borderLeft: '4px solid var(--color-danger)',
+            padding: '12px 16px',
             marginBottom: '16px',
-            fontSize:     '0.9rem',
+            fontSize: '0.9rem',
           }}
         >
           Couldn&apos;t load your favorites — the schedule may look
@@ -546,10 +542,10 @@ export default function SchedulePage() {
       {/* Month header, placed above the calendar */}
       <h2
         style={{
-          fontSize:      '2rem',
-          fontWeight:    800,
+          fontSize: '2rem',
+          fontWeight: 800,
           letterSpacing: '4px',
-          marginBottom:  '24px',
+          marginBottom: '24px',
         }}
       >
         {today.toLocaleDateString('en-US', {
@@ -560,15 +556,15 @@ export default function SchedulePage() {
       {/* Calendar Grid */}
       <div
         style={{
-          border:     '1px solid var(--color-border)',
+          border: '1px solid var(--color-border)',
           background: 'var(--color-surface-raised)',
         }}
       >
         <div
           style={{
-            display:             'grid',
+            display: 'grid',
             gridTemplateColumns: 'repeat(7, 1fr)',
-            gap:                 '0',
+            gap: '0',
           }}
         >
 
@@ -580,21 +576,21 @@ export default function SchedulePage() {
               <div
                 key={index}
                 style={{
-                  minHeight:      '220px',
-                  borderRight:    '1px solid var(--color-border)',
-                  borderBottom:   '1px solid var(--color-border)',
-                  padding:        '16px',
-                  background:     'var(--color-surface-raised)',
-                  display:        'flex',
-                  flexDirection:  'column',
-                  gap:            '12px',
+                  minHeight: '220px',
+                  borderRight: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--color-border)',
+                  padding: '16px',
+                  background: 'var(--color-surface-raised)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
                 }}
               >
 
                 {/* Day Header */}
                 <div
                   style={{
-                    borderBottom:  '1px solid var(--color-border)',
+                    borderBottom: '1px solid var(--color-border)',
                     paddingBottom: '10px',
                   }}
                 >
@@ -602,9 +598,9 @@ export default function SchedulePage() {
                   {/* Date Number */}
                   <p
                     style={{
-                      fontSize:     '2rem',
-                      fontWeight:   800,
-                      lineHeight:   1,
+                      fontSize: '2rem',
+                      fontWeight: 800,
+                      lineHeight: 1,
                       marginBottom: '6px',
                     }}
                   >
@@ -614,8 +610,8 @@ export default function SchedulePage() {
                   {/* Weekday */}
                   <p
                     style={{
-                      color:      'var(--color-text-muted)',
-                      fontSize:   '0.95rem',
+                      color: 'var(--color-text-muted)',
+                      fontSize: '0.95rem',
                       fontWeight: 500,
                     }}
                   >
@@ -629,16 +625,16 @@ export default function SchedulePage() {
                 {/* Activities */}
                 <div
                   style={{
-                    display:       'flex',
+                    display: 'flex',
                     flexDirection: 'column',
-                    gap:           '10px',
+                    gap: '10px',
                   }}
                 >
 
                   {dayActivities.length === 0 && (
                     <p
                       style={{
-                        color:    'var(--color-text-muted)',
+                        color: 'var(--color-text-muted)',
                         fontSize: '0.9rem',
                       }}
                     >
@@ -661,9 +657,9 @@ export default function SchedulePage() {
                           ? '4px solid var(--color-danger)'
                           : '4px solid var(--color-primary)',
 
-                        display:       'flex',
+                        display: 'flex',
                         flexDirection: 'column',
-                        gap:           '6px',
+                        gap: '6px',
                       }}
                     >
 
@@ -671,9 +667,9 @@ export default function SchedulePage() {
                       {activity.cancelled && (
                         <p
                           style={{
-                            color:         'var(--color-danger)',
-                            fontWeight:    700,
-                            fontSize:      '0.8rem',
+                            color: 'var(--color-danger)',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
                             letterSpacing: '1px',
                           }}
                         >
@@ -683,7 +679,18 @@ export default function SchedulePage() {
 
                       {/* Title */}
                       <p style={{ fontWeight: 700 }}>
-                        {activity.title}
+                        {activity.activityId ? (
+                          <Link
+                            to={`/activities/${activity.activityId}`}
+                            style={{ color: 'inherit', textDecoration: 'none' }}
+                            onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; e.target.style.color = 'var(--color-primary-dark)' }}
+                            onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; e.target.style.color = 'inherit' }}
+                          >
+                            {activity.title}
+                          </Link>
+                        ) : (
+                          activity.title
+                        )}
                       </p>
 
                       {/* Sport */}
@@ -695,7 +702,7 @@ export default function SchedulePage() {
                       <p
                         style={{
                           fontSize: '0.85rem',
-                          color:    'var(--color-text-muted)',
+                          color: 'var(--color-text-muted)',
                         }}
                       >
                         Leader: {activity.leader}
@@ -720,8 +727,8 @@ export default function SchedulePage() {
                       {activity.notes && (
                         <p
                           style={{
-                            fontSize:  '0.85rem',
-                            color:     'var(--color-text-muted)',
+                            fontSize: '0.85rem',
+                            color: 'var(--color-text-muted)',
                             marginTop: '4px',
                           }}
                         >

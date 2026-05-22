@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import {
   fetchFavorites,
@@ -233,8 +233,25 @@ export default function ActivitiesPage() {
                   ? '♥'
                   : '♡'}
               </button>
+
               <h2 style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                {activity.name}
+                <Link
+                  to={`/activities/${activity.id}`}
+                  style={{
+                    color: 'var(--color-text)',
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.textDecoration = 'underline'
+                    e.target.style.color = 'var(--color-primary-dark)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.textDecoration = 'none'
+                    e.target.style.color = 'var(--color-text)'
+                  }}
+                >
+                  {activity.name}
+                </Link>
                 {activity.defaultStatus === 'CANCELLED' && (
                   <Badge variant={STATUS_VARIANT[activity.defaultStatus]}>Cancelled</Badge>
                 )}
