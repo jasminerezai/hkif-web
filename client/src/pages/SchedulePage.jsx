@@ -323,7 +323,34 @@ export default function SchedulePage() {
   const displayedActivities = useMemo(() => (
     activities.length > 0 ? activities : mockActivities
   ), [activities])
-
+  // ── Hydrate attending state on mount ─────────────────────
+  // Fetches the user's existing participations from GET /api/users/me
+  // so the Attend/Leave button state is correct after a page refresh.
+  useEffect(() => {
+    async function loadParticipations() {
+      if (!isAuthenticated) {
+        setAttendingActivities([])
+        return
+      }
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (response.status === 401) {
+          handleAuthExpired()
+          return
+        }
+        if (!response.ok) return
+        const result = await response.json()
+        const ids = result.data.participations.map(p => p.id)
+        setAttendingActivities(ids)
+      } catch (error) {
+        console.error('Failed to load participations:', error)
+      }
+    }
+    loadParticipations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token])
   // ── Derived: Unique Sport Types ──────────────────────────
   // Auto-builds the sport dropdown options from whatever data
   // is currently loaded. As the backend adds more sports the
@@ -526,6 +553,10 @@ export default function SchedulePage() {
       }
     } catch (error) {
       console.error('Failed to update participation:', error)
+      // 409 = already registered — state is correct, no rollback needed
+      if (error?.message?.includes('409') || error?.statusCode === 409) {
+        return
+      }
       // Roll everything back to the pre-click snapshot
       setAttendingActivities(previousAttending)
       setActivities(prev => prev.map(a =>
