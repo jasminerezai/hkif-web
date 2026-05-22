@@ -8,6 +8,6 @@ export type ProfileDto = Pick<Profile, 'profileName' | 'email' | 'role'> & {
 }
 
 export type leaderDto = {
-    profileId: string,
+    id: string,
     profileName: string | null
 }

@@ -29,13 +29,13 @@ export function formatSchedule(schedule: any): ScheduleDto {
 export function formatActivity(activity: any): ActivityDto {
     let leadersRaw = activity.leaders ?? [];
     const leaders: leaderDto[] = Array.isArray(leadersRaw)
-        ? leadersRaw.map((el: { profile: { profileId: string; profileName: string | null } }) => el.profile)
+        ? leadersRaw.map((el: { profile: { id: string; profileName: string | null } }) => el.profile satisfies leaderDto)
         : [];
     const restOfActivity = {...activity}
     delete restOfActivity.leaders;
     return {
         leaders: leaders,
-        timeSlots: restOfActivity.timeSlot,
+        timeSlots: restOfActivity.timeSlots,
         name: restOfActivity.name,
         location: restOfActivity.location,
         description: restOfActivity.description,

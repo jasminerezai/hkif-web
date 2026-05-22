@@ -102,17 +102,27 @@ export class READ {
      *     --> array of ActivityTemplateModel objects
      */
     static async activitiesFavoritedBy(profileId: string): Promise<ActivityDto[]> {
-        let favorites = await prisma.favorite.findMany({
+        let favorites: any = await prisma.favorite.findMany({
             where: { profileId },
             select: {
                 activity: {
                     include: {
-                        leaders: true,
-                        timeSlots: true
+                        timeSlots: true,
+                        leaders: {
+                            select: {
+                                profile: {
+                                    select: {
+                                        id: true,
+                                        profileName: true
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         })
+        favorites = favorites.map((el: { activity: any; }) => el.activity)
         const formattedFavorites: ActivityDto[] = favorites.map(formatActivity);
         return formattedFavorites;
     }
@@ -274,7 +284,7 @@ export class READ {
                     }
                 },
                 favorites: {
-                    include: {
+                    select: {
                         activity: {
                             include: {
                                 timeSlots: true,
@@ -299,8 +309,8 @@ export class READ {
             throw ApiError.badRequest("Invalid Id")
         }
         else{
-            const favorites: ActivityDto[] = profile.favorites.map(formatActivity);
-            const participation: ScheduleDto[] = profile.participations.map(formatSchedule)
+            const favorites: ActivityDto[] = profile.favorites.map(el => formatActivity(el.activity));
+            const participation: ScheduleDto[] = profile.participations.map(el => formatSchedule(el.schedule))
 
 
             const dto = {
