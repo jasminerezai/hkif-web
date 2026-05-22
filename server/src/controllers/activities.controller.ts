@@ -2,19 +2,19 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { prisma, ProfileRole, ActivityStatus } from '../db/prisma.js';
-import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity, ActivityDto } from '../types/index.js';
+import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity, ActivityDto, ActivityParticipantsDto } from '../types/index.js';
 import {
-    CreateActivitySchema,
-    DeleteActivitySchema,
-    parseZodError,
-    UpdateActivityGeneralSchema,
-    UpdateActivityURLSchema,
-    StatusValidationSchema,
-    IdSchema,
-    isUUID
+  CreateActivitySchema,
+  DeleteActivitySchema,
+  parseZodError,
+  UpdateActivityGeneralSchema,
+  UpdateActivityURLSchema,
+  StatusValidationSchema,
+  IdSchema,
+  isUUID
 } from "../validators/index.js";
 import { DELETE, READ, UPDATE, CREATE } from "../db/queries.js";
-import {ZodError} from "zod";
+import { ZodError } from "zod";
 
 // ──────────────────────────────────────────────────────────────
 // Shared helpers
@@ -82,14 +82,14 @@ export const updateScheduleStatusHandler = asyncHandler(async (
   let scheduleId: string;
   let status: ActivityStatus;
   const { id: requesterId, role } = req.user!;
-  try{
-      activityId = IdSchema.parse(req.params.activityId);
-      scheduleId = IdSchema.parse(req.params.scheduleId);
-      status = StatusValidationSchema.parse(req.body);
+  try {
+    activityId = IdSchema.parse(req.params.activityId);
+    scheduleId = IdSchema.parse(req.params.scheduleId);
+    status = StatusValidationSchema.parse(req.body);
 
-  } catch (error){
-      if( error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)));
-      else throw ApiError.internal(`Something went wrong: ${error}`)
+  } catch (error) {
+    if (error instanceof ZodError) throw ApiError.badRequest(JSON.stringify(parseZodError(error)));
+    else throw ApiError.internal(`Something went wrong: ${error}`)
   }
 
   // ── 2. Activity existence + ownership ────────────────────────
@@ -170,7 +170,7 @@ export const updateActivity = asyncHandler(
       updateParams = UpdateActivityURLSchema.parse(req.params);
       updateBody = UpdateActivityGeneralSchema.parse(req.body);
     } catch (error) {
-      if(error instanceof ZodError) throw ApiError.badRequest(`Invalid request body or params: ${parseZodError(error)}`);
+      if (error instanceof ZodError) throw ApiError.badRequest(`Invalid request body or params: ${parseZodError(error)}`);
       else throw ApiError.internal(`Something went wrong: ${error}`)
     }
 
@@ -267,3 +267,60 @@ export const unregisterParticipation = asyncHandler(async (
 
   res.status(200).json({ status: 'success', data: { participantCount } })
 })
+
+export const getActivityParticipants = asyncHandler(async (
+  req: Request<{ activityId: string }>,
+  res: Response<ApiResponse<ActivityParticipantsDto>>
+) => {
+  const { activityId } = req.params
+  const { id: requesterId, role } = req.user!
+
+  if (!isUUID(activityId)) {
+    throw ApiError.badRequest('Invalid activityId format')
+  }
+
+  // 1. Verify existence + leadership/admin access
+  const activity = await assertActivityAccess(activityId, requesterId, role)
+
+  // 2. Fetch schedules and their participants
+  const schedules = await READ.activityParticipants(activityId)
+
+  // 3. Format response
+  // NOTE: Email addresses are intentionally exposed here to activity leaders and admins
+  // to facilitate direct communication, coordinates, and urgent notices with registered participants.
+  const formattedSchedules = schedules.map(s => ({
+    scheduleId: s.id,
+    startAt: s.startAt,
+    endAt: s.endAt,
+    status: s.status,
+    participants: s.participations.map(p => ({
+      id: p.profile.id,
+      profileName: p.profile.profileName || 'No Name',
+      email: p.profile.email
+    }))
+  }))
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      activityId: activity.id,
+      activityName: activity.name,
+      schedules: formattedSchedules
+    }
+  })
+})
+
+export const getActivityById = asyncHandler(async (
+  req: Request<{ activityId: string }>,
+  res: Response<ApiResponse<ActivityDto>>
+) => {
+  const { activityId } = req.params
+  if (!isUUID(activityId)) {
+    throw ApiError.badRequest('Invalid activityId format')
+  }
+  const activity = await READ.activityById(activityId)
+  if (!activity) throw ApiError.notFound('Activity not found')
+  res.status(200).json({ status: 'success', data: activity })
+})
+
+

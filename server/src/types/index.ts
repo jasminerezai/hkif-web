@@ -47,6 +47,8 @@ export type {
   Activity,
   TimeSlot,
   ActivityDto,
+  ParticipantScheduleDto,
+  ActivityParticipantsDto,
 } from './activity.types.js';
 
 export type { ScheduleDto } from './schedule.types.js';
