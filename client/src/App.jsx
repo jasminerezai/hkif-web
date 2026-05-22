@@ -1,6 +1,7 @@
 import React from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
+import { ToastProvider } from './context/ToastContext.jsx'
 import Navbar from './components/Navbar.jsx'
 import ActivitiesPage from './pages/ActivitiesPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -10,6 +11,7 @@ import SchedulePage from './pages/SchedulePage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import ActivityDetailPage from './pages/ActivityDetailPage.jsx'
 import { MANAGER_ROLES, EDITOR_ROLES } from './constants/roles.js'
+import NotFoundPage from './pages/NotFoundPage.jsx'
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login, and optionally a specific role.
@@ -158,10 +160,13 @@ function AppRoutes() {
             }
           />
 
-          {/* Catch-all: any unknown URL redirects to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes >
-      </main >
+          {/* Catch-all: any unknown URL renders the 404 page.
+              Previously this silently Navigate'd to "/" which masked
+              broken internal links and confused users who pasted a bad URL.
+              See: pages/NotFoundPage.jsx. */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
     </>
   )
 }
@@ -171,8 +176,14 @@ export default function App() {
   return (
     <AuthProvider>
       {/* AuthProvider must be the outermost wrapper
-          so every component in the tree can call useAuth() */}
-      <AppRoutes />
+          so every component in the tree can call useAuth().
+
+          ToastProvider lives inside AuthProvider so that the
+          toast-triggering code we'll add next (e.g. "session
+          expired") can read auth state. Order is intentional. */}
+      <ToastProvider>
+        <AppRoutes />
+      </ToastProvider>
     </AuthProvider>
   )
 }

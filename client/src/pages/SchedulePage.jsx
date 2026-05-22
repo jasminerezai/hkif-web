@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Button from '../components/ui/Button.jsx'
 import ScheduleFilters from '../components/ScheduleFilters.jsx'
-import { useNavigate, Link } from 'react-router-dom'
+import ScheduleSkeleton from '../components/skeletons/ScheduleSkeleton.jsx'
+
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { fetchFavorites } from '../services/FavoritesService.js'
+import { AuthExpiredError } from '../services/AuthExpiredError.js'
+import { useToast } from '../context/ToastContext.jsx'
+import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 import {
   registerParticipation,
   unregisterParticipation,
@@ -46,6 +51,14 @@ export default function SchedulePage() {
   const { isAuthenticated, token } = useAuth()
 
   const [loading, setLoading] = useState(true)
+
+  // ── Toast + auth-expired plumbing (#30) ───────────────────
+  // showToast:         user-facing notifier for fetch failures.
+  // handleAuthExpired: shared mid-session expiry handler — logs out,
+  //                    toasts, and redirects to /login with the
+  //                    current URL preserved for return.
+  const { showToast }     = useToast()
+  const handleAuthExpired = useAuthExpiredHandler()
 
   // Activity IDs the user has joined (attendance, NOT favorites)
   const [attendingActivities, setAttendingActivities] = useState([])
@@ -230,7 +243,15 @@ export default function SchedulePage() {
 
       } catch (error) {
 
+        // Public endpoint, but the network could still fail or the
+        // backend could 500. Previously this was silent + the page
+        // just rendered empty — now we tell the user with a toast
+        // so they know to retry instead of staring at mock data.
         console.error('Failed to fetch schedule:', error)
+        showToast(
+          'Couldn\'t load the schedule. Please try again.',
+          'error',
+        )
       } finally {
         setLoading(false)
       }
@@ -238,6 +259,9 @@ export default function SchedulePage() {
 
     fetchSchedule()
 
+    // showToast is stable (useCallback) — keeping the deps array
+    // empty preserves the original "fetch once on mount" behaviour.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Fetch Favorites (logged-in users only) ───────────────
@@ -270,14 +294,26 @@ export default function SchedulePage() {
         setFavoriteIds(ids)
       } catch (error) {
         console.error('Failed to fetch favorites:', error)
-        // Flag the failure so the UI can show a warning *if*
-        // the user actually has the favorites filter enabled.
+
+        // 401 → session expired mid-session, full logout + redirect.
+        if (error instanceof AuthExpiredError) {
+          handleAuthExpired()
+          return
+        }
+
+        // Other errors → keep the existing contextual banner
+        // behaviour. We deliberately don't toast here because most
+        // users on this page never enable the "Favorites only"
+        // filter and don't care that the background favorites fetch
+        // failed. The inline banner below already shows up if/when
+        // it actually matters.
         setFavoritesError(true)
       }
     }
 
     loadFavorites()
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token])
 
   // ── Activity Source ──────────────────────────────────────
@@ -500,11 +536,9 @@ export default function SchedulePage() {
 
 
   if (loading) {
-    return (
-      <div style={{ padding: '48px' }}>
-        <p>Loading schedule...</p>
-      </div>
-    )
+    // Full-page skeleton: keeps the header / filters / grid in place
+    // visually so the page doesn't pop in once data arrives.
+    return <ScheduleSkeleton />
   }
 
   return (
@@ -584,6 +618,12 @@ export default function SchedulePage() {
           cancelled-activity treatment below and the rest of
           the project's existing visual language (no toast lib
           in the project yet).
+
+          NOTE: 401s no longer reach this branch — the catch
+          block above routes session expiry through
+          handleAuthExpired (toast + redirect to /login).
+          This banner only appears for non-401 favorites
+          failures, which is the right UX.
       ──────────────────────────────────────────────────── */}
       {filterFavoritesOnly && favoritesError && (
         <p
