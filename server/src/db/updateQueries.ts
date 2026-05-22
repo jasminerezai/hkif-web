@@ -1,9 +1,9 @@
 import { prisma, ActivityStatus } from "./prisma.js";
-import { Activity, TimeSlot, ScheduleDto } from "../types/index.js";
-import { formatSchedule } from "./utils.js";
+import {Activity, TimeSlot, ScheduleDto, ActivityDto} from "../types/index.js";
+import {formatActivity, formatSchedule} from "./utils.js";
 
 export class UPDATE {
-    static async updateActivity(activityId: string, newData: Partial<Activity>) {
+    static async updateActivity(activityId: string, newData: Partial<Activity>): Promise<ActivityDto> {
         // These fields require special handling, so we extract them from the update payload first  
         const timeSlots = newData.timeSlots;
         delete newData.timeSlots;
@@ -35,13 +35,23 @@ export class UPDATE {
             });
         }
 
-        return prisma.activityTemplate.findUnique({
+        const newActivity = await prisma.activityTemplate.findUnique({
             where: { id: activityId },
             include: {
-                leaders: true,
-                timeSlots: true
+                timeSlots: true,
+                leaders: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true
+                            }
+                        }
+                    }
+                }
             }
         });
+        return formatActivity(newActivity);
     }
 
     static async addTimeSlots(activityId: string, newData: TimeSlot[]) {

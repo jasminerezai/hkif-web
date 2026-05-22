@@ -2,6 +2,7 @@ import { Weekday, ActivityStatus } from '../db/prisma.js';
 import {leaderDto} from "./profile.types.js";
 
 export type Activity = {
+  id: string,
   name: string,
   location: string,
   leaders: string[],

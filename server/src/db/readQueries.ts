@@ -1,6 +1,6 @@
 import { prisma, ProfileRole } from "./prisma.js";
 import { startAndEndOfWeek } from "../utils/weekCalculator.js";
-import { ActivityTemplate, Profile } from "../generated/prisma/index.js";
+import { Profile } from "../generated/prisma/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { formatActivity, formatSchedule } from "./utils.js";
 import { ScheduleDto, ActivityDto, ProfileDto, ProfileSummaryDto } from '../types/index.js';
