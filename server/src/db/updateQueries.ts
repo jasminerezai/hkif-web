@@ -120,6 +120,9 @@ export class UPDATE {
             where: { id: scheduleId },
             data,
             include: {
+                _count: {
+                    select: { participations: true }
+                },
                 activity: {
                     include: {
                         leaders: {
