@@ -1,7 +1,7 @@
 // server/src/cron/scheduleGenerator.ts
 //
 // Core logic for generating Schedule rows for the coming week.
-// Called by the cron job every Monday at 00:01, and once on
+// Called by the cron job every Monday at 00:05, and once on
 // server startup as a fallback (in case the server was down on Monday).
 
 import { prisma, ActivityStatus } from '../db/prisma.js';
@@ -43,7 +43,7 @@ function nextDateForWeekday(base: Date, weekday: string): Date {
 // Safe to call multiple times — the existence check prevents duplicates.
 export async function generateWeeklySchedules(): Promise<void> {
     const now = new Date();
-    const nextMon = nextWeek(now, 1);              // base = one week ahead
+    const nextMon = nextWeek(now, 1);  // 1 = one week ahead
     const { startDay, endDay } = startAndEndOfWeek(nextMon);
 
     console.log(`[cron] Generating schedules for ${startDay.toDateString()} – ${endDay.toDateString()}`);
@@ -62,7 +62,7 @@ export async function generateWeeklySchedules(): Promise<void> {
 
             // 2. Compute the exact date for this slot next week
             const slotDate = nextDateForWeekday(startDay, slot.weekday);
-
+            // Times are stored in UTC — slot.startTime and slot.endTime are UTC Date objects
             const startAt = new Date(slotDate);
             startAt.setUTCHours(
                 slot.startTime.getUTCHours(),
@@ -79,11 +79,18 @@ export async function generateWeeklySchedules(): Promise<void> {
                 0,
             );
 
+
+            // TODO: For large datasets, consider fetching all existing schedules upfront
+            // and doing an in-memory check instead of N*M sequential DB queries.
+
+
+
             // 3. Check if a schedule already exists for this slot
             const existing = await prisma.schedule.findFirst({
                 where: {
                     activityId: activity.id,
                     startAt,
+                    endAt,
                 },
             });
 
