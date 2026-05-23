@@ -297,14 +297,50 @@ export default function ProfilePage() {
 
         <div style={{ marginBottom: '32px' }}>
 
-          <h2
+          {/* Section header row: title on the left, primary
+              action on the right. Flex layout (not the bare
+              h2 we had before) so the "Create New Activity"
+              button can sit inline with the heading. Wraps on
+              narrow viewports so the button drops below the
+              title instead of overflowing.
+              The button is rendered here — outside the
+              loading / empty / populated branches below — so
+              it's always available regardless of whether the
+              manage list is loaded, empty, or in flight.
+              Creating a new activity doesn't depend on the
+              existing list at all. */}
+          <div
             style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: '16px',
-              fontSize: '1.5rem',
+              flexWrap: 'wrap',
+              gap: '12px',
             }}
           >
-            Manage Activities
-          </h2>
+
+            <h2 style={{ fontSize: '1.5rem' }}>
+              Manage Activities
+            </h2>
+
+            {/* Routes to /activities/new — already exists in
+                App.jsx and is also protected by MANAGER_ROLES,
+                so the same users who see this button are the
+                same ones who can reach the form. The route
+                reuses ActivityFormPage (same component as the
+                edit flow), the form just detects the missing
+                :id and renders in create mode. */}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/activities/new')}
+            >
+              + Create New Activity
+            </Button>
+
+          </div>
+
 
           {/* Three render states:
               1. manageLoading       — fetch in flight
