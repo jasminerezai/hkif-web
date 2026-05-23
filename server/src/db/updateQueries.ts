@@ -25,7 +25,6 @@ export class UPDATE {
         });
 
         if (!!timeSlots) {
-            await this.deleteAllTimeSlots(activityId);
             await this.addTimeSlots(activityId, timeSlots);
         }
 
@@ -48,7 +47,7 @@ export class UPDATE {
                     select: {
                         profile: {
                             select: {
-                                id: true,
+                                idhttps://community_sketch_your_mind.com/: true,
                                 profileName: true
                             }
                         }

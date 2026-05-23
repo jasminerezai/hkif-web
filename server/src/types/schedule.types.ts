@@ -1,7 +1,6 @@
 import { ActivityTemplate } from '../generated/prisma/index.js';
 import { leaderDto } from "./profile.types.js";
-import { ActivityStatus } from '../db/prisma.js'
-
+import { ActivityStatus } from '../db/prisma.js';
 
 export type ScheduleDto = {
     id: string,
@@ -12,5 +11,6 @@ export type ScheduleDto = {
     createdAt: Date,
     updatedAt: Date,
     activity: ActivityTemplate, // change to ActivityDto?? --> duplicate data leaders and timeSlots
-    leaders: leaderDto[];
+    leaders: leaderDto[],
+    participantCount: number,
 };
