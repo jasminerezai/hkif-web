@@ -163,6 +163,10 @@ export default function Navbar() {
             Activities
           </NavLink>
 
+          <NavLink to="/about" onClick={closeMenu} style={S.drawerLink}>
+            About
+          </NavLink>
+
           {isAuthenticated ? (
             <>
               <NavLink to="/profile" onClick={closeMenu} style={S.drawerLink}>
