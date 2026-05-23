@@ -3,6 +3,14 @@ import Card from '../components/ui/Card.jsx'
 import Badge from '../components/ui/Badge.jsx'
 import Button from '../components/ui/Button.jsx'
 
+
+// ────About Page────────────────────────────────────
+// Static page containing two "about" sections,
+// one for HKIF and one for the Development team.
+// Displays cards of all the team members with
+// their focus areas and their Github links.
+// ──────────────────────────────────────────────────
+
 const teamMembers = [
   {
     name: 'Juri',
@@ -12,6 +20,7 @@ const teamMembers = [
       'Database Design',
       'Backend Input Validation',
       'CRUD Endpoints',
+      'Database Result Formatting',
     ],
   },
   {
@@ -22,6 +31,7 @@ const teamMembers = [
       'Authentication',
       'Backend Deployment',
       'API Infrastructure',
+      'Type System & Architecture',
     ],
   },
   {
@@ -74,139 +84,14 @@ export default function AboutPage() {
       }}
     >
 
-      {/* ── Hero Section ───────────────────────────── */}
+      {/* ──────── Hero Section ──────────────────────────────── */}
 
       {/* ── About HKIF ───────────────────────────── */}
-<Card
-  padding="lg"
-  shadow="sm"
-  style={{
-    marginBottom: '32px',
-  }}
->
-
-  <div
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px',
-    }}
-  >
-
-    <div>
-
-      <h2
-        style={{
-          fontSize: '2.5rem',
-          marginBottom: '12px',
-        }}
-      >
-        About HKIF
-      </h2>
-
-      <p
-        style={{
-          color: 'var(--color-text-muted)',
-          lineHeight: 1.7,
-          marginBottom: '16px',
-        }}
-      >
-        Högskolan Kristianstad IF (HKIF) is a student sports association
-        focused on creating an active and social community for students.
-        HKIF organizes activities, events, and training opportunities
-        that encourage participation, teamwork, and student engagement.
-      </p>
-
-      <p
-        style={{
-          color: 'var(--color-text-muted)',
-          lineHeight: 1.7,
-        }}
-      >
-        This website was developed to simplify activity scheduling,
-        participation management, and communication between leaders
-        and attendees. The platform provides a modern and responsive
-        experience for both organizers and members.
-      </p>
-
-    </div>
-
-    <div
-      style={{
-        display: 'flex',
-        gap: '12px',
-        flexWrap: 'wrap',
-      }}
-    >
-
-      <Badge>
-        Student Association
-      </Badge>
-
-      <Badge>
-        Sports & Activities
-      </Badge>
-
-      <Badge>
-        Community Focused
-      </Badge>
-
-          </div>
-          
-          <div
-  style={{
-    display: 'flex',
-    gap: '12px',
-    flexWrap: 'wrap',
-    marginTop: '12px',
-  }}
->
-
-  <a
-    href="mailto:hkif@hotmail.se"
-    style={{ textDecoration: 'none' }}
-  >
-    <Button variant="outline" size="sm">
-      Email
-    </Button>
-  </a>
-
-  <a
-    href="https://www.facebook.com/HKIFatHKR/"
-    target="_blank"
-    rel="noreferrer"
-    style={{ textDecoration: 'none' }}
-  >
-    <Button variant="outline" size="sm">
-      Facebook →
-    </Button>
-  </a>
-
-  <a
-    href="https://www.instagram.com/hkif_skane/"
-    target="_blank"
-    rel="noreferrer"
-    style={{ textDecoration: 'none' }}
-  >
-    <Button variant="outline" size="sm">
-      Instagram →
-    </Button>
-  </a>
-
-</div>
-
-  </div>
-
-</Card>
-      
-{/* ── About HKIF Development team ───────────────────────────── */}
       <Card
         padding="lg"
-        shadow="md"
+        shadow="sm"
         style={{
-          marginBottom: '32px',
-          background: 'var(--color-primary-light)',
-          border: '1px solid var(--color-border)',
+          marginBottom: 'var(--space-6)',
         }}
       >
 
@@ -219,10 +104,137 @@ export default function AboutPage() {
         >
 
           <div>
+
+            <h2
+              style={{
+                fontSize: '2.5rem',
+                marginBottom: 'var(--space-6)',
+              }}
+            >
+              About HKIF
+            </h2>
+
+            <p
+              style={{
+                color: 'var(--color-text-muted)',
+                lineHeight: 1.7,
+                marginBottom: 'var(--space-6)',
+              }}
+            >
+              Högskolan Kristianstad IF (HKIF) is a student sports association
+              focused on creating an active and social community for students.
+              HKIF organizes activities, events, and training opportunities
+              that encourage participation, teamwork, and student engagement.
+            </p>
+
+            <p
+              style={{
+                color: 'var(--color-text-muted)',
+                lineHeight: 1.7,
+              }}
+            >
+              This website was developed to simplify activity scheduling,
+              participation management, and communication between leaders
+              and attendees. The platform provides a modern and responsive
+              experience for both organizers and members.
+            </p>
+
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 'var(--space-6)',
+              flexWrap: 'wrap',
+            }}
+          >
+
+            <Badge>
+              Student Association
+            </Badge>
+
+            <Badge>
+              Sports & Activities
+            </Badge>
+
+            <Badge>
+              Community-Focused
+            </Badge>
+
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 'var(--space-6)',
+              flexWrap: 'wrap',
+              marginTop: 'var(--space-6)',
+            }}
+          >
+
+          {/* ── Email & Social media links ─────────────────── */}
+
+            <a
+              href="mailto:hkif@hotmail.se"
+              style={{ textDecoration: 'none' }}
+            >
+              <Button variant="outline" size="sm">
+                Email
+              </Button>
+            </a>
+
+            <a
+              href="https://www.facebook.com/HKIFatHKR/"
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <Button variant="outline" size="sm">
+                Facebook →
+              </Button>
+            </a>
+
+            <a
+              href="https://www.instagram.com/hkif_skane/"
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <Button variant="outline" size="sm">
+                Instagram →
+              </Button>
+            </a>
+
+          </div>
+
+        </div>
+
+      </Card>
+
+      {/* ── About HKIF Development team ───────────────────────────── */}
+      <Card
+        padding="lg"
+        shadow="md"
+        style={{
+          marginBottom: 'var(--space-6)',
+          background: 'var(--color-primary-light)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-6)',
+          }}
+        >
+
+          <div>
             <h1
               style={{
                 fontSize: '1.8rem',
-                marginBottom: '8px',
+                marginBottom: 'var(--space-6)',
               }}
             >
               HKIF-Website Development Team
@@ -244,59 +256,36 @@ export default function AboutPage() {
 
           <div
             style={{
-              display: 'flex',
-              gap: '12px',
-              flexWrap: 'wrap',
+              marginTop: 'var(--space-6)',
             }}
           >
-            {/* <Badge>
-              Fullstack Project
-            </Badge>
-
-            <Badge>
-              Agile Workflow
-            </Badge>
-
-            <Badge>
-              Team Collaboration
-            </Badge> */}
-
-
-            
+            <a
+              href="https://github.com/jasminerezai/hkif-web"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: 'none',
+              }}
+            >
+              <Button
+                variant="primary"
+                size="sm"
+              >
+                View Project Repository →
+              </Button>
+            </a>
           </div>
-
-          <div
-  style={{
-    marginTop: '8px',
-  }}
->
-  <a
-    href="https://github.com/jasminerezai/hkif-web"
-    target="_blank"
-    rel="noreferrer"
-    style={{
-      textDecoration: 'none',
-    }}
-  >
-    <Button
-      variant="primary"
-      size="sm"
-    >
-      View Project Repository →
-    </Button>
-  </a>
-</div>
 
         </div>
 
       </Card>
 
       {/* ── Team Section ───────────────────────────── */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: 'var(--space-6)' }}>
 
         <h2
           style={{
-            marginBottom: '16px',
+            marginBottom: 'var(--space-6)',
             fontSize: '1.5rem',
           }}
         >
@@ -329,17 +318,17 @@ export default function AboutPage() {
 
               <div>
 
-                {/* Member Header */}
+                {/* ────── Team Members Header ─────────── */}
                 <div
                   style={{
-                    marginBottom: '18px',
+                    marginBottom: 'var(--space-6)',
                   }}
                 >
 
                   <h3
                     style={{
                       fontSize: '1.4rem',
-                      marginBottom: '8px',
+                      marginBottom: 'var(--space-5)',
                     }}
                   >
                     {member.name}
@@ -351,12 +340,12 @@ export default function AboutPage() {
 
                 </div>
 
-                {/* Focus Areas */}
+                {/* ────── Focus Areas ─────────── */}
                 <div>
 
                   <h4
                     style={{
-                      marginBottom: '12px',
+                      marginBottom: 'var(--space-5)',
                       fontSize: '0.95rem',
                       color: 'var(--color-text-muted)',
                       textTransform: 'uppercase',
@@ -394,27 +383,27 @@ export default function AboutPage() {
 
               </div>
 
-              {/* Bottom Button */}
+              {/* ────── Github-link Button ─────────── */}
               <div
                 style={{
-                  marginTop: '24px',
+                  marginTop: 'var(--space-6)',
                 }}
               >
-               <a
-                href={member.github}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  textDecoration: 'none',
-                }}
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
+                <a
+                  href={member.github}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    textDecoration: 'none',
+                  }}
                 >
-                  View GitHub →
-                </Button>
-              </a>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                  >
+                    View GitHub →
+                  </Button>
+                </a>
               </div>
 
             </Card>
