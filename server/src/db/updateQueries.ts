@@ -47,7 +47,7 @@ export class UPDATE {
                     select: {
                         profile: {
                             select: {
-                                idhttps://community_sketch_your_mind.com/: true,
+                                id: true,
                                 profileName: true
                             }
                         }
