@@ -34,7 +34,6 @@ export default function ActivityDetailPage() {
 
         const result = await response.json()
         const activityData = result.data
-        console.error(activityData);
         setActivity(activityData)
 
         // Fetch participants in the same flow if the user is authorized (leader/admin)

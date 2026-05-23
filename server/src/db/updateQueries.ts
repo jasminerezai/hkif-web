@@ -1,6 +1,7 @@
 import { prisma, ActivityStatus } from "./prisma.js";
 import {Activity, TimeSlot, ScheduleDto, ActivityDto} from "../types/index.js";
 import {formatActivity, formatSchedule} from "./utils.js";
+import {ApiError} from "../utils/ApiError.js";
 
 export class UPDATE {
     /**
@@ -55,7 +56,8 @@ export class UPDATE {
                 }
             }
         });
-        return formatActivity(newAct);
+        if(!newAct) throw ApiError.notFound(`Activity to update not Found`);
+        else return formatActivity(newAct);
     }
 
     /**
