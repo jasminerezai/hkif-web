@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import Badge from '../components/ui/Badge.jsx'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
+import { API_BASE_URL } from '../services/apiConfig.js'
 
 export default function ActivityDetailPage() {
   const { id } = useParams()
@@ -27,7 +28,7 @@ export default function ActivityDetailPage() {
           headers['Authorization'] = `Bearer ${token}`
         }
 
-        const response = await fetch(`/api/activities/${id}`, { headers })
+        const response = await fetch(`${API_BASE_URL}/api/activities/${id}`, { headers })
         if (!response.ok) {
           throw new Error('Failed to fetch activity details')
         }
@@ -45,7 +46,7 @@ export default function ActivityDetailPage() {
 
           if (isUserLeader) {
             try {
-              const partResponse = await fetch(`/api/activities/${id}/participants`, {
+              const partResponse = await fetch(`${API_BASE_URL}/api/activities/${id}/participants`, {
                 headers: {
                   Authorization: `Bearer ${token}`,
                 },
