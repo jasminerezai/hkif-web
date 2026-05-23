@@ -113,6 +113,9 @@ export class CREATE {
                 status: finalStatus
             },
             include: {
+                _count: {
+                    select: { participations: true }
+                },
                 activity: {
                     include: {
                         leaders: {

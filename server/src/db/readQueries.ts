@@ -227,6 +227,9 @@ export class READ {
             select: {
                 schedule: {
                     include: {
+                        _count: {
+                            select: { participations: true }
+                        },
                         activity: {
                             include: {
                                 leaders: {
@@ -261,7 +264,7 @@ export class READ {
                 status: el.schedule.status,
                 activity: el.schedule.activity,
                 leaders: leaders,
-                participantCount: 0
+                participantCount: el.schedule._count?.participations ?? 0
             } satisfies ScheduleDto)
         })
 
@@ -280,6 +283,9 @@ export class READ {
                     select: {
                         schedule: {
                             include: {
+                                _count: {
+                                    select: { participations: true }
+                                },
                                 activity: {
                                     include: {
                                         leaders: {
