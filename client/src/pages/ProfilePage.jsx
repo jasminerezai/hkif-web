@@ -10,7 +10,7 @@ import {
 import {
   fetchManageableActivities,
 } from '../services/ManageActivitiesService.js'
-import { MANAGER_ROLES } from '../constants/roles.js'
+import { MANAGER_ROLES, ROLES } from '../constants/roles.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
 import Badge, {
@@ -33,6 +33,12 @@ export default function ProfilePage() {
   // in step 2's effect and to conditionally render the section
   // below. Computed here so both spots can't drift apart.
   const canManage = MANAGER_ROLES.includes(user?.role)
+
+  // Statistics dashboard is ADMIN-only — strictly narrower than
+  // canManage because the backend endpoint is ADMIN-gated.
+  // Computed alongside canManage so both role checks live in
+  // the same spot and can't drift apart.
+  const isAdmin = user?.role === ROLES.ADMIN
 
   // ── State ───────────────────────────────────────────────
 
@@ -282,6 +288,25 @@ export default function ProfilePage() {
             </Badge>
 
           </div>
+
+          {/* ── Admin-only quick action ─────────────────────
+              Entry point to /admin/statistics. Only rendered
+              for ADMIN — BOARD_MEMBER doesn't see this even
+              though they see the manage section below, because
+              the stats endpoint is ADMIN-only on the backend.
+              Sits inside the hero card's flex row so it floats
+              to the right of the user info on desktop and wraps
+              below on narrow viewports (the row already has
+              flexWrap: 'wrap'). */}
+          {isAdmin && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/admin/statistics')}
+            >
+              📊 Open Statistics
+            </Button>
+          )}
 
         </div>
 
