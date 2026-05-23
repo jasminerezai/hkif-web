@@ -12,6 +12,7 @@ import ProfilePage from './pages/ProfilePage.jsx'
 import ActivityDetailPage from './pages/ActivityDetailPage.jsx'
 import { MANAGER_ROLES, EDITOR_ROLES } from './constants/roles.js'
 import NotFoundPage from './pages/NotFoundPage.jsx'
+import AboutPage from "./pages/AboutPage.jsx";
 
 // ── ProtectedRoute ────────────────────────────────────────────
 // Wraps any route that requires login, and optionally a specific role.
@@ -130,6 +131,7 @@ function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/activities" element={<ActivitiesPage />} />
+          <Route path="/about" element={<AboutPage />} />
 
           <Route
             path="/activities/new"

@@ -98,6 +98,8 @@ export default function Navbar() {
             Activities
           </NavLink>
 
+          <NavLink to="/about" style={navLinkStyle}>About</NavLink>
+
           {/* Auth-dependent section */}
           {isAuthenticated ? (
             // ── Logged in state ──
