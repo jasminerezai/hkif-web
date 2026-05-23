@@ -41,7 +41,7 @@ const teamMembers = [
     focus: [
       'Project Management & Scrum',
       'Backend Scheduling Infrastructure',
-      'Participation Endpoints',
+      'Cross-System Debugging & Bug Resolution',
       'CRON-based Automation',
       'API Architecture and Development',
       'Frontend Implementation & Deployment',
