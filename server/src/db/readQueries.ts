@@ -154,19 +154,25 @@ export class READ {
         return participants?.participations.map((el: { profile: Profile }) => el.profile);
     }
 
-    // all activities updated after a given timestamp
-    // static async activitiesUpdatedAfter(lastRequest: Date){}
-
-    // TODO: refine query here  
     static async activityById(activityId: string): Promise<ActivityDto | null> {
         const activity = await prisma.activityTemplate.findUnique({
             where: { id: activityId },
             include: {
                 timeSlots: true,
-                leaders: true
+                leaders: {
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true
+                            }
+                        }
+                    }
+                }
             }
         });
-        return activity as ActivityDto | null;
+        //this is one line if-else statement right?
+        return activity ? formatActivity(activity) : null;
     }
     /**
      * just returns all activityTemplates
@@ -456,7 +462,7 @@ export class READ {
 
     static async profilesByRole(role?: ProfileRole): Promise<ProfileSummaryDto[]> {
         const where = role ? { role } : {};
-        return await prisma.profile.findMany({
+        return prisma.profile.findMany({
             where,
             select: {
                 id: true,

@@ -41,7 +41,7 @@ export default function ActivityDetailPage() {
           const isUserLeader =
             user.role === 'ADMIN' ||
             user.role === 'BOARD_MEMBER' ||
-            (user.role === 'LEADER' && activityData.leaders?.some(l => l.profileId === user.id))
+            (user.role === 'LEADER' && activityData.leaders?.some(l => l.id === user.id))
 
           if (isUserLeader) {
             try {
@@ -75,9 +75,7 @@ export default function ActivityDetailPage() {
     return (
       user.role === 'ADMIN' ||
       user.role === 'BOARD_MEMBER' ||
-      // NOTE: ActivityDto.leaders uses { profileId, activityId } shape.
-      // If normalized to { id, profileName } (see issue #XX), change to l.id === user.id
-      (user.role === 'LEADER' && activity.leaders?.some(l => l.profileId === user.id))
+      (user.role === 'LEADER' && activity.leaders?.some(l => l.id === user.id))
     )
   }, [isAuthenticated, user, activity])
 

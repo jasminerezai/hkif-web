@@ -10,7 +10,7 @@ export type ScheduleDto = {
     status: ActivityStatus,
     createdAt: Date,
     updatedAt: Date,
-    activity: ActivityTemplate,
+    activity: ActivityTemplate, // change to ActivityDto?? --> duplicate data leaders and timeSlots
     leaders: leaderDto[],
     participantCount: number,
 };
