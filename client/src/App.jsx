@@ -10,7 +10,8 @@ import ActivityFormPage from './pages/ActivityFormPage.jsx'
 import SchedulePage from './pages/SchedulePage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import ActivityDetailPage from './pages/ActivityDetailPage.jsx'
-import { MANAGER_ROLES, EDITOR_ROLES } from './constants/roles.js'
+import StatisticsPage from './pages/StatisticsPage.jsx'
+import { MANAGER_ROLES, EDITOR_ROLES, ROLES } from './constants/roles.js'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import AboutPage from "./pages/AboutPage.jsx";
 
@@ -158,6 +159,20 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin-only statistics dashboard.
+              Gate is [ROLES.ADMIN] specifically (not MANAGER_ROLES)
+              because the backend endpoint /api/admin/statistics is
+              restrictToMinRole(ADMIN). A BOARD_MEMBER reaching this
+              page would just get a 403 → bad UX. */}
+          <Route
+            path="/admin/statistics"
+            element={
+              <ProtectedRoute requiredRoles={[ROLES.ADMIN]}>
+                <StatisticsPage />
               </ProtectedRoute>
             }
           />
