@@ -266,6 +266,16 @@ export default function ActivityFormPage() {
               disabled={loading || isLeader}
             />
 
+            {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
+
             <Input
               label="Location"
               placeholder="e.g. Sportshall"
@@ -300,6 +310,16 @@ export default function ActivityFormPage() {
               error={errors.maxCapacity}
               disabled={loading || isLeader}
             />
+
+            {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
 
             {/* Default status */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
@@ -360,8 +380,20 @@ export default function ActivityFormPage() {
                 {leader.email}
               </option>
             ))}
-          </select>
-        </div>
+              </select>
+              
+              
+            </div>
+            
+                        {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
 
             {/* Time slots */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -432,13 +464,23 @@ export default function ActivityFormPage() {
               ))}
             </div>
 
+                        {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
+
             <Button type="submit" fullWidth loading={loading}>
               {loading
                 ? 'Saving...'
                 : isLeader
                   ? 'Save Changes'
                   : isEditMode
-                    ? 'Save changes'
+                    ? 'Save Changes'
                     : 'Create activity'
               }
             </Button>

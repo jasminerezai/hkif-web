@@ -10,6 +10,9 @@ import {
 import {
   fetchManageableActivities,
 } from '../services/ManageActivitiesService.js'
+import {
+  fetchLeaderActivities,
+} from '../services/LeaderActivitiesService.js'
 import { MANAGER_ROLES, ROLES } from '../constants/roles.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -20,7 +23,7 @@ import Badge, {
 import ProfileSkeleton, {
   ManageActivitiesGridSkeleton,
 } from '../components/skeletons/ProfileSkeleton.jsx'
-import { API_BASE_URL } from '../services/apiConfig.js'
+import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 
 export default function ProfilePage() {
 
@@ -75,6 +78,8 @@ export default function ProfilePage() {
   
   
   const [leaderActivities, setLeaderActivities] = useState([])
+
+  const handleAuthExpired = useAuthExpiredHandler()
 
   // ── Fetch Profile ───────────────────────────────────────
   // Loads all profile-related data from a single endpoint:
@@ -181,31 +186,29 @@ export default function ProfilePage() {
 
   // Fetch leader
 
-  useEffect(() => {
+useEffect(() => {
   if (user?.role !== ROLES.LEADER) return
 
-  fetch(`${API_BASE_URL}/api/activities`, {
-    headers: {
-      ...getAuthHeader(),
-    },
-  })
-    .then(res => res.json())
-    .then(json => {
-      if (json.status === 'success') {
+  async function loadLeaderActivities() {
+    try {
+      const data = await fetchLeaderActivities(
+        getAuthHeader,
+        user.id,
+        handleAuthExpired
+      )
 
-        const assigned = json.data.filter(activity =>
-          activity.leaders?.some(
-            leader => leader.id === user.id
-          )
-        )
+      setLeaderActivities(data)
 
-        setLeaderActivities(assigned)
-      }
-    })
-    .catch(() => {
-      console.error('Failed to load leader activities')
-    })
-}, [user, getAuthHeader])
+    } catch (error) {
+      console.error(
+        'Failed to load leader activities:',
+        error
+      )
+    }
+  }
+
+  loadLeaderActivities()
+}, [user, getAuthHeader, handleAuthExpired])
 
   // ── Remove Favorite ─────────────────────────────────────
   async function handleRemoveFavorite(activityId) {
@@ -556,7 +559,7 @@ export default function ProfilePage() {
             fontSize: 'var(--text-xl)',
             marginBottom: '4px',
           }}>
-            Your Activities
+            Activities You Lead
           </h2>
 
           <p style={{
@@ -564,16 +567,25 @@ export default function ProfilePage() {
             fontSize: 'var(--text-sm)',
           }}>
             Activities you are assigned to lead.
-          </p>
+                </p>
+                
         </div>
 
         <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-3)',
-        }}>
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-3)',
+      }}>
 
-{leaderActivities.map(activity => {
+      {leaderActivities.length === 0 ? (
+
+        <Card padding="md">
+          <p>No assigned activities yet.</p>
+        </Card>
+
+) : (
+
+  leaderActivities.map(activity => {
   return (
     <div
       key={activity.id}
@@ -606,11 +618,13 @@ export default function ProfilePage() {
             {activity.description}
           </p>
 
+          {activity.defaultStatus !== 'ACTIVE' && (
           <Badge
             variant={STATUS_VARIANT[activity.defaultStatus]}
           >
             {activity.defaultStatus}
           </Badge>
+        )}
         </div>
 
         
@@ -624,15 +638,17 @@ export default function ProfilePage() {
         >
             Manage
           </Button>
-                </div>
-              </div>
-            )
-          })}
+            
           </div>
         </div>
-      </Card>
-    </div>
-  )}
+        )
+          }))}
+        </div>
+      </div>
+    </Card>
+  </div>
+)}
+
       {/* ── Upcoming Activities ────────────────────────── */}
       <div style={{ marginBottom: '32px' }}>
 
