@@ -10,6 +10,9 @@ import {
 import {
   fetchManageableActivities,
 } from '../services/ManageActivitiesService.js'
+import {
+  fetchLeaderActivities,
+} from '../services/LeaderActivitiesService.js'
 import { MANAGER_ROLES, ROLES } from '../constants/roles.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -20,11 +23,12 @@ import Badge, {
 import ProfileSkeleton, {
   ManageActivitiesGridSkeleton,
 } from '../components/skeletons/ProfileSkeleton.jsx'
+import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 
 export default function ProfilePage() {
 
 // ── Auth ────────────────────────────────────────────────
-  const { user, token } = useAuth()
+  const { user, token, getAuthHeader } = useAuth()
   const navigate = useNavigate()
 
   // ── Role gate ───────────────────────────────────────────
@@ -71,6 +75,11 @@ export default function ProfilePage() {
 
   const [manageLoading, setManageLoading]
     = useState(false)
+  
+  
+  const [leaderActivities, setLeaderActivities] = useState([])
+
+  const handleAuthExpired = useAuthExpiredHandler()
 
   // ── Fetch Profile ───────────────────────────────────────
   // Loads all profile-related data from a single endpoint:
@@ -174,6 +183,33 @@ export default function ProfilePage() {
 
   }, [user?.role])
 
+
+  // Fetch leader
+
+useEffect(() => {
+  if (user?.role !== ROLES.LEADER) return
+
+  async function loadLeaderActivities() {
+    try {
+      const data = await fetchLeaderActivities(
+        getAuthHeader,
+        user.id,
+        handleAuthExpired
+      )
+
+      setLeaderActivities(data)
+
+    } catch (error) {
+      console.error(
+        'Failed to load leader activities:',
+        error
+      )
+    }
+  }
+
+  loadLeaderActivities()
+}, [user, getAuthHeader, handleAuthExpired])
+
   // ── Remove Favorite ─────────────────────────────────────
   async function handleRemoveFavorite(activityId) {
 
@@ -201,6 +237,8 @@ export default function ProfilePage() {
       setFavoriteActivities(previousFavorites)
     }
   }
+
+
 
 // ── Loading State ───────────────────────────────────────
   // Renders the full page shape as shimmering placeholders so
@@ -506,6 +544,111 @@ export default function ProfilePage() {
 
       )}
 
+
+      {user?.role === ROLES.LEADER && (
+  <div style={{ marginBottom: '32px' }}>
+    <Card>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-4)',
+      }}>
+        
+        <div>
+          <h2 style={{
+            fontSize: 'var(--text-xl)',
+            marginBottom: '4px',
+          }}>
+            Activities You Lead
+          </h2>
+
+          <p style={{
+            color: 'var(--color-text-muted)',
+            fontSize: 'var(--text-sm)',
+          }}>
+            Activities you are assigned to lead.
+                </p>
+                
+        </div>
+
+        <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-3)',
+      }}>
+
+      {leaderActivities.length === 0 ? (
+
+        <Card padding="md">
+          <p>No assigned activities yet.</p>
+        </Card>
+
+) : (
+
+  leaderActivities.map(activity => {
+  return (
+    <div
+      key={activity.id}
+      style={{
+        padding: 'var(--space-4)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--color-surface-raised)',
+      }}
+    >
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <div>
+          <h3 style={{
+            margin: 0,
+            fontSize: 'var(--text-base)',
+            fontWeight: 700,
+          }}>
+            {activity.name}
+          </h3>
+
+          <p style={{
+            margin: '4px 0 0',
+            color: 'var(--color-text-muted)',
+            fontSize: 'var(--text-sm)',
+          }}>
+            {activity.description}
+          </p>
+
+          {activity.defaultStatus !== 'ACTIVE' && (
+          <Badge
+            variant={STATUS_VARIANT[activity.defaultStatus]}
+          >
+            {activity.defaultStatus}
+          </Badge>
+        )}
+        </div>
+
+        
+        
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            navigate(`/activities/${activity.id}/edit`)
+          }
+        >
+            Manage
+          </Button>
+            
+          </div>
+        </div>
+        )
+          }))}
+        </div>
+      </div>
+    </Card>
+  </div>
+)}
+
       {/* ── Upcoming Activities ────────────────────────── */}
       <div style={{ marginBottom: '32px' }}>
 
@@ -624,6 +767,7 @@ export default function ProfilePage() {
                   {activity.description}
                 </p>
 
+                
                 <p
                   style={{
                     marginBottom: '16px',

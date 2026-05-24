@@ -5,6 +5,7 @@ import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 import { API_BASE_URL } from '../services/apiConfig.js'
 import { Button, Input, Card } from '../components/ui'
 import { WEEKDAYS, ACTIVITY_STATUSES } from '../constants/activityEnums.js'
+import { ROLES } from '../constants/roles.js'
 
 // ─────────────────────────────────────────────────────────────
 // ActivityFormPage
@@ -22,10 +23,11 @@ import { WEEKDAYS, ACTIVITY_STATUSES } from '../constants/activityEnums.js'
 export default function ActivityFormPage() {
   // logout is no longer needed directly here — useAuthExpiredHandler
   // owns the logout-and-redirect flow now (see #30).
-  const { getAuthHeader } = useAuth()
+  const { user, getAuthHeader } = useAuth()
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
+  const isLeader = user?.role === ROLES.LEADER
 
   // Shared mid-session expiry handler:
   //   logout → toast → navigate('/login', { state: { from }})
@@ -49,6 +51,9 @@ export default function ActivityFormPage() {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
+
+  const [leaders, setLeaders] = useState([])
+  const [selectedLeaderIds, setSelectedLeaderIds] = useState([])
 
   // ── Load existing activity in edit mode ───────────────────
   // Same 401 handling as handleSubmit — if the token expired
@@ -89,6 +94,32 @@ export default function ActivityFormPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activityId, isEditMode])
 
+ // ── Fetch leaders ───────────────────────────────────────
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/profiles?role=LEADER`, {
+      headers: { ...getAuthHeader() }
+    })
+      .then(async (res) => {
+        if (res.status === 401) {
+          handleAuthExpired()
+          return null
+        }
+
+        return res.json()
+      })
+      .then((json) => {
+        if (!json) return
+
+        if (json.status === 'success') {
+          //console.log(json.data)
+          setLeaders(json.data)
+        }
+      })
+      .catch(() => {
+        console.error('Failed to load leaders')
+      })
+  }, [getAuthHeader, handleAuthExpired])
+
   // ── TimeSlot helpers ──────────────────────────────────────
   function addTimeSlot() {
     setTimeSlots([...timeSlots, { weekday: 'MONDAY', startAt: '18:00:00', endAt: '19:30:00' }])
@@ -128,16 +159,25 @@ export default function ActivityFormPage() {
 
     setLoading(true)
 
-    const body = {
-      name: name.trim(),
-      location: location.trim(),
-      description: description.trim() || null,
-      notes: notes.trim() || null,
-      maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
-      defaultStatus,
-      leaders: [],
-      timeSlots,
-    }
+    const body = isLeader
+      ? {
+          location: location.trim(),
+          description: description.trim() || null,
+          notes: notes.trim() || null,
+          defaultStatus,
+        }
+      : {
+          name: name.trim(),
+          location: location.trim(),
+          description: description.trim() || null,
+          notes: notes.trim() || null,
+          maxCapacity: maxCapacity
+            ? Number(maxCapacity)
+            : undefined,
+          defaultStatus,
+          leaders: selectedLeaderIds,
+          timeSlots,
+        }
 
     try {
       const url = isEditMode
@@ -170,8 +210,15 @@ export default function ActivityFormPage() {
       }
 
       // Redirect to activity detail page on success
-      const redirectId = isEditMode ? activityId : json.data.id
-      navigate(`/activities/${redirectId}`)
+      if (isLeader) {
+        navigate('/profile')
+      } else {
+        const redirectId = isEditMode
+          ? activityId
+          : json.data.id
+
+        navigate(`/activities/${redirectId}`)
+      }
 
     } catch {
       setServerError('Network error. Please try again.')
@@ -216,8 +263,18 @@ export default function ActivityFormPage() {
               value={name}
               onChange={e => setName(e.target.value)}
               error={errors.name}
-              disabled={loading}
+              disabled={loading || isLeader}
             />
+
+            {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
 
             <Input
               label="Location"
@@ -251,8 +308,18 @@ export default function ActivityFormPage() {
               value={maxCapacity}
               onChange={e => setMaxCapacity(e.target.value)}
               error={errors.maxCapacity}
-              disabled={loading}
+              disabled={loading || isLeader}
             />
+
+            {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
 
             {/* Default status */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
@@ -278,13 +345,63 @@ export default function ActivityFormPage() {
               </select>
             </div>
 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label
+            style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--color-text)',
+            }}
+              >
+                
+                {/* Assing leader */}
+                
+          Assign leader
+          </label>
+
+          <select
+            value={selectedLeaderIds[0] || ''}
+            onChange={(e) => setSelectedLeaderIds([e.target.value])}
+            disabled={loading || isLeader}
+            style={{
+              padding: '9px 13px',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--text-base)',
+              fontFamily: 'var(--font-body)',
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text)',
+            }}
+          >
+            <option value="">Select leader</option>
+
+            {leaders.map((leader) => (
+              <option key={leader.id} value={leader.id}>
+                {leader.email}
+              </option>
+            ))}
+              </select>
+              
+              
+            </div>
+            
+                        {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
+
             {/* Time slots */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
                   Time slots
                 </label>
-                <Button type="button" variant="outline" size="sm" onClick={addTimeSlot} disabled={loading}>
+                <Button type="button" variant="outline" size="sm" onClick={addTimeSlot} disabled={loading || isLeader}>
                   + Add slot
                 </Button>
               </div>
@@ -299,7 +416,7 @@ export default function ActivityFormPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Slot {index + 1}</span>
                       {timeSlots.length > 1 && (
-                        <Button type="button" variant="danger" size="sm" onClick={() => removeTimeSlot(index)} disabled={loading}>
+                        <Button type="button" variant="danger" size="sm" onClick={() => removeTimeSlot(index)} disabled={loading || isLeader}>
                           Remove
                         </Button>
                       )}
@@ -311,7 +428,7 @@ export default function ActivityFormPage() {
                       <select
                         value={slot.weekday}
                         onChange={e => updateTimeSlot(index, 'weekday', e.target.value)}
-                        disabled={loading}
+                        disabled={loading || isLeader}
                         style={{
                           padding: '9px 13px',
                           border: '1.5px solid var(--color-border)',
@@ -332,14 +449,14 @@ export default function ActivityFormPage() {
                         placeholder="18:00:00"
                         value={slot.startAt}
                         onChange={e => updateTimeSlot(index, 'startAt', e.target.value)}
-                        disabled={loading}
+                        disabled={loading || isLeader}
                       />
                       <Input
                         label="End time"
                         placeholder="19:30:00"
                         value={slot.endAt}
                         onChange={e => updateTimeSlot(index, 'endAt', e.target.value)}
-                        disabled={loading}
+                        disabled={loading || isLeader}
                       />
                     </div>
                   </div>
@@ -347,10 +464,24 @@ export default function ActivityFormPage() {
               ))}
             </div>
 
+                        {isLeader && (
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: '-8px',
+              }}>
+                This field can only be edited by admins or board members.
+              </p>
+            )}
+
             <Button type="submit" fullWidth loading={loading}>
               {loading
-                ? isEditMode ? 'Saving...' : 'Creating...'
-                : isEditMode ? 'Save changes' : 'Create activity'
+                ? 'Saving...'
+                : isLeader
+                  ? 'Save Changes'
+                  : isEditMode
+                    ? 'Save Changes'
+                    : 'Create activity'
               }
             </Button>
 
