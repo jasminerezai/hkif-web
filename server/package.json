@@ -11,7 +11,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
     "postbuild": "mkdir -p dist/generated/prisma && cp -r src/generated/prisma/. dist/generated/prisma/",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.8.0",
@@ -33,10 +35,13 @@
     "@types/node": "25.6.0",
     "@types/node-cron": "^3.0.11",
     "@types/pg": "8.20.0",
+    "@types/supertest": "^7.2.0",
     "nodemon": "3.1.14",
     "prisma": "7.8.0",
+    "supertest": "^7.2.2",
     "ts-node": "10.9.2",
     "tsx": "4.21.0",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.7"
   }
 }
