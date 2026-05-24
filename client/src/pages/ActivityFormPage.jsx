@@ -5,6 +5,7 @@ import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 import { API_BASE_URL } from '../services/apiConfig.js'
 import { Button, Input, Card } from '../components/ui'
 import { WEEKDAYS, ACTIVITY_STATUSES } from '../constants/activityEnums.js'
+import { ROLES } from '../constants/roles.js'
 
 // ─────────────────────────────────────────────────────────────
 // ActivityFormPage
@@ -22,10 +23,11 @@ import { WEEKDAYS, ACTIVITY_STATUSES } from '../constants/activityEnums.js'
 export default function ActivityFormPage() {
   // logout is no longer needed directly here — useAuthExpiredHandler
   // owns the logout-and-redirect flow now (see #30).
-  const { getAuthHeader } = useAuth()
+  const { user, getAuthHeader } = useAuth()
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
+  const isLeader = user?.role === ROLES.LEADER
 
   // Shared mid-session expiry handler:
   //   logout → toast → navigate('/login', { state: { from }})
@@ -157,16 +159,26 @@ export default function ActivityFormPage() {
 
     setLoading(true)
 
-    const body = {
-      name: name.trim(),
-      location: location.trim(),
-      description: description.trim() || null,
-      notes: notes.trim() || null,
-      maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
-      defaultStatus,
-      leaders: selectedLeaderIds,
-      timeSlots,
-    }
+    const body = isLeader
+      ? {
+          location: location.trim(),
+          description: description.trim() || null,
+          notes: notes.trim() || null,
+          defaultStatus,
+          timeSlots,
+        }
+      : {
+          name: name.trim(),
+          location: location.trim(),
+          description: description.trim() || null,
+          notes: notes.trim() || null,
+          maxCapacity: maxCapacity
+            ? Number(maxCapacity)
+            : undefined,
+          defaultStatus,
+          leaders: selectedLeaderIds,
+          timeSlots,
+        }
 
     try {
       const url = isEditMode
@@ -199,8 +211,15 @@ export default function ActivityFormPage() {
       }
 
       // Redirect to activity detail page on success
-      const redirectId = isEditMode ? activityId : json.data.id
-      navigate(`/activities/${redirectId}`)
+      if (isLeader) {
+        navigate('/profile')
+      } else {
+        const redirectId = isEditMode
+          ? activityId
+          : json.data.id
+
+        navigate(`/activities/${redirectId}`)
+      }
 
     } catch {
       setServerError('Network error. Please try again.')
@@ -245,7 +264,7 @@ export default function ActivityFormPage() {
               value={name}
               onChange={e => setName(e.target.value)}
               error={errors.name}
-              disabled={loading}
+              disabled={loading || isLeader}
             />
 
             <Input
@@ -280,7 +299,7 @@ export default function ActivityFormPage() {
               value={maxCapacity}
               onChange={e => setMaxCapacity(e.target.value)}
               error={errors.maxCapacity}
-              disabled={loading}
+              disabled={loading || isLeader}
             />
 
             {/* Default status */}
@@ -324,7 +343,7 @@ export default function ActivityFormPage() {
           <select
             value={selectedLeaderIds[0] || ''}
             onChange={(e) => setSelectedLeaderIds([e.target.value])}
-            disabled={loading}
+            disabled={loading || isLeader}
             style={{
               padding: '9px 13px',
               border: '1.5px solid var(--color-border)',
@@ -351,7 +370,7 @@ export default function ActivityFormPage() {
                 <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
                   Time slots
                 </label>
-                <Button type="button" variant="outline" size="sm" onClick={addTimeSlot} disabled={loading}>
+                <Button type="button" variant="outline" size="sm" onClick={addTimeSlot} disabled={loading || isLeader}>
                   + Add slot
                 </Button>
               </div>
@@ -366,7 +385,7 @@ export default function ActivityFormPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Slot {index + 1}</span>
                       {timeSlots.length > 1 && (
-                        <Button type="button" variant="danger" size="sm" onClick={() => removeTimeSlot(index)} disabled={loading}>
+                        <Button type="button" variant="danger" size="sm" onClick={() => removeTimeSlot(index)} disabled={loading || isLeader}>
                           Remove
                         </Button>
                       )}
@@ -416,8 +435,12 @@ export default function ActivityFormPage() {
 
             <Button type="submit" fullWidth loading={loading}>
               {loading
-                ? isEditMode ? 'Saving...' : 'Creating...'
-                : isEditMode ? 'Save changes' : 'Create activity'
+                ? 'Saving...'
+                : isLeader
+                  ? 'Save Changes'
+                  : isEditMode
+                    ? 'Save changes'
+                    : 'Create activity'
               }
             </Button>
 
