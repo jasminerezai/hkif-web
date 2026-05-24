@@ -71,14 +71,18 @@ export default function ActivityDetailPage() {
   }, [id, token, isAuthenticated, user])
 
   // ── Determine if user is a leader/admin for this activity ────
-  const isLeader = useMemo(() => {
-    if (!isAuthenticated || !activity) return false
-    return (
-      user.role === 'ADMIN' ||
-      user.role === 'BOARD_MEMBER' ||
-      (user.role === 'LEADER' && activity.leaders?.some(l => l.id === user.id))
+
+  const isLeader =
+  activity &&
+  (
+    user?.role === 'ADMIN' ||
+    user?.role === 'BOARD_MEMBER' ||
+    (
+      user?.role === 'LEADER' &&
+      activity.leaders?.some(l => l.id === user?.id)
     )
-  }, [isAuthenticated, user, activity])
+  )
+
 
   if (loading) {
     return (
@@ -141,11 +145,13 @@ export default function ActivityDetailPage() {
             </p>
           </div>
           {/* Action buttons if logged in */}
-          {isAuthenticated && (user.role === 'ADMIN' || user.role === 'BOARD_MEMBER') && (
-            <Button as={Link} to={`/activities/${activity.id}/edit`} variant="outline" size="sm">
+          {isLeader && (
+          <Link to={`/activities/${activity.id}/edit`}>
+            <Button variant="outline" size="sm">
               Edit Activity
             </Button>
-          )}
+          </Link>
+        )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
