@@ -165,7 +165,6 @@ export default function ActivityFormPage() {
           description: description.trim() || null,
           notes: notes.trim() || null,
           defaultStatus,
-          timeSlots,
         }
       : {
           name: name.trim(),
@@ -397,7 +396,7 @@ export default function ActivityFormPage() {
                       <select
                         value={slot.weekday}
                         onChange={e => updateTimeSlot(index, 'weekday', e.target.value)}
-                        disabled={loading}
+                        disabled={loading || isLeader}
                         style={{
                           padding: '9px 13px',
                           border: '1.5px solid var(--color-border)',
@@ -418,14 +417,14 @@ export default function ActivityFormPage() {
                         placeholder="18:00:00"
                         value={slot.startAt}
                         onChange={e => updateTimeSlot(index, 'startAt', e.target.value)}
-                        disabled={loading}
+                        disabled={loading || isLeader}
                       />
                       <Input
                         label="End time"
                         placeholder="19:30:00"
                         value={slot.endAt}
                         onChange={e => updateTimeSlot(index, 'endAt', e.target.value)}
-                        disabled={loading}
+                        disabled={loading || isLeader}
                       />
                     </div>
                   </div>
