@@ -50,6 +50,9 @@ export default function ActivityFormPage() {
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState('')
 
+  const [leaders, setLeaders] = useState([])
+  const [selectedLeaderIds, setSelectedLeaderIds] = useState([])
+
   // ── Load existing activity in edit mode ───────────────────
   // Same 401 handling as handleSubmit — if the token expired
   // between page load and this fetch firing, kick to /login
@@ -88,6 +91,32 @@ export default function ActivityFormPage() {
       .catch(() => setServerError('Failed to load activity.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activityId, isEditMode])
+
+ // ── Fetch leaders ───────────────────────────────────────
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/profiles?role=LEADER`, {
+      headers: { ...getAuthHeader() }
+    })
+      .then(async (res) => {
+        if (res.status === 401) {
+          handleAuthExpired()
+          return null
+        }
+
+        return res.json()
+      })
+      .then((json) => {
+        if (!json) return
+
+        if (json.status === 'success') {
+          //console.log(json.data)
+          setLeaders(json.data)
+        }
+      })
+      .catch(() => {
+        console.error('Failed to load leaders')
+      })
+  }, [getAuthHeader, handleAuthExpired])
 
   // ── TimeSlot helpers ──────────────────────────────────────
   function addTimeSlot() {
@@ -135,7 +164,7 @@ export default function ActivityFormPage() {
       notes: notes.trim() || null,
       maxCapacity: maxCapacity ? Number(maxCapacity) : undefined,
       defaultStatus,
-      leaders: [],
+      leaders: selectedLeaderIds,
       timeSlots,
     }
 
@@ -277,6 +306,44 @@ export default function ActivityFormPage() {
                 {ACTIVITY_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label
+            style={{
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--color-text)',
+            }}
+              >
+                
+                {/* Assing leader */}
+                
+          Assign leader
+          </label>
+
+          <select
+            value={selectedLeaderIds[0] || ''}
+            onChange={(e) => setSelectedLeaderIds([e.target.value])}
+            disabled={loading}
+            style={{
+              padding: '9px 13px',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--text-base)',
+              fontFamily: 'var(--font-body)',
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text)',
+            }}
+          >
+            <option value="">Select leader</option>
+
+            {leaders.map((leader) => (
+              <option key={leader.id} value={leader.id}>
+                {leader.email}
+              </option>
+            ))}
+          </select>
+        </div>
 
             {/* Time slots */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
