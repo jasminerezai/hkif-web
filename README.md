@@ -149,9 +149,6 @@ HKIF is currently in active development.
 
 ### Planned Features
 - Notifications and reminders
-- Admin Dashboard
-- Admin Statistics
-- Leader Dashboard
 
 ## Contributors
 
