@@ -10,9 +10,6 @@ import {
 import {
   fetchManageableActivities,
 } from '../services/ManageActivitiesService.js'
-import {
-  updateScheduleStatus,
-} from '../services/LeaderActivitiesService.js'
 import { MANAGER_ROLES, ROLES } from '../constants/roles.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -78,7 +75,6 @@ export default function ProfilePage() {
   
   
   const [leaderActivities, setLeaderActivities] = useState([])
-  const [slotStatuses, setSlotStatuses] = useState({})
 
   // ── Fetch Profile ───────────────────────────────────────
   // Loads all profile-related data from a single endpoint:
@@ -239,14 +235,7 @@ export default function ProfilePage() {
     }
   }
 
-async function handleStatusChange(activityId, scheduleId, newStatus) {
-  try {
-    await updateScheduleStatus(activityId, scheduleId, newStatus, token)
-    setSlotStatuses(prev => ({ ...prev, [activityId]: newStatus }))
-  } catch (error) {
-    console.error('Failed to update schedule status:', error)
-  }
-}
+
 
 // ── Loading State ───────────────────────────────────────
   // Renders the full page shape as shimmering placeholders so
@@ -585,12 +574,6 @@ async function handleStatusChange(activityId, scheduleId, newStatus) {
         }}>
 
 {leaderActivities.map(activity => {
-
-  console.log(activity)
-
-  const currentSlot = activity.timeSlots?.[0]
-  const currentStatus = slotStatuses[activity.id] ?? currentSlot?.status ?? 'ACTIVE'
-
   return (
     <div
       key={activity.id}
@@ -622,8 +605,16 @@ async function handleStatusChange(activityId, scheduleId, newStatus) {
           }}>
             {activity.description}
           </p>
+
+          <Badge
+            variant={STATUS_VARIANT[activity.defaultStatus]}
+          >
+            {activity.defaultStatus}
+          </Badge>
         </div>
 
+        
+        
         <Button
           size="sm"
           variant="outline"
@@ -760,6 +751,7 @@ async function handleStatusChange(activityId, scheduleId, newStatus) {
                   {activity.description}
                 </p>
 
+                
                 <p
                   style={{
                     marginBottom: '16px',
