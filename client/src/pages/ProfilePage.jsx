@@ -10,10 +10,11 @@ import {
 import {
   fetchManageableActivities,
 } from '../services/ManageActivitiesService.js'
+import { MANAGER_ROLES } from '../constants/roles.js'
+import { useIsAdmin } from '../hooks/useIsAdmin.js'
 import {
   fetchLeaderActivities,
 } from '../services/LeaderActivitiesService.js'
-import { MANAGER_ROLES, ROLES } from '../constants/roles.js'
 import Card from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
 import Badge, {
@@ -40,9 +41,9 @@ export default function ProfilePage() {
 
   // Statistics dashboard is ADMIN-only — strictly narrower than
   // canManage because the backend endpoint is ADMIN-gated.
-  // Computed alongside canManage so both role checks live in
-  // the same spot and can't drift apart.
-  const isAdmin = user?.role === ROLES.ADMIN
+  // Sourced from the useIsAdmin hook so the role check stays
+  // consistent with any other page that asks the same question.
+  const isAdmin = useIsAdmin()
 
   // ── State ───────────────────────────────────────────────
 
