@@ -1,8 +1,8 @@
 // server/src/cron/index.ts
 //
 // Sets up the cron job that generates schedules every Monday at 00:05.
-// Also runs once on startup as a fallback in case the server was down
-// on Monday morning.
+// Also runs once on startup IF today is Monday, as a fallback in case
+// the server was down at 00:05.
 
 import cron from 'node-cron';
 import { generateWeeklySchedules } from './scheduleGenerator.js';
@@ -21,13 +21,17 @@ export function initCronJobs(): void {
     });
 
     // Startup fallback
-    // Runs once when the server starts. Safe to call anytime —
-    // generateWeeklySchedules() checks for existing schedules
-    // before creating new ones, so no duplicates are possible.
-    console.log('[cron] Running startup schedule check...');
-    generateWeeklySchedules().catch(err => {
-        console.error('[cron] Startup schedule check failed:', err);
-    });
+    // Only runs if today is Monday — prevents double-inserting schedules
+    // when the server restarts on the same day the cron already fired.
+    const today = new Date();
+    if (today.getDay() === 1) {
+        console.log('[cron] Today is Monday — running startup schedule check...');
+        generateWeeklySchedules().catch(err => {
+            console.error('[cron] Startup schedule check failed:', err);
+        });
+    } else {
+        console.log('[cron] Startup schedule check skipped (not Monday).');
+    }
 
     console.log('[cron] Weekly schedule generation cron job registered (Monday 00:05).');
 }
