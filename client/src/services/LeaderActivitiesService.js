@@ -6,7 +6,7 @@ export async function fetchLeaderActivities(
   handleAuthExpired
 ) {
   const res = await fetch(
-    `${API_BASE_URL}/api/activities`,
+    `${API_BASE_URL}/api/activities?leaderId=${userId}`,
     {
       headers: {
         ...getAuthHeader(),
@@ -27,9 +27,5 @@ export async function fetchLeaderActivities(
     )
   }
 
-  return json.data.filter(activity =>
-    activity.leaders?.some(
-      leader => leader.id === userId
-    )
-  )
+  return json.data
 }

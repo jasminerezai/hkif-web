@@ -222,8 +222,9 @@ export const deleteActivity = asyncHandler(
 );
 
 export const getActivities = asyncHandler(
-  async (_req: Request, res: Response<ApiResponse<ActivityDto[]>>) => {
-    const data = await READ.allActivities();
+  async (req: Request, res: Response<ApiResponse<ActivityDto[]>>) => {
+    const leaderId = req.query.leaderId as string | undefined;
+    const data = await READ.allActivities(leaderId);
     res.status(200).json({
       status: "success",
       data,
