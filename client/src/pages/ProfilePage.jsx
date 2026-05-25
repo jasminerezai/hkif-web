@@ -10,7 +10,7 @@ import {
 import {
   fetchManageableActivities,
 } from '../services/ManageActivitiesService.js'
-import { MANAGER_ROLES } from '../constants/roles.js'
+import { MANAGER_ROLES, ROLES } from '../constants/roles.js'
 import { useIsAdmin } from '../hooks/useIsAdmin.js'
 import {
   fetchLeaderActivities,
