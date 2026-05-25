@@ -42,7 +42,7 @@ router.get(
 );
 
 // GET /activities
-router.get('', getActivities);
+router.get('/', getActivities);
 
 // GET /activities/:activityId --- public --> get single activity details
 router.get('/:activityId', getActivityById);
