@@ -116,7 +116,7 @@ async function main() {
     }
 
     // ──────────────────────────────────────────────
-    // Time Slots (1–2 per activity)
+    // Time Slots (1 per activity)
     // ──────────────────────────────────────────────
     const timeSlots = [];
 
