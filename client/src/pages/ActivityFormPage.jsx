@@ -27,7 +27,7 @@ export default function ActivityFormPage() {
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
-  const isLeader = user?.role === (ROLES.LEADER || ROLES.BOARD_MEMBER || ROLES.ADMIN);
+  const isLeader = [ROLES.LEADER, ROLES.BOARD_MEMBER, ROLES.ADMIN].includes(user?.role);
 
   // Shared mid-session expiry handler:
   //   logout → toast → navigate('/login', { state: { from }})
@@ -88,6 +88,7 @@ export default function ActivityFormPage() {
               endAt:   new Date(slot.endTime).toISOString().slice(11, 19),
             })))
           }
+          setSelectedLeaderIds(a.leaders.map( l => l.id));
         }
       })
       .catch(() => setServerError('Failed to load activity.'))
@@ -112,8 +113,8 @@ export default function ActivityFormPage() {
 
         if (json.status === 'success') {
           setLeaders(json.data)
-          const leaderIds = json.data.map(el => el.id);
-          setSelectedLeaderIds(leaderIds);
+          // const leaderIds = json.data.map(el => el.id);
+          // setSelectedLeaderIds(leaderIds);
         }
       })
       .catch(() => {
@@ -159,8 +160,7 @@ export default function ActivityFormPage() {
     }
 
     setLoading(true)
-
-    const body = isLeader
+    const body = !isLeader
       ? {
           location: location.trim(),
           description: description.trim() || null,
@@ -179,7 +179,6 @@ export default function ActivityFormPage() {
           leaders: selectedLeaderIds,
           timeSlots,
         }
-
     try {
       const url = isEditMode
         ? `${API_BASE_URL}/api/activities/${activityId}`
@@ -264,10 +263,10 @@ export default function ActivityFormPage() {
               value={name}
               onChange={e => setName(e.target.value)}
               error={errors.name}
-              disabled={loading || isLeader}
+              disabled={loading || !isLeader}
             />
 
-            {isLeader && (
+            {!isLeader && (
               <p style={{
                 fontSize: 'var(--text-xs)',
                 color: 'var(--color-text-muted)',
@@ -309,10 +308,10 @@ export default function ActivityFormPage() {
               value={maxCapacity}
               onChange={e => setMaxCapacity(e.target.value)}
               error={errors.maxCapacity}
-              disabled={loading || isLeader}
+              disabled={loading || !isLeader}
             />
 
-            {isLeader && (
+            {!isLeader && (
               <p style={{
                 fontSize: 'var(--text-xs)',
                 color: 'var(--color-text-muted)',
@@ -363,7 +362,7 @@ export default function ActivityFormPage() {
           <select
             value={selectedLeaderIds[0] || ''}
             onChange={(e) => setSelectedLeaderIds([e.target.value])}
-            disabled={loading || isLeader}
+            disabled={loading || !isLeader}
             style={{
               padding: '9px 13px',
               border: '1.5px solid var(--color-border)',
@@ -386,7 +385,7 @@ export default function ActivityFormPage() {
               
             </div>
             
-                        {isLeader && (
+                        {!isLeader && (
               <p style={{
                 fontSize: 'var(--text-xs)',
                 color: 'var(--color-text-muted)',
@@ -402,7 +401,7 @@ export default function ActivityFormPage() {
                 <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text)' }}>
                   Time slots
                 </label>
-                <Button type="button" variant="outline" size="sm" onClick={addTimeSlot} disabled={loading || isLeader}>
+                <Button type="button" variant="outline" size="sm" onClick={addTimeSlot} disabled={loading || !isLeader}>
                   + Add slot
                 </Button>
               </div>
@@ -417,7 +416,7 @@ export default function ActivityFormPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Slot {index + 1}</span>
                       {timeSlots.length > 1 && (
-                        <Button type="button" variant="danger" size="sm" onClick={() => removeTimeSlot(index)} disabled={loading || isLeader}>
+                        <Button type="button" variant="danger" size="sm" onClick={() => removeTimeSlot(index)} disabled={loading || !isLeader}>
                           Remove
                         </Button>
                       )}
@@ -429,7 +428,7 @@ export default function ActivityFormPage() {
                       <select
                         value={slot.weekday}
                         onChange={e => updateTimeSlot(index, 'weekday', e.target.value)}
-                        disabled={loading || isLeader}
+                        disabled={loading || !isLeader}
                         style={{
                           padding: '9px 13px',
                           border: '1.5px solid var(--color-border)',
@@ -450,14 +449,14 @@ export default function ActivityFormPage() {
                         placeholder="18:00:00"
                         value={slot.startAt}
                         onChange={e => updateTimeSlot(index, 'startAt', e.target.value)}
-                        disabled={loading || isLeader}
+                        disabled={loading || !isLeader}
                       />
                       <Input
                         label="End time"
                         placeholder="19:30:00"
                         value={slot.endAt}
                         onChange={e => updateTimeSlot(index, 'endAt', e.target.value)}
-                        disabled={loading || isLeader}
+                        disabled={loading || !isLeader}
                       />
                     </div>
                   </div>
@@ -465,7 +464,7 @@ export default function ActivityFormPage() {
               ))}
             </div>
 
-                        {isLeader && (
+                        {!isLeader && (
               <p style={{
                 fontSize: 'var(--text-xs)',
                 color: 'var(--color-text-muted)',

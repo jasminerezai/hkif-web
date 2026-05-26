@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/ApiError.js';
-import {PrismaClientKnownRequestError} from "@prisma/client/runtime/client";
+import { Prisma } from '../generated/prisma/index.js';
 import {prismaErrorFormatter} from "../utils/prismaErrorFormatter.js";
 
 /**
@@ -20,12 +20,10 @@ export function errorHandler(
     });
     return;
   }
-  if( err instanceof PrismaClientKnownRequestError ){
+  if( err instanceof Prisma.PrismaClientKnownRequestError ){
     const prismaErr = prismaErrorFormatter(err);
-    res.status(400).json({
-      error: prismaErr,
-      statusCode: 400,
-    })
+    res.status(prismaErr.statusCode).json(prismaErr);
+    return;
   }
 
   // Unexpected error — log and return generic 500

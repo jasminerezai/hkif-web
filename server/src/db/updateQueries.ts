@@ -23,20 +23,25 @@ export class UPDATE {
             data: newData,
         });
         if (!!timeSlots) {
-            await this.deleteAllTimeSlots(activityId);
-            await this.addTimeSlots(activityId, timeSlots);
+            await prisma.$transaction( async () => {
+                // does this function call work in the $transaction wrapper?
+                await this.deleteAllTimeSlots(activityId);
+                await this.addTimeSlots(activityId, timeSlots);
+            })
         }
 
         if (!!leaders) {
-            await prisma.leaderActivity.deleteMany({
-                where: {activityId}
-            });
-            await prisma.leaderActivity.createMany({
-                data: leaders.map(profileId => ({
-                    profileId,
-                    activityId
-                }))
-            });
+            await prisma.$transaction(async(tx) => {
+                await tx.leaderActivity.deleteMany({
+                    where: {activityId}
+                });
+                await tx.leaderActivity.createMany({
+                    data: leaders.map(profileId => ({
+                        profileId,
+                        activityId
+                    }))
+                });
+            })
         }
         const newAct = await prisma.activityTemplate.findUnique({
             where: {id: activityId},
