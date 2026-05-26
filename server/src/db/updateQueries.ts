@@ -16,21 +16,20 @@ export class UPDATE {
 
         const leaders = newData.leaders;
         delete newData.leaders;
-
         // Update general fields of the activity
         await prisma.activityTemplate.update({
-            where: { id: activityId },
+            where: {id: activityId},
             // @ts-ignore - this is a bit hacky, but it allows us to only include fields that are actually being updated (excludes timeSlots and leaders)
             data: newData,
         });
-
         if (!!timeSlots) {
+            await this.deleteAllTimeSlots(activityId);
             await this.addTimeSlots(activityId, timeSlots);
         }
 
         if (!!leaders) {
             await prisma.leaderActivity.deleteMany({
-                where: { activityId }
+                where: {activityId}
             });
             await prisma.leaderActivity.createMany({
                 data: leaders.map(profileId => ({
@@ -40,7 +39,7 @@ export class UPDATE {
             });
         }
         const newAct = await prisma.activityTemplate.findUnique({
-            where: { id: activityId },
+            where: {id: activityId},
             include: {
                 timeSlots: true,
                 leaders: {
@@ -55,7 +54,7 @@ export class UPDATE {
                 }
             }
         });
-        if(!newAct) throw ApiError.notFound(`Activity to update not Found`);
+        if (!newAct) throw ApiError.notFound(`Activity to update not Found`);
         else return formatActivity(newAct);
     }
 
@@ -67,7 +66,7 @@ export class UPDATE {
      */
     static async addTimeSlots(activityId: string, newData: TimeSlot[]) {
         return prisma.activityTemplate.update({
-            where: { id: activityId },
+            where: {id: activityId},
             data: {
                 timeSlots: {
                     createMany: {

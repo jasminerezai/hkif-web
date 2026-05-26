@@ -1,4 +1,4 @@
-import { Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto } from "../types/index.js";
+import {Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto} from "../types/index.js";
 import { prisma, ActivityStatus } from "./prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import {formatActivity, formatSchedule} from "./utils.js";
@@ -44,43 +44,54 @@ export class CREATE {
     }
 
     static async newActivity(newAct: Activity): Promise<ActivityDto> {
-        const activity = await prisma.activityTemplate.create({
-            data: {
-                name: newAct.name,
-                location: newAct.location,
-                description: newAct.description,
-                notes: newAct.notes,
-                defaultStatus: newAct.defaultStatus,
-                maxCapacity: newAct.maxCapacity,
-                leaders: {
-                    createMany: {
-                        data: newAct.leaders.map((profileId) => ({
-                            profileId
-                        }))
-                    }
-                },
-                timeSlots: {
-                    createMany: {
-                        data: newAct.timeSlots.map(el => ({
-                            weekday: el.weekday,
-                            startTime: new Date(`1970-01-01T${el.startAt}Z`),
-                            endTime: new Date(`1970-01-01T${el.endAt}Z`)
-                        }))
-                    }
-                },
-            },
-            include: {
-                timeSlots: true,
-                leaders: {
-                    select: {
-                        profile: {
+        const activity = await prisma.$transaction(async (tx) => {
+            const activityExists = await tx.activityTemplate.findFirst({
+                where: {name: newAct.name}
+            });
+            if (activityExists) {
+                const format = formatActivity(activityExists)
+                throw ApiError.conflict(`Activity already exists by name: ${JSON.stringify(format.name)}`);
+            }
+            else {
+                return tx.activityTemplate.create({
+                    data: {
+                        name: newAct.name,
+                        location: newAct.location,
+                        description: newAct.description,
+                        notes: newAct.notes,
+                        defaultStatus: newAct.defaultStatus,
+                        maxCapacity: newAct.maxCapacity,
+                        leaders: {
+                            createMany: {
+                                data: newAct.leaders.map((profileId) => ({
+                                    profileId
+                                }))
+                            }
+                        },
+                        timeSlots: {
+                            createMany: {
+                                data: newAct.timeSlots.map(el => ({
+                                    weekday: el.weekday,
+                                    startTime: new Date(`1970-01-01T${el.startAt}Z`),
+                                    endTime: new Date(`1970-01-01T${el.endAt}Z`)
+                                }))
+                            }
+                        },
+                    },
+                    include: {
+                        timeSlots: true,
+                        leaders: {
                             select: {
-                                id: true,
-                                profileName: true
+                                profile: {
+                                    select: {
+                                        id: true,
+                                        profileName: true
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                });
             }
         });
         return formatActivity(activity);

@@ -143,7 +143,8 @@ export const newActivity = asyncHandler(
     try {
       newActivity = CreateActivitySchema.parse(req.body);
     } catch (error) {
-      throw ApiError.badRequest(`Invalid request body: ${error}`);
+      if(error instanceof ZodError) throw ApiError.badRequest(`Invalid request body: ${JSON.stringify(parseZodError(error))}`);
+      else throw ApiError.internal(`Something went wrong creating your activity: ${error}`);
     }
 
     // If no leaders provided, assign the creator as the leader

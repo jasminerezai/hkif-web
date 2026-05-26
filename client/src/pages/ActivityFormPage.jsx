@@ -27,7 +27,7 @@ export default function ActivityFormPage() {
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
-  const isLeader = user?.role === ROLES.LEADER
+  const isLeader = user?.role === (ROLES.LEADER || ROLES.BOARD_MEMBER || ROLES.ADMIN);
 
   // Shared mid-session expiry handler:
   //   logout → toast → navigate('/login', { state: { from }})
@@ -111,8 +111,9 @@ export default function ActivityFormPage() {
         if (!json) return
 
         if (json.status === 'success') {
-          //console.log(json.data)
           setLeaders(json.data)
+          const leaderIds = json.data.map(el => el.id);
+          setSelectedLeaderIds(leaderIds);
         }
       })
       .catch(() => {
