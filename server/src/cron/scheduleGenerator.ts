@@ -1,14 +1,12 @@
 // server/src/cron/scheduleGenerator.ts
 //
-// Core logic for generating Schedule rows for the coming week.
+// Core logic for generating Schedule rows for the coming weeks.
 // Called by the cron job every Monday at 00:05, and once on
-// server startup as a fallback (in case the server was down on Monday).
+// server startup to pre-populate the next 16 weeks (~4 months).
 
 import { prisma, ActivityStatus } from '../db/prisma.js';
 import { nextWeek, startAndEndOfWeek } from '../utils/weekCalculator.js';
 
-// weekdayMap 
-// Maps our Weekday enum to JS Date.getDay() values (0 = Sunday)
 const weekdayMap: Record<string, number> = {
     MONDAY: 1,
     TUESDAY: 2,
@@ -19,10 +17,6 @@ const weekdayMap: Record<string, number> = {
     SUNDAY: 0,
 };
 
-// nextDateForWeekday
-// Given a base date and a weekday, returns the next occurrence
-// of that weekday on or after the base date.
-// Reuses the same logic as seed.ts.
 function nextDateForWeekday(base: Date, weekday: string): Date {
     const target = weekdayMap[weekday]!;
     const date = new Date(base);
@@ -32,86 +26,75 @@ function nextDateForWeekday(base: Date, weekday: string): Date {
 }
 
 // generateWeeklySchedules
-// Main export. Generates Schedule rows for the coming week.
+// Generates Schedule rows for one or more upcoming weeks.
 //
-// Steps:
-//   1. Compute the date range for next week (Monday–Sunday)
-//   2. Fetch all ACTIVE ActivityTemplates with their timeSlots
-//   3. For each timeSlot, check if a schedule already exists in that range
-//   4. If not, create one with status ACTIVE
-//
-// Safe to call multiple times — the existence check prevents duplicates.
-export async function generateWeeklySchedules(): Promise<void> {
+// weeksAhead: how many weeks to generate (default 1 for cron, 16 for startup)
+export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<void> {
     const now = new Date();
-    const nextMon = nextWeek(now, 1);  // 1 = one week ahead
-    const { startDay, endDay } = startAndEndOfWeek(nextMon);
 
-    console.log(`[cron] Generating schedules for ${startDay.toDateString()} – ${endDay.toDateString()}`);
+    let totalCreated = 0;
+    let totalSkipped = 0;
 
-    // 1. Fetch all active activity templates with their time slots
+    // Fetch all active activity templates with their time slots once
     const activities = await prisma.activityTemplate.findMany({
         where: { defaultStatus: ActivityStatus.ACTIVE },
         include: { timeSlots: true },
     });
 
-    let created = 0;
-    let skipped = 0;
+    for (let week = 1; week <= weeksAhead; week++) {
+        const futureDate = nextWeek(now, week);
+        const { startDay, endDay } = startAndEndOfWeek(futureDate);
 
-    for (const activity of activities) {
-        for (const slot of activity.timeSlots) {
+        console.log(`[cron] Generating schedules for ${startDay.toDateString()} – ${endDay.toDateString()}`);
 
-            // 2. Compute the exact date for this slot next week
-            const slotDate = nextDateForWeekday(startDay, slot.weekday);
-            // Times are stored in UTC — slot.startTime and slot.endTime are UTC Date objects
-            const startAt = new Date(slotDate);
-            startAt.setUTCHours(
-                slot.startTime.getUTCHours(),
-                slot.startTime.getUTCMinutes(),
-                0,
-                0,
-            );
+        let created = 0;
+        let skipped = 0;
 
-            const endAt = new Date(slotDate);
-            endAt.setUTCHours(
-                slot.endTime.getUTCHours(),
-                slot.endTime.getUTCMinutes(),
-                0,
-                0,
-            );
+        for (const activity of activities) {
+            for (const slot of activity.timeSlots) {
 
+                const slotDate = nextDateForWeekday(startDay, slot.weekday);
 
-            // TODO: For large datasets, consider fetching all existing schedules upfront
-            // and doing an in-memory check instead of N*M sequential DB queries.
+                const startAt = new Date(slotDate);
+                startAt.setUTCHours(
+                    slot.startTime.getUTCHours(),
+                    slot.startTime.getUTCMinutes(),
+                    0, 0,
+                );
 
+                const endAt = new Date(slotDate);
+                endAt.setUTCHours(
+                    slot.endTime.getUTCHours(),
+                    slot.endTime.getUTCMinutes(),
+                    0, 0,
+                );
 
+                const existing = await prisma.schedule.findFirst({
+                    where: { activityId: activity.id, startAt, endAt },
+                });
 
-            // 3. Check if a schedule already exists for this slot
-            const existing = await prisma.schedule.findFirst({
-                where: {
-                    activityId: activity.id,
-                    startAt,
-                    endAt,
-                },
-            });
+                if (existing) {
+                    skipped++;
+                    continue;
+                }
 
-            if (existing) {
-                skipped++;
-                continue;
+                await prisma.schedule.create({
+                    data: {
+                        activityId: activity.id,
+                        startAt,
+                        endAt,
+                        status: ActivityStatus.ACTIVE,
+                    },
+                });
+
+                created++;
             }
-
-            // 4. Create the schedule
-            await prisma.schedule.create({
-                data: {
-                    activityId: activity.id,
-                    startAt,
-                    endAt,
-                    status: ActivityStatus.ACTIVE,
-                },
-            });
-
-            created++;
         }
+
+        console.log(`[cron] Week ${week}/${weeksAhead} — ${created} created, ${skipped} skipped.`);
+        totalCreated += created;
+        totalSkipped += skipped;
     }
 
-    console.log(`[cron] Done — ${created} schedules created, ${skipped} already existed.`);
+    console.log(`[cron] Total — ${totalCreated} schedules created, ${totalSkipped} already existed.`);
 }
