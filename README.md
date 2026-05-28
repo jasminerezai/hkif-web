@@ -40,10 +40,12 @@ HKIF solves this by providing a **single organized platform** for sports activit
 - React Router (routing)
 - Vite
 - bcryptjs
+- JavaScript
 
 ### Backend
 - Express.js
 - TypeScript
+- Zod-Input Validation
 
 ### Database
 - PostgreSQL
@@ -79,6 +81,17 @@ hkif-web/
 
 ## Running Locally
 
+### 0. Installing PostgreSQL server
+[Install the PostgreSQL Installer (Official Download Site)](https://www.postgresql.org/download/)
+1. Download the installer for your Operating System
+2. Follow the instructions of the Installer to install the *PostgreSQL Server*, only the server is required.
+    1. Note down the username and password during Setup.
+3. Add the *bin* directory to the PATH environmental variable
+4. Open the terminal:
+    1. `psql -U <username>`
+    2. enter your password
+    3. run `CREATE DATABASE hkif` (or name the DB some other name)
+
 ### 1. Clone the Repository
 
 ```bash
@@ -88,6 +101,9 @@ cd hkif-web
 
 ### 2. Create `server/.env`
 
+- for the `DATABASE_URL` enter username, password, and DB name.
+- *Tip for `JWT_SECRET`:* use a password generator
+
 ```env
 DATABASE_URL="postgresql://<user>:<password>@localhost:5432/hkif"
 JWT_SECRET="your_long_random_secret"
@@ -95,24 +111,25 @@ PORT=3001
 CLIENT_URL="http://localhost:5173"
 ```
 
-### 3. Backend Setup
+### 3. Backend Setup & First-Time Prisma Setup
 
 ```bash
 cd server
 npm install
-npm run dev
-```
-
-### 4. First-Time Prisma Setup
-
-```bash
 npx prisma migrate deploy
 npx prisma generate
 npx prisma db seed
+npm run dev
 ```
 
-### 5. Frontend Setup
+- `npm install` --> installs required packages
+- `npx prisma migrate deploy` --> deploys the DB-schema from *schema.prisma* onto the created database server.
+- `npx prisma generate` --> generates boilerplate code (queries and typescript types) from the schema
+- `npx prisma db seed` --> seeds the database with mock data
+- `npm run dev` --> starts the backend development server
 
+### 4. Frontend Setup
+Run the commands below to install the required packages and start the frontend server.
 ```bash
 cd client
 npm install
@@ -124,6 +141,7 @@ The frontend runs at:
 ```txt
 http://localhost:5173
 ```
+Visit this url in the browser.
 
 ## Test Accounts
 
