@@ -5,6 +5,7 @@
 // server startup to pre-populate the next 16 weeks (~4 months).
 
 import { prisma, ActivityStatus } from '../db/prisma.js';
+import { Prisma } from '../generated/prisma/index.js';
 import { nextWeek, startAndEndOfWeek } from '../utils/weekCalculator.js';
 
 const weekdayMap: Record<string, number> = {
@@ -17,6 +18,8 @@ const weekdayMap: Record<string, number> = {
     SUNDAY: 0,
 };
 
+// startDay is always Monday — nextDateForWeekday is safe here
+// because (target - 1 + 7) % 7 gives the correct in-week offset.
 function nextDateForWeekday(base: Date, weekday: string): Date {
     const target = weekdayMap[weekday]!;
     const date = new Date(base);
@@ -29,30 +32,44 @@ function nextDateForWeekday(base: Date, weekday: string): Date {
 // Generates Schedule rows for one or more upcoming weeks.
 //
 // weeksAhead: how many weeks to generate (default 1 for cron, 16 for startup)
+// Reduces all DB work to 2 queries total regardless of dataset size:
+//   1. Fetch all active activities + slots
+//   2. Fetch all existing schedules in range
+//   3. Batch insert only missing rows with createMany
 export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<void> {
     const now = new Date();
 
-    let totalCreated = 0;
-    let totalSkipped = 0;
-
-    // Fetch all active activity templates with their time slots once
+    // 1. Fetch all active activity templates with their time slots
     const activities = await prisma.activityTemplate.findMany({
         where: { defaultStatus: ActivityStatus.ACTIVE },
         include: { timeSlots: true },
     });
 
+    // 2. Compute the full date range we're about to generate
+    const rangeStart = startAndEndOfWeek(nextWeek(now, 1)).startDay;
+    const rangeEnd = startAndEndOfWeek(nextWeek(now, weeksAhead)).endDay;
+
+    console.log(`[cron] Generating schedules from ${rangeStart.toDateString()} to ${rangeEnd.toDateString()}...`);
+
+    // 3. Fetch all existing schedule rows in range once — O(1) lookup via Set
+    const existing = await prisma.schedule.findMany({
+        where: { startAt: { gte: rangeStart, lte: rangeEnd } },
+        select: { activityId: true, startAt: true },
+    });
+    const existingSet = new Set(
+        existing.map(s => `${s.activityId}|${s.startAt.toISOString()}`)
+    );
+
+    // 4. Build the full list of rows to insert
+    const toCreate: Prisma.ScheduleCreateManyInput[] = [];
+
     for (let week = 1; week <= weeksAhead; week++) {
-        const futureDate = nextWeek(now, week);
-        const { startDay, endDay } = startAndEndOfWeek(futureDate);
-
-        console.log(`[cron] Generating schedules for ${startDay.toDateString()} – ${endDay.toDateString()}`);
-
-        let created = 0;
-        let skipped = 0;
+        const { startDay } = startAndEndOfWeek(nextWeek(now, week));
 
         for (const activity of activities) {
             for (const slot of activity.timeSlots) {
 
+                // startDay is always Monday — safe to use nextDateForWeekday
                 const slotDate = nextDateForWeekday(startDay, slot.weekday);
 
                 const startAt = new Date(slotDate);
@@ -69,32 +86,20 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
                     0, 0,
                 );
 
-                const existing = await prisma.schedule.findFirst({
-                    where: { activityId: activity.id, startAt, endAt },
+                if (existingSet.has(`${activity.id}|${startAt.toISOString()}`)) continue;
+
+                toCreate.push({
+                    activityId: activity.id,
+                    startAt,
+                    endAt,
+                    status: ActivityStatus.ACTIVE,
                 });
-
-                if (existing) {
-                    skipped++;
-                    continue;
-                }
-
-                await prisma.schedule.create({
-                    data: {
-                        activityId: activity.id,
-                        startAt,
-                        endAt,
-                        status: ActivityStatus.ACTIVE,
-                    },
-                });
-
-                created++;
             }
         }
-
-        console.log(`[cron] Week ${week}/${weeksAhead} — ${created} created, ${skipped} skipped.`);
-        totalCreated += created;
-        totalSkipped += skipped;
     }
 
-    console.log(`[cron] Total — ${totalCreated} schedules created, ${totalSkipped} already existed.`);
+    // 5. Batch insert all missing rows in one query
+    await prisma.schedule.createMany({ data: toCreate, skipDuplicates: true });
+
+    console.log(`[cron] Done — ${toCreate.length} schedules created, ${existing.length} already existed.`);
 }
