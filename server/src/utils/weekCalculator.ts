@@ -22,7 +22,7 @@ export function startAndEndOfWeek(nowDate: Date) {
 }
 
 // Returns the date N weeks in the future.
- 
+
 export function nextWeek(date: Date, numberOfWeeks: number): Date {
     if (numberOfWeeks === 0) return date;
     const result = new Date(date);
@@ -37,5 +37,21 @@ export function lastWeek(date: Date, numberOfWeeks: number): Date {
     if (numberOfWeeks === 0) return date;
     const result = new Date(date);
     result.setUTCDate(date.getUTCDate() - Math.abs(Math.trunc(numberOfWeeks)) * 7);
+    return result;
+}
+
+
+/**
+ * Given a base date and a Weekday enum string (e.g. 'MONDAY'),
+ * returns the date of that weekday in the same week as the base date.
+ * If the base date IS that weekday, returns the same day.
+ */
+export function nextDateForWeekday(from: Date, weekday: string): Date {
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const target = days.indexOf(weekday);
+    const current = from.getUTCDay();
+    const diff = (target - current + 7) % 7;
+    const result = new Date(from);
+    result.setUTCDate(from.getUTCDate() + diff);
     return result;
 }

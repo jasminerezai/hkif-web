@@ -150,8 +150,15 @@ export default function SchedulePage() {
 
   // ── Current Date ──────────────────────────────────────────
   const today = new Date()
-  // Test for JUNE
-  //const today = new Date('2026-06-15')
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
+    const d = new Date(today)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    d.setDate(diff)
+    d.setHours(0, 0, 0, 0)
+    return d
+  })
+  const [currentMonth, setCurrentMonth] = useState(() => new Date())
 
   // ── Fetch Current Schedule ───────────────────────────────
   useEffect(() => {
@@ -162,8 +169,9 @@ export default function SchedulePage() {
         // Single fetch — API_BASE_URL is '' in dev so the
         // vite proxy handles it, and the deployed backend
         // origin in production.
+        const dateParam = `${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`
         const response = await fetch(
-          `${API_BASE_URL}/api/schedules/current`
+          `${API_BASE_URL}/api/schedules?date=${dateParam}&entireWeek=true`
         )
 
         const { data } = await response.json()
@@ -260,10 +268,8 @@ export default function SchedulePage() {
 
     fetchSchedule()
 
-    // showToast is stable (useCallback) — keeping the deps array
-    // empty preserves the original "fetch once on mount" behaviour.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+
+  }, [currentWeekStart])
 
   // ── Fetch Favorites (logged-in users only) ───────────────
   // Mirrors the pattern already used in ActivitiesPage so the
@@ -416,29 +422,16 @@ export default function SchedulePage() {
     const result = []
 
     if (view === 'weekly') {
-
-      // Get Monday of current week
-      const current = new Date(today)
-
-      const day = current.getDay()
-      const diff = current.getDate() - day + (day === 0 ? -6 : 1)
-
-      current.setDate(diff)
-
       for (let i = 0; i < 7; i++) {
-        const date = new Date(current)
-        date.setDate(current.getDate() + i)
+        const date = new Date(currentWeekStart)
+        date.setDate(currentWeekStart.getDate() + i)
         result.push(date)
       }
-
     } else {
-
       // Monthly view
-      const year = today.getFullYear()
-      const month = today.getMonth()
-
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth()
       const daysInMonth = new Date(year, month + 1, 0).getDate()
-
       for (let i = 1; i <= daysInMonth; i++) {
         result.push(new Date(year, month, i))
       }
@@ -446,7 +439,7 @@ export default function SchedulePage() {
 
     return result
 
-  }, [view])
+  }, [view, currentWeekStart, currentMonth])
 
   // ── Helper: Activities For A Specific Day ────────────────
   function getActivitiesForDay(date) {
@@ -479,6 +472,40 @@ export default function SchedulePage() {
     setFilterFavoritesOnly(false)
   }
 
+
+  function prevWeek() {
+    setCurrentWeekStart(d => {
+      const n = new Date(d)
+      n.setDate(d.getDate() - 7)
+      return n
+    })
+  }
+
+  function nextWeek() {
+    setCurrentWeekStart(d => {
+      const n = new Date(d)
+      n.setDate(d.getDate() + 7)
+      return n
+    })
+  }
+
+  function handleDatePick(e) {
+    if (!e.target.value) return
+    const picked = new Date(e.target.value)
+    const day = picked.getUTCDay()
+    const diff = day === 0 ? -6 : 1 - day
+    picked.setUTCDate(picked.getUTCDate() + diff)
+    picked.setUTCHours(0, 0, 0, 0)
+    setCurrentWeekStart(picked)
+  }
+
+  function prevMonth() {
+    setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
+  }
+
+  function nextMonth() {
+    setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))
+  }
   // ── Toggle Attendance ────────────────────────────────────
   // Wires the Attend / Leave button on each card to the backend.
   // Pattern mirrors ActivitiesPage.handleToggleFavorite:
@@ -678,20 +705,46 @@ export default function SchedulePage() {
           empty. Please try again in a moment.
         </p>
       )}
-
-      {/* Month header, placed above the calendar */}
-      <h2
-        style={{
-          fontSize: '2rem',
-          fontWeight: 800,
-          letterSpacing: '4px',
-          marginBottom: '24px',
-        }}
-      >
-        {today.toLocaleDateString('en-US', {
-          month: 'long',
-        }).toUpperCase()}
-      </h2>
+      {/* Month header + navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        {view === 'weekly' ? (
+          <>
+            <Button variant="outline" size="sm" onClick={prevWeek}>← Prev</Button>
+            <Button variant="ghost" size="sm" onClick={() => {
+              const d = new Date()
+              const day = d.getDay()
+              const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+              d.setDate(diff)
+              d.setHours(0, 0, 0, 0)
+              setCurrentWeekStart(d)
+            }}>Today</Button>
+            <Button variant="outline" size="sm" onClick={nextWeek}>Next →</Button>
+            <input
+              type="date"
+              onChange={handleDatePick}
+              style={{
+                padding: '6px 10px',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-body)',
+                background: 'var(--color-surface-raised)',
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <Button variant="outline" size="sm" onClick={prevMonth}>← Prev</Button>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date())}>Today</Button>
+            <Button variant="outline" size="sm" onClick={nextMonth}>Next →</Button>
+          </>
+        )}
+        <h2 style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '4px', margin: 0 }}>
+          {(view === 'weekly' ? currentWeekStart : currentMonth).toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}
+        </h2>
+      </div>
 
       {/* Calendar Grid */}
       <div
