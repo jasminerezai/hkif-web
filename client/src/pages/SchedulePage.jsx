@@ -41,6 +41,14 @@ const WEEKDAY_BY_INDEX = [
   'THURSDAY', 'FRIDAY', 'SATURDAY',
 ]
 
+function getMondayOfCurrentWeek() {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
 export default function SchedulePage() {
 
   // ── View State ────────────────────────────────────────────
@@ -150,14 +158,7 @@ export default function SchedulePage() {
 
   // ── Current Date ──────────────────────────────────────────
   const today = new Date()
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    const d = new Date(today)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-    d.setDate(diff)
-    d.setHours(0, 0, 0, 0)
-    return d
-  })
+  const [currentWeekStart, setCurrentWeekStart] = useState(getMondayOfCurrentWeek)
   const [currentMonth, setCurrentMonth] = useState(() => new Date())
 
   // ── Fetch Current Schedule ───────────────────────────────
@@ -491,11 +492,12 @@ export default function SchedulePage() {
 
   function handleDatePick(e) {
     if (!e.target.value) return
-    const picked = new Date(e.target.value)
-    const day = picked.getUTCDay()
-    const diff = day === 0 ? -6 : 1 - day
-    picked.setUTCDate(picked.getUTCDate() + diff)
-    picked.setUTCHours(0, 0, 0, 0)
+    const [y, m, d] = e.target.value.split('-').map(Number)
+    const picked = new Date(y, m - 1, d)
+    const day = picked.getDay()
+    const diff = picked.getDate() - day + (day === 0 ? -6 : 1)
+    picked.setDate(diff)
+    picked.setHours(0, 0, 0, 0)
     setCurrentWeekStart(picked)
   }
 
@@ -710,14 +712,7 @@ export default function SchedulePage() {
         {view === 'weekly' ? (
           <>
             <Button variant="outline" size="sm" onClick={prevWeek}>← Prev</Button>
-            <Button variant="ghost" size="sm" onClick={() => {
-              const d = new Date()
-              const day = d.getDay()
-              const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-              d.setDate(diff)
-              d.setHours(0, 0, 0, 0)
-              setCurrentWeekStart(d)
-            }}>Today</Button>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentWeekStart(getMondayOfCurrentWeek())}>Today</Button>
             <Button variant="outline" size="sm" onClick={nextWeek}>Next →</Button>
             <input
               type="date"

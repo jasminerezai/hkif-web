@@ -77,12 +77,16 @@ export class CREATE {
 
             // Generate Schedule rows for current + next 2 weeks
             const today = new Date();
+            const todayDow = today.getUTCDay();
+            const monday = new Date(today);
+            monday.setUTCDate(today.getUTCDate() - ((todayDow + 6) % 7));
+
             const scheduleData = [];
 
             for (const slot of created.timeSlots) {
                 for (let week = 0; week < 3; week++) {
-                    const base = new Date(today);
-                    base.setUTCDate(today.getUTCDate() + week * 7);
+                    const base = new Date(monday);
+                    base.setUTCDate(monday.getUTCDate() + week * 7);
 
                     const date = nextDateForWeekday(base, slot.weekday);
 
@@ -109,8 +113,7 @@ export class CREATE {
                 }
             }
 
-            await tx.schedule.createMany({ data: scheduleData });
-
+            await tx.schedule.createMany({ data: scheduleData, skipDuplicates: true });
             return created;
         });
 

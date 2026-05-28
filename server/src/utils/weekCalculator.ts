@@ -42,16 +42,18 @@ export function lastWeek(date: Date, numberOfWeeks: number): Date {
 
 
 /**
- * Given a base date and a Weekday enum string (e.g. 'MONDAY'),
- * returns the date of that weekday in the same week as the base date.
- * If the base date IS that weekday, returns the same day.
+ * Returns the date of the given weekday in the same ISO week as `from`.
+ * If `from` is already on that weekday, returns the same day.
  */
 export function nextDateForWeekday(from: Date, weekday: string): Date {
     const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
     const target = days.indexOf(weekday);
-    const current = from.getUTCDay();
-    const diff = (target - current + 7) % 7;
-    const result = new Date(from);
-    result.setUTCDate(from.getUTCDate() + diff);
-    return result;
+    const dow = from.getUTCDay();
+    // Monday of from's ISO week
+    const weekStart = new Date(from);
+    weekStart.setUTCDate(from.getUTCDate() - ((dow + 6) % 7));
+    // Add ISO weekday offset (Mon=0 ... Sun=6)
+    const isoTarget = (target + 6) % 7;
+    weekStart.setUTCDate(weekStart.getUTCDate() + isoTarget);
+    return weekStart;
 }
