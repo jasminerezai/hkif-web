@@ -1,64 +1,78 @@
 import { prisma, ActivityStatus } from "./prisma.js";
-import {Activity, TimeSlot, ScheduleDto, ActivityDto} from "../types/index.js";
+import {Activity, ScheduleDto, ActivityDto, leaderDto} from "../types/index.js";
 import {formatActivity, formatSchedule} from "./utils.js";
 import {ApiError} from "../utils/ApiError.js";
+import { TimeSlot } from '../generated/prisma/index.js';
 
 export class UPDATE {
     /**
      * Updates an Activity.
      * @param activityId
-     * @param newData Partial<Activity> --> where Activity is the type from th DB
+     * @param newData Partial<Activity> --> where Activity is the type from activity.types.ts
+     * @return ActivityDto --> THE ID FROM THE TIME SLOTS MAY BE AN EMPTY STRING (IF THE
      */
     static async updateActivity(activityId: string, newData: Partial<Activity>): Promise<ActivityDto> {
         // These fields require special handling, so we extract them from the update payload first  
-        const timeSlots = newData.timeSlots;
+        const slots = newData.timeSlots;
         delete newData.timeSlots;
 
         const leaders = newData.leaders;
         delete newData.leaders;
         // Update general fields of the activity
-        await prisma.activityTemplate.update({
-            where: {id: activityId},
-            // @ts-ignore - this is a bit hacky, but it allows us to only include fields that are actually being updated (excludes timeSlots and leaders)
-            data: newData,
-        });
-        if (!!timeSlots) {
-            await prisma.$transaction( async () => {
-                // does this function call work in the $transaction wrapper?
-                await this.deleteAllTimeSlots(activityId);
-                await this.addTimeSlots(activityId, timeSlots);
-            })
-        }
-
-        if (!!leaders) {
-            await prisma.$transaction(async(tx) => {
-                await tx.leaderActivity.deleteMany({
+        const newAct = await prisma.$transaction( async (tx) => {
+            const general = await tx.activityTemplate.update({
+                where: {id: activityId},
+                // @ts-ignore - this is a bit hacky, but it allows us to only include fields that are actually being updated (excludes timeSlots and leaders)
+                data: newData,
+            });
+            let newLeaders: leaderDto[] = [];
+            let newTimes: TimeSlot[] = [];
+            if (!!slots) {
+                await tx.timeSlot.deleteMany({
                     where: {activityId}
                 });
-                await tx.leaderActivity.createMany({
-                    data: leaders.map(profileId => ({
-                        profileId,
-                        activityId
-                    }))
-                });
-            })
-        }
-        const newAct = await prisma.activityTemplate.findUnique({
-            where: {id: activityId},
-            include: {
-                timeSlots: true,
-                leaders: {
-                    select: {
-                        profile: {
-                            select: {
-                                id: true,
-                                profileName: true
+                const data = slots.map(el => ({
+                        weekday: el.weekday,
+                        startTime: new Date(`1970-01-01T${el.startAt}Z`),
+                        endTime: new Date(`1970-01-01T${el.endAt}Z`)
+                    })
+                )
+
+                newTimes =  await tx.timeSlot.updateManyAndReturn({
+                    where: {activityId},
+                    data,
+                })
+            }
+
+            if (!!leaders) {
+                    await tx.leaderActivity.deleteMany({
+                        where: {activityId}
+                    });
+                    const tmp = await tx.leaderActivity.createManyAndReturn({
+                        data: leaders.map(profileId => ({
+                            profileId,
+                            activityId
+                        })),
+                        select: {
+                            profile: {
+                                select: {
+                                    id: true,
+                                    profileName: true
+                                }
                             }
                         }
-                    }
-                }
+                    });
+                    tmp.map(p => newLeaders.push(p.profile));
             }
-        });
+
+            return {
+                ...general,
+                leaders: newLeaders,
+                timeSlots: newTimes
+            } satisfies ActivityDto;
+        })
+
+        // do we still need this check?
         if (!newAct) throw ApiError.notFound(`Activity to update not Found`);
         else return formatActivity(newAct);
     }
@@ -77,8 +91,8 @@ export class UPDATE {
                     createMany: {
                         data: newData.map(el => ({
                             weekday: el.weekday,
-                            startTime: new Date(`1970-01-01T${el.startAt}Z`),
-                            endTime: new Date(`1970-01-01T${el.endAt}Z`)
+                            startTime: new Date(`1970-01-01T${el.startTime}Z`),
+                            endTime: new Date(`1970-01-01T${el.endTime}Z`)
                         }))
                     }
                 }

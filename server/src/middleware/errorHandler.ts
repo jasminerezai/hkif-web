@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/ApiError.js';
 import { Prisma } from '../generated/prisma/index.js';
-import {prismaErrorFormatter} from "../utils/prismaErrorFormatter.js";
+import { prismaErrorFormatter } from "./prismaErrorFormatter.js";
 
 /**
  * Global error handler middleware.

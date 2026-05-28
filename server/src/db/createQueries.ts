@@ -45,14 +45,6 @@ export class CREATE {
 
     static async newActivity(newAct: Activity): Promise<ActivityDto> {
         const activity = await prisma.$transaction(async (tx) => {
-            const activityExists = await tx.activityTemplate.findFirst({
-                where: {name: newAct.name}
-            });
-            if (activityExists) {
-                const format = formatActivity(activityExists)
-                throw ApiError.conflict(`Activity already exists by name: ${JSON.stringify(format.name)}`);
-            }
-            else {
                 return tx.activityTemplate.create({
                     data: {
                         name: newAct.name,
@@ -92,7 +84,6 @@ export class CREATE {
                         }
                     }
                 });
-            }
         });
         return formatActivity(activity);
     }
