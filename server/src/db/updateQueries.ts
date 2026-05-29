@@ -31,16 +31,14 @@ export class UPDATE {
                 await tx.timeSlot.deleteMany({
                     where: {activityId}
                 });
-                const data = slots.map(el => ({
+
+                newTimes =  await tx.timeSlot.createManyAndReturn({
+                    data: slots.map(el => ({
+                        activityId,
                         weekday: el.weekday,
                         startTime: new Date(`1970-01-01T${el.startAt}Z`),
                         endTime: new Date(`1970-01-01T${el.endAt}Z`)
-                    })
-                )
-
-                newTimes =  await tx.timeSlot.updateManyAndReturn({
-                    where: {activityId},
-                    data,
+                    }))
                 })
             }
 

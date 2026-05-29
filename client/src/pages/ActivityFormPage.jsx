@@ -27,7 +27,7 @@ export default function ActivityFormPage() {
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
-  const isLeader = [ROLES.LEADER, ROLES.BOARD_MEMBER, ROLES.ADMIN].includes(user?.role);
+  const isLeader = user?.role === ROLES.LEADER;
 
   // Shared mid-session expiry handler:
   //   logout → toast → navigate('/login', { state: { from }})
@@ -113,8 +113,6 @@ export default function ActivityFormPage() {
 
         if (json.status === 'success') {
           setLeaders(json.data)
-          // const leaderIds = json.data.map(el => el.id);
-          // setSelectedLeaderIds(leaderIds);
         }
       })
       .catch(() => {
@@ -179,6 +177,7 @@ export default function ActivityFormPage() {
           leaders: selectedLeaderIds,
           timeSlots,
         }
+    console.log(body);
     try {
       const url = isEditMode
         ? `${API_BASE_URL}/api/activities/${activityId}`
@@ -360,8 +359,15 @@ export default function ActivityFormPage() {
           </label>
 
           <select
-            value={selectedLeaderIds[0] || ''}
-            onChange={(e) => setSelectedLeaderIds([e.target.value])}
+            value={selectedLeaderIds || ''}
+            onChange={(e) => {
+              let set = new Set(selectedLeaderIds.map( el => el));
+              set.add(e.target.value);
+              const arr = []
+              set.forEach(el => arr.push(el));
+              setSelectedLeaderIds(arr);
+              }
+            }
             disabled={loading || isLeader}
             style={{
               padding: '9px 13px',
