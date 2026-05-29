@@ -22,7 +22,7 @@ export function startAndEndOfWeek(nowDate: Date) {
 }
 
 // Returns the date N weeks in the future.
- 
+
 export function nextWeek(date: Date, numberOfWeeks: number): Date {
     if (numberOfWeeks === 0) return date;
     const result = new Date(date);
@@ -38,4 +38,22 @@ export function lastWeek(date: Date, numberOfWeeks: number): Date {
     const result = new Date(date);
     result.setUTCDate(date.getUTCDate() - Math.abs(Math.trunc(numberOfWeeks)) * 7);
     return result;
+}
+
+
+/**
+ * Returns the date of the given weekday in the same ISO week as `from`.
+ * If `from` is already on that weekday, returns the same day.
+ */
+export function nextDateForWeekday(from: Date, weekday: string): Date {
+    const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    const target = days.indexOf(weekday);
+    const dow = from.getUTCDay();
+    // Monday of from's ISO week
+    const weekStart = new Date(from);
+    weekStart.setUTCDate(from.getUTCDate() - ((dow + 6) % 7));
+    // Add ISO weekday offset (Mon=0 ... Sun=6)
+    const isoTarget = (target + 6) % 7;
+    weekStart.setUTCDate(weekStart.getUTCDate() + isoTarget);
+    return weekStart;
 }
