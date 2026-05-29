@@ -174,10 +174,17 @@ export class READ {
         return activity ? formatActivity(activity) : null;
     }
     /**
-     * just returns all activityTemplates
+     * returns activityTemplates, optionally filtered by leaderId
      */
-    static async allActivities(): Promise<ActivityDto[]> {
+    static async allActivities(leaderId?: string): Promise<ActivityDto[]> {
+        const where = leaderId ? {
+            leaders: {
+                some: { profileId: leaderId }
+            }
+        } : {};
+
         let activities = await prisma.activityTemplate.findMany({
+            where,
             include: {
                 timeSlots: true,
                 leaders: {

@@ -41,6 +41,62 @@ const WEEKDAY_BY_INDEX = [
   'THURSDAY', 'FRIDAY', 'SATURDAY',
 ]
 
+function getMondayOfCurrentWeek() {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function formatScheduleData(singleSchedule) {
+  const startDate = new Date(singleSchedule.startAt)
+  const formattedDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`
+
+  return {
+    id: singleSchedule.id,
+    activityId: singleSchedule.activityId,
+    title: singleSchedule.activity?.name || 'Activity',
+    sport: singleSchedule.activity?.name || 'Sport',
+    leader: singleSchedule.leaders
+      ?.map(leader => leader.profileName || 'Leader')
+      .join(', ') || 'Leader',
+    date: formattedDate,
+    time: startDate.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    location: singleSchedule.activity?.location || 'Unknown',
+    maxCapacity: singleSchedule.activity?.maxCapacity ?? null,
+    participantCount: singleSchedule.participantCount ?? 0,
+    cancelled: singleSchedule.status === 'CANCELLED',
+    notes: singleSchedule.activity?.notes || '',
+  }
+}
+
+function getWeeksForMonth(date) {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+
+  // Find the Monday of the week containing firstDay
+  const monday = new Date(firstDay)
+  const day = monday.getDay()
+  const diff = monday.getDate() - day + (day === 0 ? -6 : 1)
+  monday.setDate(diff)
+  monday.setHours(0, 0, 0, 0)
+
+  const weeks = []
+  const current = new Date(monday)
+  while (current <= lastDay) {
+    weeks.push(new Date(current))
+    current.setDate(current.getDate() + 7)
+  }
+  return weeks
+}
+
 export default function SchedulePage() {
 
   // ── View State ────────────────────────────────────────────
@@ -150,120 +206,86 @@ export default function SchedulePage() {
 
   // ── Current Date ──────────────────────────────────────────
   const today = new Date()
-  // Test for JUNE
-  //const today = new Date('2026-06-15')
+  const [currentWeekStart, setCurrentWeekStart] = useState(getMondayOfCurrentWeek)
+  const [currentMonth, setCurrentMonth] = useState(() => new Date())
 
   // ── Fetch Current Schedule ───────────────────────────────
   useEffect(() => {
+    let active = true
 
     async function fetchSchedule() {
 
       try {
-        // Single fetch — API_BASE_URL is '' in dev so the
-        // vite proxy handles it, and the deployed backend
-        // origin in production.
-        const response = await fetch(
-          `${API_BASE_URL}/api/schedules/current`
-        )
+        setLoading(true)
+        if (view === 'weekly') {
+          // Single fetch — API_BASE_URL is '' in dev so the
+          // vite proxy handles it, and the deployed backend
+          // origin in production.
+          const dateParam = `${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`
+          const response = await fetch(
+            `${API_BASE_URL}/api/schedules?date=${dateParam}&entireWeek=true`
+          )
 
-        const { data } = await response.json()
+          const { data } = await response.json()
 
-        console.log('Schedule API:', data)
+          console.log('Schedule API (weekly):', data)
 
-        // If backend returns schedule data
-        if (response.ok && Array.isArray(data)) {
+          // If backend returns schedule data
+          if (active && response.ok && Array.isArray(data)) {
+            const formattedActivities = data.map(formatScheduleData)
+            setActivities(formattedActivities)
+          }
+        } else {
+          // Monthly view: fetch all weeks intersecting with the month in parallel
+          const weeks = getWeeksForMonth(currentMonth)
+          const fetchPromises = weeks.map(async (week) => {
+            const dateParam = `${week.getFullYear()}-${String(week.getMonth() + 1).padStart(2, '0')}-${String(week.getDate()).padStart(2, '0')}`
+            const response = await fetch(
+              `${API_BASE_URL}/api/schedules?date=${dateParam}&entireWeek=true`
+            )
+            if (!response.ok) {
+              throw new Error(`Failed to fetch for week ${dateParam}`)
+            }
+            const { data } = await response.json()
+            return Array.isArray(data) ? data : []
+          })
 
-          // Transform backend format → frontend format
-          const formattedActivities = data.map(singleSchedule => ({
+          const weeklyDataArrays = await Promise.all(fetchPromises)
+          if (!active) return
 
-            id: singleSchedule.id,
+          const combinedData = weeklyDataArrays.flat()
+          console.log('Schedule API (monthly combined):', combinedData)
 
-            // activityId is the *template activity* id — the same
-            // ID that the favorites endpoint stores. We keep it
-            // so the "Favorites only" filter can match correctly.
-            activityId: singleSchedule.activityId,
-
-            title:
-              singleSchedule.activity?.name || 'Activity',
-
-            sport:
-              singleSchedule.activity?.name || 'Sport',
-
-            leader:
-              singleSchedule.leaders
-                ?.map(leader => leader.profileName || 'Leader')
-                .join(', ') || 'Leader',
-
-            date: (() => {
-
-              const startDate = new Date(singleSchedule.startAt)
-
-              return `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')
-                }-${String(startDate.getDate()).padStart(2, '0')
-                }`
-
-            })(),
-
-            time: new Date(singleSchedule.startAt)
-              .toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-
-            location:
-              singleSchedule.activity?.location || 'Unknown',
-
-            // Max capacity from the activity template + the number
-            // of currently registered participants. We compute
-            // "spots left" at render time as the difference between
-            // these two. Both fields drive the disable-when-full
-            // logic on the Attend button.
-            //
-            // NOTE: the /api/schedules/current endpoint doesn't
-            // include participantCount yet, so we default it to 0
-            // on initial load. The count updates correctly the
-            // moment the user clicks Attend / Leave (the response
-            // from /participate returns the authoritative count).
-            // Backend ticket needed to include participantCount in
-            // the schedule list response for accurate first paint.
-            maxCapacity:
-              singleSchedule.activity?.maxCapacity ?? null,
-            participantCount:
-              singleSchedule.participantCount ?? 0,
-
-            cancelled:
-              singleSchedule.status === 'CANCELLED',
-
-            notes:
-              singleSchedule.activity?.notes || '',
-
-          }))
-
+          const formattedActivities = combinedData.map(formatScheduleData)
           setActivities(formattedActivities)
         }
 
       } catch (error) {
-
-        // Public endpoint, but the network could still fail or the
-        // backend could 500. Previously this was silent + the page
-        // just rendered empty — now we tell the user with a toast
-        // so they know to retry instead of staring at mock data.
-        console.error('Failed to fetch schedule:', error)
-        showToast(
-          'Couldn\'t load the schedule. Please try again.',
-          'error',
-        )
+        if (active) {
+          // Public endpoint, but the network could still fail or the
+          // backend could 500. Previously this was silent + the page
+          // just rendered empty — now we tell the user with a toast
+          // so they know to retry instead of staring at mock data.
+          console.error('Failed to fetch schedule:', error)
+          showToast(
+            'Couldn\'t load the schedule. Please try again.',
+            'error',
+          )
+        }
       } finally {
-        setLoading(false)
+        if (active) {
+          setLoading(false)
+        }
       }
     }
 
     fetchSchedule()
 
-    // showToast is stable (useCallback) — keeping the deps array
-    // empty preserves the original "fetch once on mount" behaviour.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    return () => {
+      active = false
+    }
+
+  }, [view, currentWeekStart, currentMonth])
 
   // ── Fetch Favorites (logged-in users only) ───────────────
   // Mirrors the pattern already used in ActivitiesPage so the
@@ -416,29 +438,16 @@ export default function SchedulePage() {
     const result = []
 
     if (view === 'weekly') {
-
-      // Get Monday of current week
-      const current = new Date(today)
-
-      const day = current.getDay()
-      const diff = current.getDate() - day + (day === 0 ? -6 : 1)
-
-      current.setDate(diff)
-
       for (let i = 0; i < 7; i++) {
-        const date = new Date(current)
-        date.setDate(current.getDate() + i)
+        const date = new Date(currentWeekStart)
+        date.setDate(currentWeekStart.getDate() + i)
         result.push(date)
       }
-
     } else {
-
       // Monthly view
-      const year = today.getFullYear()
-      const month = today.getMonth()
-
+      const year = currentMonth.getFullYear()
+      const month = currentMonth.getMonth()
       const daysInMonth = new Date(year, month + 1, 0).getDate()
-
       for (let i = 1; i <= daysInMonth; i++) {
         result.push(new Date(year, month, i))
       }
@@ -446,7 +455,7 @@ export default function SchedulePage() {
 
     return result
 
-  }, [view])
+  }, [view, currentWeekStart, currentMonth])
 
   // ── Helper: Activities For A Specific Day ────────────────
   function getActivitiesForDay(date) {
@@ -479,6 +488,41 @@ export default function SchedulePage() {
     setFilterFavoritesOnly(false)
   }
 
+
+  function prevWeek() {
+    setCurrentWeekStart(d => {
+      const n = new Date(d)
+      n.setDate(d.getDate() - 7)
+      return n
+    })
+  }
+
+  function nextWeek() {
+    setCurrentWeekStart(d => {
+      const n = new Date(d)
+      n.setDate(d.getDate() + 7)
+      return n
+    })
+  }
+
+  function handleDatePick(e) {
+    if (!e.target.value) return
+    const [y, m, d] = e.target.value.split('-').map(Number)
+    const picked = new Date(y, m - 1, d)
+    const day = picked.getDay()
+    const diff = picked.getDate() - day + (day === 0 ? -6 : 1)
+    picked.setDate(diff)
+    picked.setHours(0, 0, 0, 0)
+    setCurrentWeekStart(picked)
+  }
+
+  function prevMonth() {
+    setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))
+  }
+
+  function nextMonth() {
+    setCurrentMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))
+  }
   // ── Toggle Attendance ────────────────────────────────────
   // Wires the Attend / Leave button on each card to the backend.
   // Pattern mirrors ActivitiesPage.handleToggleFavorite:
@@ -678,20 +722,39 @@ export default function SchedulePage() {
           empty. Please try again in a moment.
         </p>
       )}
-
-      {/* Month header, placed above the calendar */}
-      <h2
-        style={{
-          fontSize: '2rem',
-          fontWeight: 800,
-          letterSpacing: '4px',
-          marginBottom: '24px',
-        }}
-      >
-        {today.toLocaleDateString('en-US', {
-          month: 'long',
-        }).toUpperCase()}
-      </h2>
+      {/* Month header + navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        {view === 'weekly' ? (
+          <>
+            <Button variant="outline" size="sm" onClick={prevWeek}>← Prev</Button>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentWeekStart(getMondayOfCurrentWeek())}>Today</Button>
+            <Button variant="outline" size="sm" onClick={nextWeek}>Next →</Button>
+            <input
+              type="date"
+              onChange={handleDatePick}
+              style={{
+                padding: '6px 10px',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-body)',
+                background: 'var(--color-surface-raised)',
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <Button variant="outline" size="sm" onClick={prevMonth}>← Prev</Button>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentMonth(new Date())}>Today</Button>
+            <Button variant="outline" size="sm" onClick={nextMonth}>Next →</Button>
+          </>
+        )}
+        <h2 style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '4px', margin: 0 }}>
+          {(view === 'weekly' ? currentWeekStart : currentMonth).toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}
+        </h2>
+      </div>
 
       {/* Calendar Grid */}
       <div

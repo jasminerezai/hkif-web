@@ -116,12 +116,12 @@ async function main() {
     }
 
     // ──────────────────────────────────────────────
-    // Time Slots (1–2 per activity)
+    // Time Slots (1 per activity)
     // ──────────────────────────────────────────────
     const timeSlots = [];
 
     for (const activity of activities) {
-        const slotsPerActivity = Math.random() > 0.5 ? 2 : 1;
+        const slotsPerActivity = 1;
         // Shuffle weekdays so we never pick the same one twice for one activity
         const shuffledWeekdays = Object.values(Weekday).sort(() => Math.random() - 0.5);
 

@@ -1,21 +1,11 @@
 import {Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto} from "../types/index.js";
 import { prisma, ActivityStatus } from "./prisma.js";
 import { ApiError } from "../utils/ApiError.js";
-import {formatActivity, formatSchedule} from "./utils.js";
-/*
-CREATE Queries
-    create new profile
-        adding favorites → use connect clause, cause the activities already exist
-    create new activity
-    add new time slot to an activity
-    perhaps a query for attending activity, CREATE query for Participations (e.g., linking a profile_id to a time_slot_id). wdyt?
-    add a new week to the schedule
- */
-
+import { formatActivity, formatSchedule } from "./utils.js";
+import { nextDateForWeekday } from "../utils/weekCalculator.js";
 
 export class CREATE {
 
-    // adding favorites
     static async newFavorite(ids: FavoriteCreateDelete): Promise<ActivityDto> {
         const { activity } = await prisma.favorite.create({
             data: {
@@ -44,45 +34,89 @@ export class CREATE {
     }
 
     static async newActivity(newAct: Activity): Promise<ActivityDto> {
-        const activity = await prisma.activityTemplate.create({
-                    data: {
-                        name: newAct.name,
-                        location: newAct.location,
-                        description: newAct.description,
-                        notes: newAct.notes,
-                        defaultStatus: newAct.defaultStatus,
-                        maxCapacity: newAct.maxCapacity,
-                        leaders: {
-                            createMany: {
-                                data: newAct.leaders.map((profileId) => ({
-                                    profileId
-                                }))
-                            }
-                        },
-                        timeSlots: {
-                            createMany: {
-                                data: newAct.timeSlots.map(el => ({
-                                    weekday: el.weekday,
-                                    startTime: new Date(`1970-01-01T${el.startAt}Z`),
-                                    endTime: new Date(`1970-01-01T${el.endAt}Z`)
-                                }))
-                            }
-                        },
+        const activity = await prisma.$transaction(async (tx) => {
+
+            // Create the activity template with leaders and time slots
+            const created = await tx.activityTemplate.create({
+                data: {
+                    name: newAct.name,
+                    location: newAct.location,
+                    description: newAct.description,
+                    notes: newAct.notes,
+                    defaultStatus: newAct.defaultStatus,
+                    maxCapacity: newAct.maxCapacity,
+                    leaders: {
+                        createMany: {
+                            data: newAct.leaders.map((profileId) => ({ profileId }))
+                        }
                     },
-                    include: {
-                        timeSlots: true,
-                        leaders: {
-                            select: {
-                                profile: {
-                                    select: {
-                                        id: true,
-                                        profileName: true
-                                    }
+                    timeSlots: {
+                        createMany: {
+                            data: newAct.timeSlots.map(el => ({
+                                weekday: el.weekday,
+                                startTime: new Date(`1970-01-01T${el.startAt}Z`),
+                                endTime: new Date(`1970-01-01T${el.endAt}Z`)
+                            }))
+                        }
+                    },
+                },
+                include: {
+                    timeSlots: true,
+                    leaders: {
+                        select: {
+                            profile: {
+                                select: {
+                                    id: true,
+                                    profileName: true
                                 }
                             }
                         }
                     }
-                });
+                }
+            });
+
+            // Generate Schedule rows for current + next 2 weeks
+            const today = new Date();
+            const todayDow = today.getUTCDay();
+            const monday = new Date(today);
+            monday.setUTCDate(today.getUTCDate() - ((todayDow + 6) % 7));
+
+            const scheduleData = [];
+
+            for (const slot of created.timeSlots) {
+                for (let week = 0; week < 3; week++) {
+                    const base = new Date(monday);
+                    base.setUTCDate(monday.getUTCDate() + week * 7);
+
+                    const date = nextDateForWeekday(base, slot.weekday);
+
+                    const start = new Date(date);
+                    start.setUTCHours(
+                        slot.startTime.getUTCHours(),
+                        slot.startTime.getUTCMinutes(),
+                        0, 0
+                    );
+
+                    const end = new Date(date);
+                    end.setUTCHours(
+                        slot.endTime.getUTCHours(),
+                        slot.endTime.getUTCMinutes(),
+                        0, 0
+                    );
+
+                    scheduleData.push({
+                        activityId: created.id,
+                        startAt: start,
+                        endAt: end,
+                        status: created.defaultStatus,
+                    });
+                }
+            }
+
+            await tx.schedule.createMany({ data: scheduleData, skipDuplicates: true });
+            return created;
+        });
+
         return formatActivity(activity);
     }
 
@@ -138,7 +172,6 @@ export class CREATE {
 
     static async registerParticipation(profileId: string, scheduleId: string, activityId: string): Promise<number> {
         return await prisma.$transaction(async (tx) => {
-            // Check schedule exists and belongs to this activity
             const schedule = await tx.schedule.findUnique({
                 where: { id: scheduleId },
                 include: { activity: true }
@@ -146,7 +179,6 @@ export class CREATE {
             if (!schedule) throw ApiError.notFound('Schedule not found')
             if (schedule.activityId !== activityId) throw ApiError.badRequest('Schedule does not belong to this activity')
 
-            // Check capacity
             if (schedule.activity.maxCapacity !== null) {
                 const count = await tx.participationLog.count({ where: { scheduleId } })
                 if (count >= schedule.activity.maxCapacity) {
@@ -154,7 +186,6 @@ export class CREATE {
                 }
             }
 
-            // Check not already registered
             const existing = await tx.participationLog.findUnique({
                 where: { profileId_scheduleId: { profileId, scheduleId } }
             })
@@ -166,6 +197,5 @@ export class CREATE {
 
             return await tx.participationLog.count({ where: { scheduleId } })
         })
-
     }
 }
