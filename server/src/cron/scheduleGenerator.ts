@@ -7,6 +7,7 @@
 import { prisma, ActivityStatus } from '../db/prisma.js';
 import { Prisma } from '../generated/prisma/index.js';
 import { nextWeek, startAndEndOfWeek } from '../utils/weekCalculator.js';
+import { cronLogger } from '../utils/logger.js';
 
 const weekdayMap: Record<string, number> = {
     MONDAY: 1,
@@ -56,13 +57,7 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
     // Sunday end is Monday 00:00:00 + (weeksAhead * 7 days) - 1 ms.
     const rangeEnd = new Date(rangeStart.getTime() + weeksAhead * 7 * 24 * 60 * 60 * 1000 - 1);
 
-    // Validate the date range spans exactly weeksAhead * 7 days
-    const diffDays = Math.round((rangeEnd.getTime() - rangeStart.getTime() + 1) / (24 * 60 * 60 * 1000));
-    if (diffDays !== weeksAhead * 7) {
-        throw new Error(`[cron] Date range mismatch: expected ${weeksAhead * 7} days, got ${diffDays}`);
-    }
-
-    console.log(`[cron] Generating schedules from ${rangeStart.toDateString()} to ${rangeEnd.toDateString()}...`);
+    cronLogger.info(`Generating schedules from ${rangeStart.toDateString()} to ${rangeEnd.toDateString()}...`);
 
     // 3. Fetch all existing schedule rows in range once — O(1) lookup via Set
     const existing = await prisma.schedule.findMany({
@@ -114,5 +109,5 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
     // 5. Batch insert all missing rows in one query
     const result = await prisma.schedule.createMany({ data: toCreate, skipDuplicates: true });
 
-    console.log(`[cron] Done — ${result.count} schedules created, ${existing.length} already existed.`);
+    cronLogger.info(`Done — ${result.count} schedules created, ${existing.length} already existed.`);
 }

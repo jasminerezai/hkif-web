@@ -61,7 +61,18 @@ describe('Schedule Generator', () => {
     const createArgs = vi.mocked(mockPrismaClient.schedule.createMany).mock.calls[0]?.[0];
     expect(createArgs).toBeDefined();
     expect(createArgs!.data).toHaveLength(1);
-    expect((createArgs!.data as any)[0].activityId).toBe(activityId);
+    
+    const generatedRow = (createArgs!.data as any)[0];
+    expect(generatedRow.activityId).toBe(activityId);
+
+    // Compute expected startAt and endAt UTC date/times for MONDAY time slot
+    const expectedStartAt = new Date(expectedRangeStart);
+    expectedStartAt.setUTCHours(9, 0, 0, 0);
+    const expectedEndAt = new Date(expectedRangeStart);
+    expectedEndAt.setUTCHours(10, 0, 0, 0);
+
+    expect(generatedRow.startAt.getTime()).toBe(expectedStartAt.getTime());
+    expect(generatedRow.endAt.getTime()).toBe(expectedEndAt.getTime());
   });
 
   it('correctly calculates range and generates schedules for 16 weeks', async () => {
@@ -105,7 +116,33 @@ describe('Schedule Generator', () => {
 
     const createArgs = vi.mocked(mockPrismaClient.schedule.createMany).mock.calls[0]?.[0];
     expect(createArgs).toBeDefined();
-    expect(createArgs!.data).toHaveLength(16);
+    
+    const generatedRows = createArgs!.data as any[];
+    expect(generatedRows).toHaveLength(16);
+
+    // Verify the startAt and endAt timestamps of the first generated week
+    const firstRow = generatedRows[0];
+    const expectedFirstStartAt = new Date(expectedRangeStart);
+    expectedFirstStartAt.setUTCHours(9, 0, 0, 0);
+    const expectedFirstEndAt = new Date(expectedRangeStart);
+    expectedFirstEndAt.setUTCHours(10, 0, 0, 0);
+
+    expect(firstRow.activityId).toBe(activityId);
+    expect(firstRow.startAt.getTime()).toBe(expectedFirstStartAt.getTime());
+    expect(firstRow.endAt.getTime()).toBe(expectedFirstEndAt.getTime());
+
+    // Verify the startAt and endAt timestamps of the last (16th) week
+    const lastRow = generatedRows[15];
+    const expectedLastStartAt = new Date(expectedRangeStart);
+    expectedLastStartAt.setUTCDate(expectedRangeStart.getUTCDate() + 15 * 7);
+    expectedLastStartAt.setUTCHours(9, 0, 0, 0);
+    const expectedLastEndAt = new Date(expectedRangeStart);
+    expectedLastEndAt.setUTCDate(expectedRangeStart.getUTCDate() + 15 * 7);
+    expectedLastEndAt.setUTCHours(10, 0, 0, 0);
+
+    expect(lastRow.activityId).toBe(activityId);
+    expect(lastRow.startAt.getTime()).toBe(expectedLastStartAt.getTime());
+    expect(lastRow.endAt.getTime()).toBe(expectedLastEndAt.getTime());
   });
 
   it('tolerates DB millisecond/microsecond variations and skips duplicate generation', async () => {
