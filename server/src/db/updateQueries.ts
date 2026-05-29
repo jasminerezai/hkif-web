@@ -1,8 +1,6 @@
-import { prisma, ActivityStatus } from "./prisma.js";
-import {Activity, ScheduleDto, ActivityDto, leaderDto} from "../types/index.js";
+import {prisma, ActivityStatus, Weekday} from "./prisma.js";
+import {Activity, ScheduleDto, ActivityDto, TimeSlot} from "../types/index.js";
 import {formatActivity, formatSchedule} from "./utils.js";
-import {ApiError} from "../utils/ApiError.js";
-import { TimeSlot } from '../generated/prisma/index.js';
 
 export class UPDATE {
     /**
@@ -25,8 +23,8 @@ export class UPDATE {
                 // @ts-ignore - this is a bit hacky, but it allows us to only include fields that are actually being updated (excludes timeSlots and leaders)
                 data: newData,
             });
-            let newLeaders: leaderDto[] = [];
-            let newTimes: TimeSlot[] = [];
+            let newLeaders: { profile: { id: string; profileName: string | null } }[] = [];
+            let newTimes: { id: string; activityId: string; weekday: Weekday; startTime: Date; endTime: Date;}[] = [];
             if (!!slots) {
                 await tx.timeSlot.deleteMany({
                     where: {activityId}
@@ -46,7 +44,7 @@ export class UPDATE {
                     await tx.leaderActivity.deleteMany({
                         where: {activityId}
                     });
-                    const tmp = await tx.leaderActivity.createManyAndReturn({
+                    newLeaders = await tx.leaderActivity.createManyAndReturn({
                         data: leaders.map(profileId => ({
                             profileId,
                             activityId
@@ -60,19 +58,16 @@ export class UPDATE {
                             }
                         }
                     });
-                    tmp.map(p => newLeaders.push(p.profile));
             }
 
             return {
                 ...general,
                 leaders: newLeaders,
                 timeSlots: newTimes
-            } satisfies ActivityDto;
+            }
         })
 
-        // do we still need this check?
-        if (!newAct) throw ApiError.notFound(`Activity to update not Found`);
-        else return formatActivity(newAct);
+        return formatActivity(newAct);
     }
 
     /**
@@ -89,8 +84,8 @@ export class UPDATE {
                     createMany: {
                         data: newData.map(el => ({
                             weekday: el.weekday,
-                            startTime: new Date(`1970-01-01T${el.startTime}Z`),
-                            endTime: new Date(`1970-01-01T${el.endTime}Z`)
+                            startTime: new Date(`1970-01-01T${el.startAt}Z`),
+                            endTime: new Date(`1970-01-01T${el.endAt}Z`)
                         }))
                     }
                 }

@@ -5,8 +5,8 @@ export function prismaErrorFormatter(error: Prisma.PrismaClientKnownRequestError
     const nicerMsg = error.message.split('\n');
     const simpleErr =  {
         code: error.code,
-        name: driverAdaptErr?.cause.kind ?? error.code,
-        message: nicerMsg[nicerMsg.length - 1]
+        name: driverAdaptErr?.cause?.kind ?? error.code,
+        message: nicerMsg[nicerMsg.length - 1] ?? error.message
     }
     const errObject = {
         error: `${simpleErr.name} : ${simpleErr.message}`,
@@ -16,7 +16,7 @@ export function prismaErrorFormatter(error: Prisma.PrismaClientKnownRequestError
 
     // Reference: https://www.prisma.io/docs/orm/reference/error-reference
     const statusMap: Record<number, number> = {
-        2001: 404, 2002: 409, 2003: 409, 2014: 409,
+        2001: 404, 2002: 409, 2003: 400, 2014: 409,
         2015: 404, 2016: 404, 2018: 404, 2021: 404, 2022: 404,
         2024: 500, 2025: 404, 2026: 500, 2027: 500, 2028: 500, 2030: 404,
     };
