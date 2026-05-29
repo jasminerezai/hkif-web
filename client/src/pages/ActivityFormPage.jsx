@@ -177,7 +177,6 @@ export default function ActivityFormPage() {
           leaders: selectedLeaderIds,
           timeSlots,
         }
-    console.log(body);
     try {
       const url = isEditMode
         ? `${API_BASE_URL}/api/activities/${activityId}`

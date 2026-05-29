@@ -44,8 +44,7 @@ export class CREATE {
     }
 
     static async newActivity(newAct: Activity): Promise<ActivityDto> {
-        const activity = await prisma.$transaction(async (tx) => {
-                return tx.activityTemplate.create({
+        const activity = await prisma.activityTemplate.create({
                     data: {
                         name: newAct.name,
                         location: newAct.location,
@@ -84,7 +83,6 @@ export class CREATE {
                         }
                     }
                 });
-        });
         return formatActivity(activity);
     }
 

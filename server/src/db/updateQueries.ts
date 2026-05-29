@@ -40,6 +40,12 @@ export class UPDATE {
                 })
             }
 
+            if(!slots){
+                newTimes = await tx.timeSlot.findMany({
+                    where: {activityId},
+                })
+            }
+
             if (!!leaders) {
                     await tx.leaderActivity.deleteMany({
                         where: {activityId}
@@ -58,6 +64,19 @@ export class UPDATE {
                             }
                         }
                     });
+            }
+            if(!leaders){
+                newLeaders = await tx.leaderActivity.findMany({
+                    where: {activityId},
+                    select: {
+                        profile: {
+                            select: {
+                                id: true,
+                                profileName: true
+                            }
+                        }
+                    }
+                })
             }
 
             return {

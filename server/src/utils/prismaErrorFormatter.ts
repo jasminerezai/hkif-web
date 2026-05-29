@@ -1,15 +1,13 @@
-import { Prisma } from '../generated/prisma/index.js'
+import { Prisma } from '../generated/prisma/index.js';
 
 export function prismaErrorFormatter(error: Prisma.PrismaClientKnownRequestError): {error: string, statusCode: number} {
-    const driverAdaptErr = error.meta?.driverAdapterError as any;
     const nicerMsg = error.message.split('\n');
     const simpleErr =  {
         code: error.code,
-        name: driverAdaptErr?.cause?.kind ?? error.code,
         message: nicerMsg[nicerMsg.length - 1] ?? error.message
     }
     const errObject = {
-        error: `${simpleErr.name} : ${simpleErr.message}`,
+        error: `${simpleErr.code} : ${simpleErr.message}`,
         statusCode: 400
     }
     const codeAsNum: number = Number(simpleErr.code.slice(1));
