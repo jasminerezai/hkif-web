@@ -7,7 +7,7 @@ export class UPDATE {
      * Updates an Activity.
      * @param activityId
      * @param newData Partial<Activity> --> where Activity is the type from activity.types.ts
-     * @return ActivityDto --> THE ID FROM THE TIME SLOTS MAY BE AN EMPTY STRING (IF THE
+     * @return ActivityDto
      */
     static async updateActivity(activityId: string, newData: Partial<Activity>): Promise<ActivityDto> {
         // These fields require special handling, so we extract them from the update payload first  
