@@ -49,6 +49,54 @@ function getMondayOfCurrentWeek() {
   d.setHours(0, 0, 0, 0)
   return d
 }
+
+function formatScheduleData(singleSchedule) {
+  const startDate = new Date(singleSchedule.startAt)
+  const formattedDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`
+
+  return {
+    id: singleSchedule.id,
+    activityId: singleSchedule.activityId,
+    title: singleSchedule.activity?.name || 'Activity',
+    sport: singleSchedule.activity?.name || 'Sport',
+    leader: singleSchedule.leaders
+      ?.map(leader => leader.profileName || 'Leader')
+      .join(', ') || 'Leader',
+    date: formattedDate,
+    time: startDate.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    location: singleSchedule.activity?.location || 'Unknown',
+    maxCapacity: singleSchedule.activity?.maxCapacity ?? null,
+    participantCount: singleSchedule.participantCount ?? 0,
+    cancelled: singleSchedule.status === 'CANCELLED',
+    notes: singleSchedule.activity?.notes || '',
+  }
+}
+
+function getWeeksForMonth(date) {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+
+  // Find the Monday of the week containing firstDay
+  const monday = new Date(firstDay)
+  const day = monday.getDay()
+  const diff = monday.getDate() - day + (day === 0 ? -6 : 1)
+  monday.setDate(diff)
+  monday.setHours(0, 0, 0, 0)
+
+  const weeks = []
+  const current = new Date(monday)
+  while (current <= lastDay) {
+    weeks.push(new Date(current))
+    current.setDate(current.getDate() + 7)
+  }
+  return weeks
+}
+
 export default function SchedulePage() {
 
   // ── View State ────────────────────────────────────────────
@@ -163,114 +211,81 @@ export default function SchedulePage() {
 
   // ── Fetch Current Schedule ───────────────────────────────
   useEffect(() => {
+    let active = true
 
     async function fetchSchedule() {
 
       try {
-        // Single fetch — API_BASE_URL is '' in dev so the
-        // vite proxy handles it, and the deployed backend
-        // origin in production.
-        const dateParam = `${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`
-        const response = await fetch(
-          `${API_BASE_URL}/api/schedules?date=${dateParam}&entireWeek=true`
-        )
+        setLoading(true)
+        if (view === 'weekly') {
+          // Single fetch — API_BASE_URL is '' in dev so the
+          // vite proxy handles it, and the deployed backend
+          // origin in production.
+          const dateParam = `${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`
+          const response = await fetch(
+            `${API_BASE_URL}/api/schedules?date=${dateParam}&entireWeek=true`
+          )
 
-        const { data } = await response.json()
+          const { data } = await response.json()
 
-        console.log('Schedule API:', data)
+          console.log('Schedule API (weekly):', data)
 
-        // If backend returns schedule data
-        if (response.ok && Array.isArray(data)) {
+          // If backend returns schedule data
+          if (active && response.ok && Array.isArray(data)) {
+            const formattedActivities = data.map(formatScheduleData)
+            setActivities(formattedActivities)
+          }
+        } else {
+          // Monthly view: fetch all weeks intersecting with the month in parallel
+          const weeks = getWeeksForMonth(currentMonth)
+          const fetchPromises = weeks.map(async (week) => {
+            const dateParam = `${week.getFullYear()}-${String(week.getMonth() + 1).padStart(2, '0')}-${String(week.getDate()).padStart(2, '0')}`
+            const response = await fetch(
+              `${API_BASE_URL}/api/schedules?date=${dateParam}&entireWeek=true`
+            )
+            if (!response.ok) {
+              throw new Error(`Failed to fetch for week ${dateParam}`)
+            }
+            const { data } = await response.json()
+            return Array.isArray(data) ? data : []
+          })
 
-          // Transform backend format → frontend format
-          const formattedActivities = data.map(singleSchedule => ({
+          const weeklyDataArrays = await Promise.all(fetchPromises)
+          if (!active) return
 
-            id: singleSchedule.id,
+          const combinedData = weeklyDataArrays.flat()
+          console.log('Schedule API (monthly combined):', combinedData)
 
-            // activityId is the *template activity* id — the same
-            // ID that the favorites endpoint stores. We keep it
-            // so the "Favorites only" filter can match correctly.
-            activityId: singleSchedule.activityId,
-
-            title:
-              singleSchedule.activity?.name || 'Activity',
-
-            sport:
-              singleSchedule.activity?.name || 'Sport',
-
-            leader:
-              singleSchedule.leaders
-                ?.map(leader => leader.profileName || 'Leader')
-                .join(', ') || 'Leader',
-
-            date: (() => {
-
-              const startDate = new Date(singleSchedule.startAt)
-
-              return `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')
-                }-${String(startDate.getDate()).padStart(2, '0')
-                }`
-
-            })(),
-
-            time: new Date(singleSchedule.startAt)
-              .toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-
-            location:
-              singleSchedule.activity?.location || 'Unknown',
-
-            // Max capacity from the activity template + the number
-            // of currently registered participants. We compute
-            // "spots left" at render time as the difference between
-            // these two. Both fields drive the disable-when-full
-            // logic on the Attend button.
-            //
-            // NOTE: the /api/schedules/current endpoint doesn't
-            // include participantCount yet, so we default it to 0
-            // on initial load. The count updates correctly the
-            // moment the user clicks Attend / Leave (the response
-            // from /participate returns the authoritative count).
-            // Backend ticket needed to include participantCount in
-            // the schedule list response for accurate first paint.
-            maxCapacity:
-              singleSchedule.activity?.maxCapacity ?? null,
-            participantCount:
-              singleSchedule.participantCount ?? 0,
-
-            cancelled:
-              singleSchedule.status === 'CANCELLED',
-
-            notes:
-              singleSchedule.activity?.notes || '',
-
-          }))
-
+          const formattedActivities = combinedData.map(formatScheduleData)
           setActivities(formattedActivities)
         }
 
       } catch (error) {
-
-        // Public endpoint, but the network could still fail or the
-        // backend could 500. Previously this was silent + the page
-        // just rendered empty — now we tell the user with a toast
-        // so they know to retry instead of staring at mock data.
-        console.error('Failed to fetch schedule:', error)
-        showToast(
-          'Couldn\'t load the schedule. Please try again.',
-          'error',
-        )
+        if (active) {
+          // Public endpoint, but the network could still fail or the
+          // backend could 500. Previously this was silent + the page
+          // just rendered empty — now we tell the user with a toast
+          // so they know to retry instead of staring at mock data.
+          console.error('Failed to fetch schedule:', error)
+          showToast(
+            'Couldn\'t load the schedule. Please try again.',
+            'error',
+          )
+        }
       } finally {
-        setLoading(false)
+        if (active) {
+          setLoading(false)
+        }
       }
     }
 
     fetchSchedule()
 
+    return () => {
+      active = false
+    }
 
-  }, [currentWeekStart])
+  }, [view, currentWeekStart, currentMonth])
 
   // ── Fetch Favorites (logged-in users only) ───────────────
   // Mirrors the pattern already used in ActivitiesPage so the
