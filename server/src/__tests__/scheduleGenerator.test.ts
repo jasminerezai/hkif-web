@@ -45,6 +45,12 @@ describe('Schedule Generator', () => {
     expect(rangeStart).toBeDefined();
     expect(rangeEnd).toBeDefined();
 
+    // Verify rangeStart is the Monday of next week
+    const now = new Date();
+    const daysUntilMonday = (8 - now.getUTCDay()) % 7 || 7;
+    const expectedRangeStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday));
+    expect(rangeStart.getTime()).toBe(expectedRangeStart.getTime());
+
     // The range should span exactly 7 days minus 1 millisecond
     const diffMs = rangeEnd.getTime() - rangeStart.getTime() + 1;
     const diffDays = diffMs / (24 * 60 * 60 * 1000);
@@ -86,6 +92,12 @@ describe('Schedule Generator', () => {
     const rangeStart = findArgs!.where!.startAt!.gte as Date;
     const rangeEnd = findArgs!.where!.startAt!.lte as Date;
 
+    // Verify rangeStart is the Monday of next week
+    const now = new Date();
+    const daysUntilMonday = (8 - now.getUTCDay()) % 7 || 7;
+    const expectedRangeStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday));
+    expect(rangeStart.getTime()).toBe(expectedRangeStart.getTime());
+
     // The range should span exactly 16 * 7 days minus 1 millisecond
     const diffMs = rangeEnd.getTime() - rangeStart.getTime() + 1;
     const diffDays = diffMs / (24 * 60 * 60 * 1000);
@@ -117,17 +129,13 @@ describe('Schedule Generator', () => {
       },
     ]);
 
-    // Let's pre-calculate the expected generated startAt date to mock it in the DB response
-    // For weeksAhead = 1, nextWeek(now, 1) Monday is target base.
-    const { startAndEndOfWeek, nextWeek } = await import('../utils/weekCalculator.js');
-    const baseMonday = startAndEndOfWeek(nextWeek(now, 1)).startDay;
-    
-    // nextDateForWeekday(baseMonday, 'TUESDAY')
-    const slotDate = new Date(baseMonday);
-    const diff = (2 - slotDate.getDay() + 7) % 7;
-    slotDate.setDate(slotDate.getDate() + diff);
+    // Get next Monday from now without using the utility under test
+    const daysUntilMonday = (8 - now.getUTCDay()) % 7 || 7;
+    const baseMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday));
 
-    const expectedStartAt = new Date(slotDate);
+    // Tuesday is baseMonday + 1 day
+    const expectedStartAt = new Date(baseMonday);
+    expectedStartAt.setUTCDate(baseMonday.getUTCDate() + 1);
     expectedStartAt.setUTCHours(14, 30, 0, 0);
 
     // Mock existing schedule in DB having different millisecond/microsecond precision

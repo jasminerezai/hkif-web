@@ -28,11 +28,9 @@ function nextDateForWeekday(base: Date, weekday: string): Date {
     return date;
 }
 
-// normalizes a date for reliable deduplication, zeroing seconds and milliseconds
+// normalizes a date for reliable deduplication, keying on explicit date parts to be resilient to precision variations
 function getDeduplicationKey(activityId: string, date: Date): string {
-    const normalized = new Date(date);
-    normalized.setUTCSeconds(0, 0);
-    return `${activityId}|${normalized.getTime()}`;
+    return `${activityId}|${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}-${date.getUTCHours()}-${date.getUTCMinutes()}`;
 }
 
 // generateWeeklySchedules
@@ -61,7 +59,7 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
     // Validate the date range spans exactly weeksAhead * 7 days
     const diffDays = Math.round((rangeEnd.getTime() - rangeStart.getTime() + 1) / (24 * 60 * 60 * 1000));
     if (diffDays !== weeksAhead * 7) {
-        console.error(`[cron] Warning: Date range calculation mismatch. Expected ${weeksAhead * 7} days, got ${diffDays}`);
+        throw new Error(`[cron] Date range mismatch: expected ${weeksAhead * 7} days, got ${diffDays}`);
     }
 
     console.log(`[cron] Generating schedules from ${rangeStart.toDateString()} to ${rangeEnd.toDateString()}...`);
@@ -114,7 +112,7 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
     }
 
     // 5. Batch insert all missing rows in one query
-    await prisma.schedule.createMany({ data: toCreate, skipDuplicates: true });
+    const result = await prisma.schedule.createMany({ data: toCreate, skipDuplicates: true });
 
-    console.log(`[cron] Done — ${toCreate.length} schedules created, ${existing.length} already existed.`);
+    console.log(`[cron] Done — ${result.count} schedules created, ${existing.length} already existed.`);
 }
