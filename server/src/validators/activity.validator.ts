@@ -1,14 +1,8 @@
 import * as z from "zod";
+import {regTime} from "../utils/reggex.js";
 
 const checkTimeFormat = (time: string) => {
-    const timeSplit = time.split(":");
-    if (timeSplit.length !== 3) return false;
-    const [hours, minutes, seconds] = timeSplit.map(Number);
-    return (
-        Number.isInteger(hours) && hours! >= 0 && hours! <= 23 &&
-        Number.isInteger(minutes) && minutes! >= 0 && minutes! <= 59 &&
-        Number.isInteger(seconds) && seconds! >= 0 && seconds! <= 59
-    );
+    return regTime(time);
 };
 
 export const CreateActivitySchema = z.object({

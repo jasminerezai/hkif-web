@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { prisma, ProfileRole, ActivityStatus } from '../db/prisma.js';
-import { ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, Activity, ActivityDto, ActivityParticipantsDto } from '../types/index.js';
+import {
+  ApiResponse, UpdateScheduleStatusBody, UpdateScheduleStatusDto, ActivityDto, ActivityParticipantsDto, Activity,
+} from '../types/index.js';
 import {
   CreateActivitySchema,
   DeleteActivitySchema,
@@ -143,7 +145,8 @@ export const newActivity = asyncHandler(
     try {
       newActivity = CreateActivitySchema.parse(req.body);
     } catch (error) {
-      throw ApiError.badRequest(`Invalid request body: ${error}`);
+      if(error instanceof ZodError) throw ApiError.badRequest(`Invalid request body: ${JSON.stringify(parseZodError(error))}`);
+      else throw ApiError.internal(`Something went wrong creating your activity: ${error}`);
     }
 
     // If no leaders provided, assign the creator as the leader
@@ -207,12 +210,7 @@ export const deleteActivity = asyncHandler(
       throw ApiError.badRequest(`Invalid request params: ${error}`);
     }
 
-    // Check if activity exists before attempting deletion
-    const existingActivity = await READ.activityById(deleteParams.activityId);
-    if (!existingActivity) {
-      throw ApiError.notFound(`Activity with id ${deleteParams.activityId} not found`);
-    }
-
+    // If it fails, it throws an error, which bubbles up to the errorHandler
     await DELETE.deleteActivity(deleteParams.activityId);
     res.status(200).json({
       status: "success",

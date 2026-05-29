@@ -27,7 +27,7 @@ export default function ActivityFormPage() {
   const navigate = useNavigate()
   const { id: activityId } = useParams()
   const isEditMode = Boolean(activityId)
-  const isLeader = user?.role === ROLES.LEADER
+  const isLeader = user?.role === ROLES.LEADER;
 
   // Shared mid-session expiry handler:
   //   logout → toast → navigate('/login', { state: { from }})
@@ -88,6 +88,7 @@ export default function ActivityFormPage() {
               endAt:   new Date(slot.endTime).toISOString().slice(11, 19),
             })))
           }
+          setSelectedLeaderIds(a.leaders.map( l => l.id));
         }
       })
       .catch(() => setServerError('Failed to load activity.'))
@@ -111,7 +112,6 @@ export default function ActivityFormPage() {
         if (!json) return
 
         if (json.status === 'success') {
-          //console.log(json.data)
           setLeaders(json.data)
         }
       })
@@ -158,7 +158,6 @@ export default function ActivityFormPage() {
     }
 
     setLoading(true)
-
     const body = isLeader
       ? {
           location: location.trim(),
@@ -178,7 +177,6 @@ export default function ActivityFormPage() {
           leaders: selectedLeaderIds,
           timeSlots,
         }
-
     try {
       const url = isEditMode
         ? `${API_BASE_URL}/api/activities/${activityId}`
@@ -359,9 +357,23 @@ export default function ActivityFormPage() {
           Assign leader
           </label>
 
+          {/*
+            Dropdown is a PICKER only — it always shows the "Select leader"
+            placeholder (value="") and never binds to the array. This avoids
+            the "value prop must be a scalar" warning we hit when an array was
+            passed to a non-multiple <select>. The actual selection lives in
+            selectedLeaderIds and is rendered as removable chips below.
+          */}
           <select
-            value={selectedLeaderIds[0] || ''}
-            onChange={(e) => setSelectedLeaderIds([e.target.value])}
+            value=""
+            onChange={(e) => {
+              const id = e.target.value
+              if (!id) return // ignore the placeholder
+              // Set guarantees no duplicate leader ids
+              const next = new Set(selectedLeaderIds)
+              next.add(id)
+              setSelectedLeaderIds([...next])
+            }}
             disabled={loading || isLeader}
             style={{
               padding: '9px 13px',
@@ -371,18 +383,90 @@ export default function ActivityFormPage() {
               fontFamily: 'var(--font-body)',
               background: 'var(--color-surface-raised)',
               color: 'var(--color-text)',
+              cursor: loading || isLeader ? 'not-allowed' : 'pointer',
             }}
           >
             <option value="">Select leader</option>
 
-            {leaders.map((leader) => (
-              <option key={leader.id} value={leader.id}>
-                {leader.email}
-              </option>
-            ))}
-              </select>
-              
-              
+            {/*
+              Hide leaders that are already selected so the dropdown only
+              ever offers leaders you can still add.
+            */}
+            {leaders
+              .filter((leader) => !selectedLeaderIds.includes(leader.id))
+              .map((leader) => (
+                <option key={leader.id} value={leader.id}>
+                  {leader.email}
+                </option>
+              ))}
+          </select>
+
+          {/*
+            Selected-leader chips. Each chip has a × button that removes
+            that leader from selectedLeaderIds — this is the "unselect" path
+            that the old single-add onChange was missing. Removed leaders
+            reappear in the dropdown automatically (see the filter above).
+          */}
+          {selectedLeaderIds.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 'var(--space-2)',
+                marginTop: 'var(--space-2)',
+              }}
+            >
+              {selectedLeaderIds.map((leaderId) => {
+                // Look up the email for display. Fallback to the id in the
+                // edge case where the leaders list hasn't loaded yet.
+                const leader = leaders.find((l) => l.id === leaderId)
+                const label = leader ? leader.email : leaderId
+
+                return (
+                  <span
+                    key={leaderId}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-1)',
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--color-surface-raised)',
+                      border: '1.5px solid var(--color-border)',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text)',
+                    }}
+                  >
+                    {label}
+                    {/* Hide the remove button for leaders, who can't edit this field */}
+                    {!isLeader && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedLeaderIds(
+                            selectedLeaderIds.filter((id) => id !== leaderId)
+                          )
+                        }
+                        disabled={loading}
+                        aria-label={`Remove ${label}`}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          cursor: loading ? 'not-allowed' : 'pointer',
+                          fontSize: 'var(--text-base)',
+                          lineHeight: 1,
+                          color: 'var(--color-text-muted)',
+                          padding: 0,
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </span>
+                )
+              })}
+            </div>
+          )}   
             </div>
             
                         {isLeader && (

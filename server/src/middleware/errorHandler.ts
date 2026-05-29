@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/ApiError.js';
+import { Prisma } from '../generated/prisma/index.js';
+import { prismaErrorFormatter } from "../utils/prismaErrorFormatter.js";
 
 /**
  * Global error handler middleware.
@@ -16,6 +18,11 @@ export function errorHandler(
       error: err.message,
       statusCode: err.statusCode,
     });
+    return;
+  }
+  if( err instanceof Prisma.PrismaClientKnownRequestError ){
+    const prismaErr = prismaErrorFormatter(err);
+    res.status(prismaErr.statusCode).json(prismaErr);
     return;
   }
 

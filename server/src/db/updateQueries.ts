@@ -1,49 +1,73 @@
-import { prisma, ActivityStatus } from "./prisma.js";
-import {Activity, TimeSlot, ScheduleDto, ActivityDto} from "../types/index.js";
+import {prisma, ActivityStatus, Weekday} from "./prisma.js";
+import {Activity, ScheduleDto, ActivityDto, TimeSlot} from "../types/index.js";
 import {formatActivity, formatSchedule} from "./utils.js";
-import {ApiError} from "../utils/ApiError.js";
 
 export class UPDATE {
     /**
      * Updates an Activity.
      * @param activityId
-     * @param newData Partial<Activity> --> where Activity is the type from th DB
+     * @param newData Partial<Activity> --> where Activity is the type from activity.types.ts
+     * @return ActivityDto
      */
     static async updateActivity(activityId: string, newData: Partial<Activity>): Promise<ActivityDto> {
         // These fields require special handling, so we extract them from the update payload first  
-        const timeSlots = newData.timeSlots;
+        const slots = newData.timeSlots;
         delete newData.timeSlots;
 
         const leaders = newData.leaders;
         delete newData.leaders;
-
         // Update general fields of the activity
-        await prisma.activityTemplate.update({
-            where: { id: activityId },
-            // @ts-ignore - this is a bit hacky, but it allows us to only include fields that are actually being updated (excludes timeSlots and leaders)
-            data: newData,
-        });
-
-        if (!!timeSlots) {
-            await this.addTimeSlots(activityId, timeSlots);
-        }
-
-        if (!!leaders) {
-            await prisma.leaderActivity.deleteMany({
-                where: { activityId }
+        const newAct = await prisma.$transaction( async (tx) => {
+            const general = await tx.activityTemplate.update({
+                where: {id: activityId},
+                // @ts-ignore - this is a bit hacky, but it allows us to only include fields that are actually being updated (excludes timeSlots and leaders)
+                data: newData,
             });
-            await prisma.leaderActivity.createMany({
-                data: leaders.map(profileId => ({
-                    profileId,
-                    activityId
-                }))
-            });
-        }
-        const newAct = await prisma.activityTemplate.findUnique({
-            where: { id: activityId },
-            include: {
-                timeSlots: true,
-                leaders: {
+            let newLeaders: { profile: { id: string; profileName: string | null } }[] = [];
+            let newTimes: { id: string; activityId: string; weekday: Weekday; startTime: Date; endTime: Date;}[] = [];
+            if (!!slots) {
+                await tx.timeSlot.deleteMany({
+                    where: {activityId}
+                });
+
+                newTimes =  await tx.timeSlot.createManyAndReturn({
+                    data: slots.map(el => ({
+                        activityId,
+                        weekday: el.weekday,
+                        startTime: new Date(`1970-01-01T${el.startAt}Z`),
+                        endTime: new Date(`1970-01-01T${el.endAt}Z`)
+                    }))
+                })
+            }
+
+            if(!slots){
+                newTimes = await tx.timeSlot.findMany({
+                    where: {activityId},
+                })
+            }
+
+            if (!!leaders) {
+                    await tx.leaderActivity.deleteMany({
+                        where: {activityId}
+                    });
+                    newLeaders = await tx.leaderActivity.createManyAndReturn({
+                        data: leaders.map(profileId => ({
+                            profileId,
+                            activityId
+                        })),
+                        select: {
+                            profile: {
+                                select: {
+                                    id: true,
+                                    profileName: true
+                                }
+                            }
+                        }
+                    });
+            }
+            if(!leaders){
+                newLeaders = await tx.leaderActivity.findMany({
+                    where: {activityId},
                     select: {
                         profile: {
                             select: {
@@ -52,11 +76,17 @@ export class UPDATE {
                             }
                         }
                     }
-                }
+                })
             }
-        });
-        if(!newAct) throw ApiError.notFound(`Activity to update not Found`);
-        else return formatActivity(newAct);
+
+            return {
+                ...general,
+                leaders: newLeaders,
+                timeSlots: newTimes
+            }
+        })
+
+        return formatActivity(newAct);
     }
 
     /**
@@ -67,7 +97,7 @@ export class UPDATE {
      */
     static async addTimeSlots(activityId: string, newData: TimeSlot[]) {
         return prisma.activityTemplate.update({
-            where: { id: activityId },
+            where: {id: activityId},
             data: {
                 timeSlots: {
                     createMany: {

@@ -1,4 +1,4 @@
-import { Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto } from "../types/index.js";
+import {Activity, FavoriteCreateDelete, ActivityDto, ScheduleDto} from "../types/index.js";
 import { prisma, ActivityStatus } from "./prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import { formatActivity, formatSchedule } from "./utils.js";

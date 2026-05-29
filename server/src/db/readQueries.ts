@@ -171,7 +171,6 @@ export class READ {
                 }
             }
         });
-        //this is one line if-else statement right?
         return activity ? formatActivity(activity) : null;
     }
     /**
