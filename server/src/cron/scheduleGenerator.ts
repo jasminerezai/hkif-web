@@ -28,6 +28,13 @@ function nextDateForWeekday(base: Date, weekday: string): Date {
     return date;
 }
 
+// normalizes a date for reliable deduplication, zeroing seconds and milliseconds
+function getDeduplicationKey(activityId: string, date: Date): string {
+    const normalized = new Date(date);
+    normalized.setUTCSeconds(0, 0);
+    return `${activityId}|${normalized.getTime()}`;
+}
+
 // generateWeeklySchedules
 // Generates Schedule rows for one or more upcoming weeks.
 //
@@ -47,7 +54,15 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
 
     // 2. Compute the full date range we're about to generate
     const rangeStart = startAndEndOfWeek(nextWeek(now, 1)).startDay;
-    const rangeEnd = startAndEndOfWeek(nextWeek(now, weeksAhead)).endDay;
+    // Calculate rangeEnd directly based on weeksAhead * 7 days to avoid any DST, timezone, or day-of-week calculation errors.
+    // Sunday end is Monday 00:00:00 + (weeksAhead * 7 days) - 1 ms.
+    const rangeEnd = new Date(rangeStart.getTime() + weeksAhead * 7 * 24 * 60 * 60 * 1000 - 1);
+
+    // Validate the date range spans exactly weeksAhead * 7 days
+    const diffDays = Math.round((rangeEnd.getTime() - rangeStart.getTime() + 1) / (24 * 60 * 60 * 1000));
+    if (diffDays !== weeksAhead * 7) {
+        console.error(`[cron] Warning: Date range calculation mismatch. Expected ${weeksAhead * 7} days, got ${diffDays}`);
+    }
 
     console.log(`[cron] Generating schedules from ${rangeStart.toDateString()} to ${rangeEnd.toDateString()}...`);
 
@@ -57,7 +72,7 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
         select: { activityId: true, startAt: true },
     });
     const existingSet = new Set(
-        existing.map(s => `${s.activityId}|${s.startAt.toISOString()}`)
+        existing.map(s => getDeduplicationKey(s.activityId, s.startAt))
     );
 
     // 4. Build the full list of rows to insert
@@ -86,7 +101,7 @@ export async function generateWeeklySchedules(weeksAhead: number = 1): Promise<v
                     0, 0,
                 );
 
-                if (existingSet.has(`${activity.id}|${startAt.toISOString()}`)) continue;
+                if (existingSet.has(getDeduplicationKey(activity.id, startAt))) continue;
 
                 toCreate.push({
                     activityId: activity.id,
