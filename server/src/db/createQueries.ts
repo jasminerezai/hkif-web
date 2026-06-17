@@ -179,6 +179,17 @@ export class CREATE {
             if (!schedule) throw ApiError.notFound('Schedule not found')
             if (schedule.activityId !== activityId) throw ApiError.badRequest('Schedule does not belong to this activity')
 
+            const now = Date.now()
+            if ( schedule.startAt.getTime() < now   ) throw ApiError.badRequest(`The event is in the Past`)
+            if( schedule.endAt && schedule.endAt.getTime() < now){
+                throw ApiError.badRequest(`The event is in the Past`)
+            }
+            if ( !schedule.endAt ) {
+                //default end time is two hours after the start time
+                const defaultEnd = new Date(schedule.startAt).setUTCHours(schedule.startAt.getUTCHours() + 2 )
+                if(defaultEnd < now) throw ApiError.badRequest(`The event is in the Past`)
+            }
+
             if (schedule.activity.maxCapacity !== null) {
                 const count = await tx.participationLog.count({ where: { scheduleId } })
                 if (count >= schedule.activity.maxCapacity) {

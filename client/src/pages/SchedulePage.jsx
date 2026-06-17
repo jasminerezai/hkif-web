@@ -871,6 +871,14 @@ export default function SchedulePage() {
                     const isFull = hasCapacityData
                       && activity.participantCount >= activity.maxCapacity
 
+                    const time = activity.time.split(' ')[0].split(':')
+                    //default ending time is two hours, this is the magic number here
+                    time[0] = Number(time[0]) + 2;
+                    //needed to properly convert the updated endAt to a string that is usable in date creation
+                    if(time[0]<10) time[0] = `0${time[0]}`
+                    const str = new Date(`${activity.date}T${time[0]}:${time[1]}`);
+                    const isInThePast = str.getTime() < today.getTime();
+
                     return (
 
                       <div
@@ -969,17 +977,21 @@ export default function SchedulePage() {
                         {!activity.cancelled && (
                           <Button
                             size="sm"
-                            variant={isAttending ? 'ghost' : 'primary'}
+                            variant={isAttending || isInThePast ? 'ghost' : 'primary'}
                             // Disable when the schedule is full AND the
                             // user isn't already attending. Attendees
                             // can still leave a full session.
-                            disabled={(!isAttending && isFull) || attendanceLoading[activity.id]}
+                            disabled={(!isAttending && isFull) || isInThePast || attendanceLoading[activity.id]}
                             style={{ marginTop: '8px' }}
                             onClick={() => handleToggleAttendance(activity)}
                           >
-                            {isAttending
-                              ? 'Leave'
-                              : (isFull ? 'Full' : 'Attend')}
+                            {
+                               isInThePast ? 'Past' : (
+                                   isAttending
+                                       ? 'Leave'
+                                       : (isFull ? 'Full' : 'Attend')
+                               )
+                            }
                           </Button>
                         )}
 
