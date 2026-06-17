@@ -871,12 +871,25 @@ export default function SchedulePage() {
                     const isFull = hasCapacityData
                       && activity.participantCount >= activity.maxCapacity
 
-                    const time = activity.time.split(' ')[0].split(':')
+                    const time = activity.time.split(' ')
+                    let hour = time[0].split(':')
+                    const minute = hour[1]
+                    hour = hour[0]
+
+                    const pmAMMap = {
+                      "01": "13", "02": "14", "03": "15", "04": "16",
+                      "05": "17", "06": "18", "07": "19", "08": "20", "09": "21",
+                      "10": "22", "11":"23"
+                    }
+                    if (time[1] === "PM"){
+                      hour = pmAMMap[hour]
+                    }
+                    if( time[1] === "AM" && hour === "12"){ hour = "00" }
                     //default ending time is two hours, this is the magic number here
-                    time[0] = Number(time[0]) + 2;
+                    hour = Number(hour) + 2;
                     //needed to properly convert the updated endAt to a string that is usable in date creation
                     if(time[0]<10) time[0] = `0${time[0]}`
-                    const str = new Date(`${activity.date}T${time[0]}:${time[1]}`);
+                    const str = new Date(`${activity.date}T${hour}:${minute}`);
                     const isInThePast = str.getTime() < today.getTime();
 
                     return (
