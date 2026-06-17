@@ -28,7 +28,7 @@ import { useAuthExpiredHandler } from '../hooks/useAuthExpiredHandler.js'
 
 export default function ProfilePage() {
 
-// ── Auth ────────────────────────────────────────────────
+  // ── Auth ────────────────────────────────────────────────
   const { user, token, getAuthHeader } = useAuth()
   const navigate = useNavigate()
 
@@ -58,7 +58,7 @@ export default function ProfilePage() {
   // Loading state
   const [loading, setLoading]
     = useState(true)
-  
+
   const [error, setError] = useState(null)
 
   // ── Manage Activities state (ADMIN / BOARD_MEMBER only) ─
@@ -76,8 +76,8 @@ export default function ProfilePage() {
 
   const [manageLoading, setManageLoading]
     = useState(false)
-  
-  
+
+
   const [leaderActivities, setLeaderActivities] = useState([])
 
   const handleAuthExpired = useAuthExpiredHandler()
@@ -187,29 +187,29 @@ export default function ProfilePage() {
 
   // Fetch leader
 
-useEffect(() => {
-  if (user?.role !== ROLES.LEADER) return
+  useEffect(() => {
+    if (user?.role !== ROLES.LEADER) return
 
-  async function loadLeaderActivities() {
-    try {
-      const data = await fetchLeaderActivities(
-        getAuthHeader,
-        user.id,
-        handleAuthExpired
-      )
+    async function loadLeaderActivities() {
+      try {
+        const data = await fetchLeaderActivities(
+          getAuthHeader,
+          user.id,
+          handleAuthExpired
+        )
 
-      setLeaderActivities(data)
+        setLeaderActivities(data)
 
-    } catch (error) {
-      console.error(
-        'Failed to load leader activities:',
-        error
-      )
+      } catch (error) {
+        console.error(
+          'Failed to load leader activities:',
+          error
+        )
+      }
     }
-  }
 
-  loadLeaderActivities()
-}, [user, getAuthHeader, handleAuthExpired])
+    loadLeaderActivities()
+  }, [user, getAuthHeader, handleAuthExpired])
 
   // ── Remove Favorite ─────────────────────────────────────
   async function handleRemoveFavorite(activityId) {
@@ -241,7 +241,7 @@ useEffect(() => {
 
 
 
-// ── Loading State ───────────────────────────────────────
+  // ── Loading State ───────────────────────────────────────
   // Renders the full page shape as shimmering placeholders so
   // the layout doesn't jump when /api/users/me resolves.
   // canManage is already available here — AuthContext hydrates
@@ -251,22 +251,33 @@ useEffect(() => {
   }
   // ── Error State ───────────────────────────────────────
   if (error) {
-  return (
-    <div
-      style={{
-        padding: 'var(--space-6)',
-        maxWidth: '1100px',
-        margin: '0 auto',
-      }}
-    >
-      <Card padding="lg">
-        <p>{error}</p>
-      </Card>
-    </div>
-  )
-}
+    return (
+      <div
+        style={{
+          padding: 'var(--space-6)',
+          maxWidth: '1100px',
+          margin: '0 auto',
+        }}
+      >
+        <Card padding="lg">
+          <p>{error}</p>
+        </Card>
+      </div>
+    )
+  }
 
   // ── Render ──────────────────────────────────────────────
+
+  const now = new Date()
+
+  const futureActivities = upcomingActivities.filter(
+    schedule => new Date(schedule.startAt) >= now
+  )
+
+  const previousActivities = upcomingActivities.filter(
+    schedule => new Date(schedule.startAt) < now
+  )
+
   return (
 
     <div
@@ -547,108 +558,108 @@ useEffect(() => {
 
 
       {user?.role === ROLES.LEADER && (
-  <div style={{ marginBottom: '32px' }}>
-    <Card>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-4)',
-      }}>
-        
-        <div>
-          <h2 style={{
-            fontSize: 'var(--text-xl)',
-            marginBottom: '4px',
-          }}>
-            Activities You Lead
-          </h2>
+        <div style={{ marginBottom: '32px' }}>
+          <Card>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-4)',
+            }}>
 
-          <p style={{
-            color: 'var(--color-text-muted)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            Activities you are assigned to lead.
+              <div>
+                <h2 style={{
+                  fontSize: 'var(--text-xl)',
+                  marginBottom: '4px',
+                }}>
+                  Activities You Lead
+                </h2>
+
+                <p style={{
+                  color: 'var(--color-text-muted)',
+                  fontSize: 'var(--text-sm)',
+                }}>
+                  Activities you are assigned to lead.
                 </p>
-                
+
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+              }}>
+
+                {leaderActivities.length === 0 ? (
+
+                  <Card padding="md">
+                    <p>No assigned activities yet.</p>
+                  </Card>
+
+                ) : (
+
+                  leaderActivities.map(activity => {
+                    return (
+                      <div
+                        key={activity.id}
+                        style={{
+                          padding: 'var(--space-4)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--color-surface-raised)',
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}>
+                          <div>
+                            <h3 style={{
+                              margin: 0,
+                              fontSize: 'var(--text-base)',
+                              fontWeight: 700,
+                            }}>
+                              {activity.name}
+                            </h3>
+
+                            <p style={{
+                              margin: '4px 0 0',
+                              color: 'var(--color-text-muted)',
+                              fontSize: 'var(--text-sm)',
+                            }}>
+                              {activity.description}
+                            </p>
+
+                            {activity.defaultStatus !== 'ACTIVE' && (
+                              <Badge
+                                variant={STATUS_VARIANT[activity.defaultStatus]}
+                              >
+                                {activity.defaultStatus}
+                              </Badge>
+                            )}
+                          </div>
+
+
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate(`/activities/${activity.id}/edit`)
+                            }
+                          >
+                            Manage
+                          </Button>
+
+                        </div>
+                      </div>
+                    )
+                  }))}
+              </div>
+            </div>
+          </Card>
         </div>
-
-        <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-3)',
-      }}>
-
-      {leaderActivities.length === 0 ? (
-
-        <Card padding="md">
-          <p>No assigned activities yet.</p>
-        </Card>
-
-) : (
-
-  leaderActivities.map(activity => {
-  return (
-    <div
-      key={activity.id}
-      style={{
-        padding: 'var(--space-4)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--color-surface-raised)',
-      }}
-    >
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}>
-        <div>
-          <h3 style={{
-            margin: 0,
-            fontSize: 'var(--text-base)',
-            fontWeight: 700,
-          }}>
-            {activity.name}
-          </h3>
-
-          <p style={{
-            margin: '4px 0 0',
-            color: 'var(--color-text-muted)',
-            fontSize: 'var(--text-sm)',
-          }}>
-            {activity.description}
-          </p>
-
-          {activity.defaultStatus !== 'ACTIVE' && (
-          <Badge
-            variant={STATUS_VARIANT[activity.defaultStatus]}
-          >
-            {activity.defaultStatus}
-          </Badge>
-        )}
-        </div>
-
-        
-        
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            navigate(`/activities/${activity.id}/edit`)
-          }
-        >
-            Manage
-          </Button>
-            
-          </div>
-        </div>
-        )
-          }))}
-        </div>
-      </div>
-    </Card>
-  </div>
-)}
+      )}
 
       {/* ── Upcoming Activities ────────────────────────── */}
       <div style={{ marginBottom: '32px' }}>
@@ -662,7 +673,7 @@ useEffect(() => {
           Upcoming Activities
         </h2>
 
-        {upcomingActivities.length === 0 ? (
+        {futureActivities.length === 0 ? (
 
           <Card padding="md">
             <p>No upcoming activities.</p>
@@ -679,7 +690,70 @@ useEffect(() => {
             }}
           >
 
-            {upcomingActivities.map(schedule => (
+            {futureActivities.map(schedule => (
+
+              <Card
+                key={schedule.id}
+                padding="md"
+                shadow="sm"
+              >
+
+                <h3
+                  style={{
+                    marginBottom: '8px',
+                  }}
+                >
+                  {schedule.activity.name}
+                </h3>
+
+                <p
+                  style={{
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  {new Date(schedule.startAt).toLocaleDateString()}
+                </p>
+
+              </Card>
+
+            ))}
+
+          </div>
+
+        )}
+
+      </div>
+
+      {/* ── Previous Activities ────────────────────────── */}
+      <div style={{ marginBottom: '32px' }}>
+
+        <h2
+          style={{
+            marginBottom: '16px',
+            fontSize: '1.5rem',
+          }}
+        >
+          Previous Activities
+        </h2>
+
+        {previousActivities.length === 0 ? (
+
+          <Card padding="md">
+            <p>No previous activities.</p>
+          </Card>
+
+        ) : (
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '16px',
+            }}
+          >
+
+            {previousActivities.map(schedule => (
 
               <Card
                 key={schedule.id}
@@ -768,7 +842,7 @@ useEffect(() => {
                   {activity.description}
                 </p>
 
-                
+
                 <p
                   style={{
                     marginBottom: '16px',
