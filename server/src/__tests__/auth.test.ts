@@ -176,15 +176,25 @@ describe('GET /api/auth/me', () => {
     expect(res.body.error).toBeDefined();
   });
 
-  it('returns 500 when token is malformed (unhandled JWT error)', async () => {
-    // NOTE: verifyToken throws JsonWebTokenError which is not an ApiError,
-    // so the global error handler returns 500. This is existing behaviour —
-    // a future improvement could catch it in authMiddleware and return 401.
+  it('returns 401 when token is malformed (unhandled JWT error)', async () => {
     const res = await request(app)
       .get('/api/auth/me')
       .set('Authorization', 'Bearer invalid.token.here');
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(401);
     expect(res.body.error).toBeDefined();
+  });
+
+  it('returns 401 when token is expired', async () => {
+    const jwt = require('jsonwebtoken');
+    const expiredToken = jwt.sign({ id: testUUID(), role: 'MEMBER' }, process.env.JWT_SECRET || 'secret', { expiresIn: '-1h' });
+
+    const res = await request(app)
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${expiredToken}`);
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error).toMatch(/expired/i);
   });
 });
