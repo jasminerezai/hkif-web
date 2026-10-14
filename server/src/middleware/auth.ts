@@ -29,7 +29,15 @@ export const authMiddleware = asyncHandler(async (req, _res, next) => {
   }
 
   const token = header.split(' ')[1]!;
-  const decoded = verifyToken(token); // throws on invalid / expired
+  let decoded;
+  try {
+    decoded = verifyToken(token); // throws on invalid / expired
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      throw ApiError.unauthorized('Token expired');
+    }
+    throw ApiError.unauthorized('Invalid token');
+  }
 
   const currentUser = await prisma.profile.findUnique({
     where: { id: decoded.id },
