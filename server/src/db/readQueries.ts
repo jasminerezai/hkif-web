@@ -32,20 +32,17 @@ export class READ {
 
 
     /**
-     * Given any date, it returns the weeks schedule of the week the date is in.
-     * @param date any valid date
-     * @return ScheduleDto[] --> {Schedule, activity: ActivityTemplate}[]
-     *      **SUCCESS** --> array filled with ScheduleDto objects
-     *      **FAIL** --> empty array
+     * Given a date range [startDate, endDate], returns all schedules between those dates (inclusive).
+     * @param startDate start boundary Date
+     * @param endDate end boundary Date
+     * @return ScheduleDto[]
      */
-    static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {
-        const { startDay, endDay } = startAndEndOfWeek(date);
-
+    static async dateRangeSchedule(startDate: Date, endDate: Date): Promise<ScheduleDto[]> {
         const schedule = await prisma.schedule.findMany({
             where: {
                 AND: [
-                    { startAt: { gte: startDay } },
-                    { startAt: { lte: endDay } }
+                    { startAt: { gte: startDate } },
+                    { startAt: { lte: endDate } }
                 ]
             },
             orderBy: {
@@ -75,25 +72,22 @@ export class READ {
         return schedule.map(formatSchedule);
     }
 
+    /**
+     * Given any date, it returns the weeks schedule of the week the date is in.
+     * @param date any valid date
+     * @return ScheduleDto[] --> {Schedule, activity: ActivityTemplate}[]
+     *      **SUCCESS** --> array filled with ScheduleDto objects
+     *      **FAIL** --> empty array
+     */
+    static async anyWeekSchedule(date: Date): Promise<ScheduleDto[]> {
+        const { startDay, endDay } = startAndEndOfWeek(date);
+        return await this.dateRangeSchedule(startDay, endDay);
+    }
 
-    static async anyDaySchedule(date: Date): Promise<any[]> {
-        const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-        const endDay = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), startDay.getUTCDate() + 1));
-        const schedule = await prisma.schedule.findMany({
-            where: {
-                startAt: {
-                    gte: startDay,
-                    lt: endDay
-                },
-            },
-            orderBy: {
-                startAt: "asc"
-            },
-            include: {
-                activity: true
-            }
-        });
-        return schedule;
+    static async anyDaySchedule(date: Date): Promise<ScheduleDto[]> {
+        const startDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+        const endDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+        return await this.dateRangeSchedule(startDay, endDay);
     }
 
 

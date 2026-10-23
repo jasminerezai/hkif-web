@@ -118,6 +118,8 @@ describe('POST /api/activities/:aId/schedules/:sId/participate', () => {
           findUnique: vi.fn().mockResolvedValueOnce({
             id: scheduleId,
             activityId,
+            startAt: new Date(Date.now() + 86_400_000),
+            endAt: new Date(Date.now() + 90_000_000),
             activity: { maxCapacity: 20 },
           }),
         },

@@ -390,6 +390,105 @@ Response includes a human-readable message:
 
 ---
 
+### Schedules
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| `GET` | `/api/schedules/current` | None | Returns the current week's schedule (Monday to Sunday) |
+| `GET` | `/api/schedules` | None | Get schedule by date (`?date=...&entireWeek=...`) or date range (`?startDate=...&endDate=...` or `?month=...`) |
+| `GET` | `/api/schedules/range` | None | **(T16)** Get schedules for an entire date range or whole month in a single call |
+| `POST` | `/api/schedules` | BOARD_MEMBER+ | Create a new schedule occurrence |
+| `PUT` | `/api/schedules/:scheduleId` | LEADER+ | Update a schedule occurrence |
+| `PATCH` | `/api/schedules/:scheduleId` | LEADER+ | Partially update a schedule occurrence |
+| `DELETE` | `/api/schedules/:scheduleId` | BOARD_MEMBER+ | Delete a schedule occurrence |
+
+#### GET /api/schedules/range (T16 - One call for a whole month)
+
+Returns all scheduled activity sessions within a date range (inclusive), ordered chronologically. Designed specifically for monthly views or custom date ranges to eliminate multiple round-trips.
+
+##### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `startDate` (or `from`, `start`) | `string` | Yes* | Start date in `YYYY-MM-DD` or ISO-8601 (`YYYY-MM-DDTHH:mm:ss.sssZ`) or `"today"`. Date-only values default to `00:00:00.000Z`. |
+| `endDate` (or `to`, `end`) | `string` | Yes* | End date in `YYYY-MM-DD` or ISO-8601 or `"today"`. Date-only values automatically extend to `23:59:59.999Z` to include the entire day. |
+| `month` | `string` | Optional* | Calendar month shortcut in `YYYY-MM` format (e.g. `2026-10`). Automatically queries from the 1st day `00:00:00.000Z` to the last day `23:59:59.999Z` of that month. |
+
+*\* Either provide both `startDate` and `endDate` (or `from` & `to`), or provide `month`.*
+
+##### Example 1: Entire calendar month (e.g. October 2026)
+```
+GET /api/schedules/range?month=2026-10
+```
+or
+```
+GET /api/schedules/range?startDate=2026-10-01&endDate=2026-10-31
+```
+
+##### Example 2: Month calendar grid (including leading/trailing days from adjacent months)
+```
+GET /api/schedules/range?startDate=2026-09-28&endDate=2026-11-01
+```
+
+##### Response `(200 OK)`:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "e30e15b6-79cf-4fd3-9d47-65dae0caeb76",
+      "activityId": "912dbb8f-124b-4cbe-8c7c-9b16858e7223",
+      "startAt": "2026-10-06T17:00:00.000Z",
+      "endAt": "2026-10-06T18:30:00.000Z",
+      "status": "ACTIVE",
+      "createdAt": "2026-10-01T12:00:00.000Z",
+      "updatedAt": "2026-10-01T12:00:00.000Z",
+      "activity": {
+        "id": "912dbb8f-124b-4cbe-8c7c-9b16858e7223",
+        "name": "Badminton",
+        "description": "Weekly casual badminton",
+        "location": "Gym Hall 2",
+        "maxCapacity": 20,
+        "defaultStatus": "ACTIVE",
+        "notes": "Bring your own racket"
+      },
+      "leaders": [
+        {
+          "id": "42610ff9-219e-4a62-9d7a-12e2cbfbe4aa",
+          "profileName": "Sarah Connor"
+        }
+      ],
+      "participantCount": 7
+    }
+  ]
+}
+```
+
+##### Error Responses:
+- `400 Bad Request`: When required parameters are missing or invalid:
+```json
+{
+  "error": "Both startDate and endDate are required",
+  "statusCode": 400
+}
+```
+or
+```json
+{
+  "error": "startDate must be before or equal to endDate",
+  "statusCode": 400
+}
+```
+
+#### GET /api/schedules/current
+Returns all sessions for the current ISO week (Monday to Sunday).
+
+#### GET /api/schedules
+Flexible collection endpoint supporting:
+- Date range: `GET /api/schedules?startDate=2026-10-01&endDate=2026-10-31` or `GET /api/schedules?month=2026-10`
+- Specific week: `GET /api/schedules?date=2026-10-15` (defaults to entire week)
+- Single day: `GET /api/schedules?date=2026-10-15&entireWeek=false`
+
 ## Seeded Test Accounts
 
 After running `npx prisma db seed`, the following accounts are available:

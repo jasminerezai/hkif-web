@@ -20,9 +20,10 @@ const scheduleRoutes: Router = Router();
 // returns the currents week schedule
 scheduleRoutes.get('/current', controller.currentWeek ) // re-route to getSchedule function?
 
+// returns schedules for a date range (e.g. ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD or ?month=YYYY-MM)
+scheduleRoutes.get('/range', controller.getDateRangeSchedule )
 
-
-// query: ?date=<some_date(default: today)&entireWeek=<boolean(default: true)>
+// query: ?date=<some_date(default: today)&entireWeek=<boolean(default: true)> or ?startDate=&endDate=
 scheduleRoutes.get('', controller.getSchedule )
 
 // CREATE schedule: restrict to BOARD_MEMBER and above
