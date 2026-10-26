@@ -29,6 +29,8 @@ export {
 export {
   ScheduleDateSchema,
   ScheduleBoolWeekSchema,
+  ScheduleRangeQuerySchema,
+  parseDateRange,
   CreateScheduleSchema,
   UpdateScheduleSchema,
   ScheduleIdParamSchema,

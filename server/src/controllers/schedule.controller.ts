@@ -8,6 +8,7 @@ import {
   parseZodError,
   ScheduleDateSchema,
   ScheduleBoolWeekSchema,
+  parseDateRange,
   CreateScheduleSchema,
   UpdateScheduleSchema,
   ScheduleIdParamSchema,
@@ -53,11 +54,65 @@ const currentWeek = asyncHandler(
 )
 
 /**
+ * Date range schedule route handler (e.g. for month view)
+ * route: '/api/schedules/range?startDate=<date>&endDate=<date>'
+ * or: '/api/schedules/range?month=<YYYY-MM>'
+ */
+const getDateRangeSchedule = asyncHandler(
+    async (req: Request, res: Response<ApiResponse<ScheduleDto[]>>) => {
+        let range: { startDate: Date; endDate: Date };
+        try {
+            range = parseDateRange(req.query);
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw ApiError.badRequest(JSON.stringify(parseZodError(error)));
+            }
+            if (error instanceof Error) {
+                throw ApiError.badRequest(error.message);
+            }
+            throw ApiError.internal(`Something went wrong: ${error}`);
+        }
+
+        const schedule: ScheduleDto[] = await READ.dateRangeSchedule(range.startDate, range.endDate);
+        res.status(200).json({ status: "success", data: schedule });
+    }
+);
+
+/**
  * generic schedule route handler
  * route: '/api/schedules?date=<someDate>&entireWeek=<boolean>'
+ * or: '/api/schedules?startDate=<date>&endDate=<date>'
  */
 const getSchedule = asyncHandler(
     async (req: Request, res: Response< ApiResponse< ScheduleDto[] > >) => {
+        // If range or month parameters are present, handle as date range
+        if (
+            req.query.startDate !== undefined ||
+            req.query.endDate !== undefined ||
+            req.query.from !== undefined ||
+            req.query.to !== undefined ||
+            req.query.start !== undefined ||
+            req.query.end !== undefined ||
+            req.query.month !== undefined
+        ) {
+            let range: { startDate: Date; endDate: Date };
+            try {
+                range = parseDateRange(req.query);
+            } catch (error) {
+                if (error instanceof ZodError) {
+                    throw ApiError.badRequest(JSON.stringify(parseZodError(error)));
+                }
+                if (error instanceof Error) {
+                    throw ApiError.badRequest(error.message);
+                }
+                throw ApiError.internal(`Something went wrong: ${error}`);
+            }
+
+            const schedule: ScheduleDto[] = await READ.dateRangeSchedule(range.startDate, range.endDate);
+            res.status(200).json({ status: "success", data: schedule });
+            return;
+        }
+
         let schedule: ScheduleDto[];// ScheduleDto[]
         let date: output<ZodOptional<ZodNullable<ZodUnion<readonly [ZodISODate, ZodLiteral<"today">]>>>> | Date;
         let entireWeek: boolean | null;
@@ -185,6 +240,7 @@ const deleteSchedule = asyncHandler(async (
 
 export const controller = {
     currentWeek,
+    getDateRangeSchedule,
     getSchedule,
     createSchedule,
     updateSchedule,
